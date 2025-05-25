@@ -1,0 +1,50 @@
+name: WordPress Playground Performance Tests 🚀
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write  # Needed for PR comments
+
+jobs:
+  performance-test:
+    name: Run Performance Tests with WordPress Playground
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Run performance tests using WordPress Playground
+      - name: Run WordPress Playground Performance Tests
+        uses: swissspidy/wp-performance-action@v2
+        with:
+          # Use the same blueprint as local setup
+          blueprint: .github/blueprints/simple.json
+          
+          # Mount the plugin directory
+          plugins: |
+            .
+          
+          # Test key pages
+          urls: |
+            /
+            /wp-admin/
+            /wp-admin/admin.php?page=kaigen
+          
+          # Performance settings
+          iterations: 5
+          repetitions: 2
+          
+          # WordPress and PHP versions to match blueprint
+          wp-version: 'latest'
+          php-version: '8.1'
+          
+          # Output settings
+          create-comment: true
+          print-results: true
+          upload-artifacts: true 

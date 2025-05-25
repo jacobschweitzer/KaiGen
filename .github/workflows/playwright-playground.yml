@@ -1,4 +1,4 @@
-name: E2E Tests 🚀
+name: E2E Tests with WordPress Playground 🚀
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions: {}
 
 jobs:
   test:
-    name: Run E2E Tests
+    name: Run E2E Tests with WordPress Playground
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,13 +58,13 @@ jobs:
           # Wait for the server to be ready
           npx wait-on -t 60000 http://localhost:9400
 
-      # Run tests using the playground setup (same as local)
+      # Run tests using the playground setup
       - name: Run E2E tests
         run: npm run test:playground
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-${{ github.run_id }}
+          name: playwright-report-playground-${{ github.run_id }}
           path: playwright-report/
-          retention-days: 30
+          retention-days: 30 
