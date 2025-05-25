@@ -28,7 +28,7 @@
     "test:playwright:headed": "wp-scripts test-playwright --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.1",
+    "@playwright/test": "^1.52.0",
     "@types/node": "^22.13.4",
     "@wordpress/e2e-test-utils-playwright": "^1.18.0",
     "@wordpress/env": "^8.12.0",
