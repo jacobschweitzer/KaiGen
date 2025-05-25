@@ -15,6 +15,11 @@
     {
       "step": "activatePlugin",
       "pluginPath": "/wordpress/wp-content/plugins/kaigen"
+    },
+    {
+      "step": "login",
+      "username": "admin",
+      "password": "password"
     }
   ]
 } 
