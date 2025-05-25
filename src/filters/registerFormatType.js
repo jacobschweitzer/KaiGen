@@ -43,9 +43,9 @@ registerFormatType('kaigen/custom-format', {
                     return;
                 }
 
-                // Get the main provider from editor settings
-                const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
-                if (!mainProvider) {
+                // Get the provider from editor settings
+                const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
+                if (!provider) {
                     wp.data.dispatch('core/notices').createErrorNotice(
                         'No AI provider configured. Please set one in the plugin settings.',
                         { type: 'snackbar' }

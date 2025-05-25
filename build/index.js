@@ -405,15 +405,15 @@ __webpack_require__.r(__webpack_exports__);
     (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_2__.useEffect)(() => {
       const initializeProvider = async () => {
         try {
-          // Get the main provider from localized data
-          const mainProvider = window.kaiGen?.mainProvider;
-          if (!mainProvider) {
-            console.error('No main provider configured in localized data');
+          // Get the provider from localized data
+          const provider = window.kaiGen?.provider;
+          if (!provider) {
+            console.error('No provider configured in localized data');
             return;
           }
 
           // Only OpenAI's gpt-image-1 supports image-to-image
-          setSupportsImageToImage(mainProvider === 'openai');
+          setSupportsImageToImage(provider === 'openai');
         } catch (err) {
           console.error('Failed to initialize provider:', err);
         }
@@ -435,10 +435,10 @@ __webpack_require__.r(__webpack_exports__);
       // Use alt text as fallback if no prompt is provided
       const finalPrompt = prompt || props.attributes.alt || "no alt text or prompt, please just enhance";
 
-      // Get the main provider from localized data
-      const mainProvider = window.kaiGen?.mainProvider;
-      if (!mainProvider) {
-        console.error('No main provider configured');
+      // Get the provider from localized data
+      const provider = window.kaiGen?.provider;
+      if (!provider) {
+        console.error('No provider configured');
         wp.data.dispatch('core/notices').createErrorNotice('No AI provider configured. Please check your plugin settings.', {
           type: 'snackbar'
         });
@@ -648,9 +648,9 @@ __webpack_require__.r(__webpack_exports__);
           return;
         }
 
-        // Get the main provider from editor settings
-        const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
-        if (!mainProvider) {
+        // Get the provider from editor settings
+        const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
+        if (!provider) {
           wp.data.dispatch('core/notices').createErrorNotice('No AI provider configured. Please set one in the plugin settings.', {
             type: 'snackbar'
           });

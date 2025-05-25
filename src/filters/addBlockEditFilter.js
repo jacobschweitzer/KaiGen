@@ -29,16 +29,16 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
         useEffect(() => {
             const initializeProvider = async () => {
                 try {
-                    // Get the main provider from localized data
-                    const mainProvider = window.kaiGen?.mainProvider;
+                    // Get the provider from localized data
+                    const provider = window.kaiGen?.provider;
 
-                    if (!mainProvider) {
-                        console.error('No main provider configured in localized data');
+                    if (!provider) {
+                        console.error('No provider configured in localized data');
                         return;
                     }
 
                     // Only OpenAI's gpt-image-1 supports image-to-image
-                    setSupportsImageToImage(mainProvider === 'openai');
+                    setSupportsImageToImage(provider === 'openai');
                 } catch (err) {
                     console.error('Failed to initialize provider:', err);
                 }
@@ -60,11 +60,11 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
             // Use alt text as fallback if no prompt is provided
             const finalPrompt = prompt || props.attributes.alt || "no alt text or prompt, please just enhance";
 
-            // Get the main provider from localized data
-            const mainProvider = window.kaiGen?.mainProvider;
+            // Get the provider from localized data
+            const provider = window.kaiGen?.provider;
 
-            if (!mainProvider) {
-                console.error('No main provider configured');
+            if (!provider) {
+                console.error('No provider configured');
                 wp.data.dispatch('core/notices').createErrorNotice(
                     'No AI provider configured. Please check your plugin settings.',
                     { type: 'snackbar' }
