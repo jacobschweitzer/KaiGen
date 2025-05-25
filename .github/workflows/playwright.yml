@@ -14,7 +14,7 @@ jobs:
     name: Run E2E Tests
     runs-on: ubuntu-latest
     # Use official Playwright container with Node and browsers pre-installed
-    container: mcr.microsoft.com/playwright:v1.50.1-focal
+    container: mcr.microsoft.com/playwright:v1.52.0-noble
     permissions:
       contents: read
     timeout-minutes: 30
