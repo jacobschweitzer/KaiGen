@@ -1,4 +1,4 @@
-name: Playwright Tests 🚀
+name: E2E Tests 🚀
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
           npx wait-on -t 60000 http://localhost:8889/wp-admin http://localhost:8889/wp-login.php
 
       # Run tests with optimized settings
-      - name: Run Playwright tests
+      - name: Run E2E tests
         run: npm run test:e2e:ci
 
       - uses: actions/upload-artifact@v4

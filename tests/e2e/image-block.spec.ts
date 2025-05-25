@@ -11,24 +11,16 @@ test.describe('Image Block', () => {
     /**
      * Setup function that runs before each test to prepare the environment.
      */
-    test.beforeEach(async ({ admin, page }) => {
+    test.beforeEach(async ({ admin, page, requestUtils }) => {
         test.setTimeout(30000);
         
-        await page.goto('/wp-admin');
+        // Ensure we have a clean session by visiting the admin dashboard first
+        await page.goto('/wp-admin/');
         
-        const currentUrl = page.url();
-        if (currentUrl.includes('wp-login.php')) {
-            await page.getByLabel('Username or Email Address').click();
-            await page.getByLabel('Username or Email Address').fill('admin');
-            await page.getByLabel('Password', { exact: true }).click();
-            await page.getByLabel('Password', { exact: true }).fill('password');
-            
-            await Promise.all([
-                page.waitForLoadState('domcontentloaded'),
-                page.getByRole('button', { name: 'Log In' }).click()
-            ]);
-        }
-
+        // Wait a moment for the page to load
+        await page.waitForLoadState('networkidle');
+        
+        // Create a new post using the admin utility
         await admin.createNewPost();
     });
 
@@ -57,7 +49,7 @@ test.describe('Image Block', () => {
 
         // Look for the "Generate AI Image" button within the media placeholder.
         const aiGenerateButton = editor.canvas.getByRole('button', { 
-            name: 'Generate AI Image',
+            name: 'KaiGen',
             exact: true 
         });
         

@@ -1,14 +1,9 @@
 /**
- * WordPress-specific Playwright configuration.
+ * WordPress Playground Playwright configuration.
+ * Simple setup for WordPress Playground testing.
  */
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test';
-
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// require('dotenv').config();
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -38,8 +33,8 @@ export default defineConfig({
   
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:8889',
+    /* Base URL for WordPress Playground */
+    baseURL: 'http://localhost:9400',
 
     /* Disable video and trace recording in CI for performance */
     video: process.env.CI ? 'off' : 'on-first-retry',
@@ -63,11 +58,5 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'wp-env start',
-    url: 'http://localhost:8889',
-    reuseExistingServer: true,
-    timeout: 120000, // Increased timeout for WordPress startup
-  },
+  /* No webServer config - WordPress Playground is managed externally */
 });

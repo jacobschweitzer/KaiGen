@@ -1,0 +1,20 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "preferredVersions": {
+    "php": "8.1",
+    "wp": "latest"
+  },
+  "steps": [
+    {
+      "step": "runWpInstallationWizard",
+      "options": {
+        "adminUsername": "admin",
+        "adminPassword": "password"
+      }
+    },
+    {
+      "step": "activatePlugin",
+      "pluginPath": "/wordpress/wp-content/plugins/kaigen"
+    }
+  ]
+} 
