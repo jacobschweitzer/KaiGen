@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: Playwright Tests 🚀
 
 on:
   push:
@@ -13,57 +13,34 @@ jobs:
   test:
     name: Run E2E Tests
     runs-on: ubuntu-latest
+    # Use official Playwright container with Node and browsers pre-installed
+    container: mcr.microsoft.com/playwright:v1.50.1-focal
     permissions:
       contents: read
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: npm
-
+      # Install only our project dependencies (Playwright is already in the container)
       - name: Install dependencies
         run: npm ci
 
-      - name: Create docker-compose alias for Docker Compose v2
-        run: |
-          # Create a wrapper script that forwards arguments to "docker compose"
-          echo '#!/bin/sh
-          docker compose "$@"' | sudo tee /usr/local/bin/docker-compose
-          # Make the script executable
-          sudo chmod +x /usr/local/bin/docker-compose
-
-
-      # Cache Playwright browsers to speed up subsequent runs.
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
-
-      # Only install browsers if cache miss occurred.
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium --with-deps
-
-      # Install and configure WordPress environment.
+      # Install and configure WordPress environment
       - name: Install WordPress Environment
         run: npm install -g @wordpress/env
 
-      # Start WordPress environment and wait for it to be ready.
+      # Start WordPress environment and wait for it to be ready
       - name: Start WordPress Environment
         run: |
           npx wp-env start
           npx wait-on -t 60000 http://localhost:8889/wp-admin http://localhost:8889/wp-login.php
 
+      # Run tests with optimized settings
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npm run test:e2e:ci
 
       - uses: actions/upload-artifact@v4
         if: always()
