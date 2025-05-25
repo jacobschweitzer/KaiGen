@@ -54,7 +54,6 @@ class KaiGen_Admin {
 		add_action('admin_menu', [$this, 'add_settings_page']);
 		add_action('admin_init', [$this, 'register_settings']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
-		add_action('admin_footer', [$this, 'add_admin_footer_js']);
 
 		// Add the provider setting to the editor settings
 		add_filter('block_editor_settings_all', function($settings) {
@@ -356,14 +355,6 @@ class KaiGen_Admin {
 	 * @param string $hook The current admin page hook.
 	 */
 	public function enqueue_scripts($hook) {
-		// Enqueue admin styles if needed
-		wp_enqueue_style(
-			'kaigen-admin',
-			plugin_dir_url(dirname(__FILE__)) . 'assets/css/admin.css/',
-			[],
-			'1.0.0'
-		);
-
 		// Enqueue block editor scripts
 		if (in_array($hook, ['post.php', 'post-new.php'])) {
 			// Get the provider setting
@@ -393,36 +384,15 @@ class KaiGen_Admin {
 				'nonce' => wp_create_nonce('kaigen_nonce'),
 				'provider' => $provider,
 			]);
+		} else if ( in_array( $hook, ['settings_page_kaigen-settings'] ) ) {
+			wp_enqueue_script(
+				'kaigen-admin',
+				plugin_dir_url(dirname(__FILE__)) . 'build/admin.js/',
+				[],
+				'1.0.0',
+				true
+			);
 		}
-	}
-
-	/**
-	 * Adds JavaScript to the admin footer for handling remove key functionality.
-	 */
-	public function add_admin_footer_js() {
-		$screen = get_current_screen();
-		if ($screen->id !== 'settings_page_kaigen-settings') {
-			return;
-		}
-		?>
-		<script type="text/javascript">
-		document.addEventListener('DOMContentLoaded', function() {
-			// Get all remove buttons
-			var removeButtons = document.querySelectorAll('.kaigen-remove-key');
-			
-			// Add click event listener to each remove button
-			removeButtons.forEach(function(button) {
-				button.addEventListener('click', function() {
-					var providerId = this.getAttribute('data-provider');
-					var inputField = document.getElementById('kaigen_' + providerId + '_api_key');
-					if (inputField) {
-						inputField.value = '';
-					}
-				});
-			});
-		});
-		</script>
-		<?php
 	}
 
 	/**

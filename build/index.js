@@ -329,31 +329,6 @@ const AITab = ({
 
 /***/ }),
 
-/***/ "./src/core-image-modifications.js":
-/*!*****************************************!*\
-  !*** ./src/core-image-modifications.js ***!
-  \*****************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./api */ "./src/api.js");
-/* harmony import */ var _components_AITab__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/AITab */ "./src/components/AITab.js");
-/* harmony import */ var _components_AIImageToolbar__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/AIImageToolbar */ "./src/components/AIImageToolbar.js");
-/* harmony import */ var _filters_registerFormatType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./filters/registerFormatType */ "./src/filters/registerFormatType.js");
-/* harmony import */ var _filters_addMediaUploadFilter__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./filters/addMediaUploadFilter */ "./src/filters/addMediaUploadFilter.js");
-/* harmony import */ var _filters_addBlockEditFilter__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./filters/addBlockEditFilter */ "./src/filters/addBlockEditFilter.js");
-// This is the main entry point for the AI image generation modifications.
-// It imports the API functions, components, and filters so that they are registered and active.
-
- // Import API functions.
- // Import the AITab component.
- // Import the toolbar component.
- // Register the rich-text format type.
- // Enhance the MediaUpload component.
- // Enhance the BlockEdit (image regeneration) functionality.
-
-/***/ }),
-
 /***/ "./src/filters/addBlockEditFilter.js":
 /*!*******************************************!*\
   !*** ./src/filters/addBlockEditFilter.js ***!
@@ -858,7 +833,20 @@ var __webpack_exports__ = {};
   !*** ./src/index.js ***!
   \**********************/
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _core_image_modifications__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./core-image-modifications */ "./src/core-image-modifications.js");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./api */ "./src/api.js");
+/* harmony import */ var _components_AITab__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/AITab */ "./src/components/AITab.js");
+/* harmony import */ var _components_AIImageToolbar__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/AIImageToolbar */ "./src/components/AIImageToolbar.js");
+/* harmony import */ var _filters_registerFormatType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./filters/registerFormatType */ "./src/filters/registerFormatType.js");
+/* harmony import */ var _filters_addMediaUploadFilter__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./filters/addMediaUploadFilter */ "./src/filters/addMediaUploadFilter.js");
+/* harmony import */ var _filters_addBlockEditFilter__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./filters/addBlockEditFilter */ "./src/filters/addBlockEditFilter.js");
+/**
+ * Main entry point for the KaiGen Gutenberg editor modifications.
+ */
+
+
+
+
+
 
 })();
 
