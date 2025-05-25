@@ -18,7 +18,7 @@ Add your OpenAI API key in Settings -> KaiGen
 == How To Gen ==
 Edit a post
 Insert an image block
-Click the "Generate AI Image" button in the block toolbar
+Click the "KaiGen" button in the block toolbar
 Put a prompt into the input box
 Click the Generate Image button
 (wait up to 30 seconds - OpenAI API can be slow sometimes)

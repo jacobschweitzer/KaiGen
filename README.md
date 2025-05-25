@@ -16,7 +16,7 @@ Includes a WordPress Gutenberg block with a prompt box that generates an image a
 ## How To Gen
 1. Edit a post
 2. Insert an image block
-3. Click the "Generate AI Image" button in the block toolbar
+3. Click the "KaiGen" button in the block toolbar
 4. Put a prompt into the input box
 5. Click the Generate Image button
 6. View/Edit the inserted image block (the alt text contains the prompt)

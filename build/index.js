@@ -182,11 +182,11 @@ const AIImageToolbar = ({
   if (isImageBlock) {
     return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.ToolbarGroup, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.ToolbarButton, {
       icon: isRegenerating ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, null) : "update",
-      label: isRegenerating ? "Regenerating AI Image..." : supportsImageToImage ? "Regenerate AI Image (using source image)" : "Regenerate AI Image",
+      label: isRegenerating ? "KaiGen is generating..." : "KaiGen",
       onClick: () => setIsModalOpen(true),
       disabled: isRegenerating
     })), isModalOpen && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Modal, {
-      title: "Modify AI Image",
+      title: "KaiGen : Edit Image",
       onRequestClose: () => {
         setIsModalOpen(false);
         setPrompt('');
@@ -211,7 +211,7 @@ const AIImageToolbar = ({
   else if (isTextSelected) {
     return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.ToolbarGroup, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.ToolbarButton, {
       icon: isGenerating ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, null) : "format-image",
-      label: isGenerating ? "Generating AI Image..." : "Generate AI Image",
+      label: isGenerating ? "KaiGen is generating..." : "KaiGen",
       onClick: onGenerateImage,
       disabled: isGenerating
     }));
@@ -303,8 +303,8 @@ const AITab = ({
     variant: "secondary",
     onClick: () => setIsModalOpen(true),
     className: "components-button is-next-40px-default-size is-secondary"
-  }, "Generate AI Image")), isModalOpen && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Modal, {
-    title: "WP AI Image Gen" // Modal title.
+  }, "KaiGen")), isModalOpen && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Modal, {
+    title: "KaiGen" // Modal title.
     ,
     onRequestClose: () => setIsModalOpen(false) // Closes the modal.
   }, error && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", {
@@ -312,7 +312,7 @@ const AITab = ({
       color: 'red'
     }
   }, error), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.TextareaControl, {
-    label: "Enter your image prompt",
+    label: "Prompt",
     value: prompt,
     onChange: setPrompt // Updates the prompt state.
     ,
@@ -323,7 +323,7 @@ const AITab = ({
     onClick: handleGenerate // Initiates image generation.
     ,
     disabled: isLoading || !prompt.trim() // Disables button if conditions are not met.
-  }, isLoading ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, null), " ", "Generating...") : 'Generate Image')));
+  }, isLoading ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, null), " ", "KaiGen is generating...") : 'KaiGen')));
 };
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (AITab); // Export the AITab component.
 
