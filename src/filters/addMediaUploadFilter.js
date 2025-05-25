@@ -9,7 +9,7 @@ import AITab from '../components/AITab'; // Import the AITab component.
  * @param {Object} props - Properties passed to the MediaUpload component.
  * @returns {JSX.Element} The enhanced MediaUpload component with the AITab.
  */
-addFilter('editor.MediaUpload', 'wp-ai-image-gen/add-ai-tab', (OriginalMediaUpload) => {
+addFilter('editor.MediaUpload', 'kaigen/add-ai-tab', (OriginalMediaUpload) => {
     // Return a new component which wraps the original MediaUpload.
     return (props) => {
         // Check if the MediaUpload is used for a single image block.

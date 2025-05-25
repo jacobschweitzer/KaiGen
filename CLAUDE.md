@@ -18,8 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - PHP: Classes use class-prefix.php naming convention
 - PHP: Use doc blocks with @package and function descriptions
 - JavaScript: Use JSX for components
-- Error handling: Log errors with wp_ai_image_gen_debug_log()
+- Error handling: Log errors with kaigen_debug_log()
 - Sanitize user inputs with WordPress functions like sanitize_text_field()
 - Escape outputs with esc_attr(), esc_html(), etc.
-- PHP class prefix: WP_AI_Image_Gen_
+- PHP class prefix: KaiGen_
 - Use hooks and filters to extend functionality

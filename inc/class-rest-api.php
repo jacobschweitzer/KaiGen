@@ -1,17 +1,17 @@
 <?php
 /**
- * REST API functionality for the WP AI Image Gen plugin.
+ * REST API functionality for the KaiGen plugin.
  *
- * @package WP_AI_Image_Gen
+ * @package KaiGen
  */
 
 /**
  * Handles all REST API endpoints and functionality for the plugin.
  */
-final class WP_AI_Image_Gen_REST_Controller {
+final class KaiGen_REST_Controller {
     /**
      * Holds the singleton instance of this class.
-     * @var WP_AI_Image_Gen_REST_Controller
+     * @var KaiGen_REST_Controller
      */
     private static $instance = null;
 
@@ -19,7 +19,7 @@ final class WP_AI_Image_Gen_REST_Controller {
      * The REST API namespace for this plugin.
      * @var string
      */
-    private const API_NAMESPACE = 'wp-ai-image-gen/v1';
+    private const API_NAMESPACE = 'kaigen/v1';
 
     /**
      * Initialize the REST API functionality.
@@ -30,7 +30,7 @@ final class WP_AI_Image_Gen_REST_Controller {
 
     /**
      * Gets the singleton instance of the REST controller.
-     * @return WP_AI_Image_Gen_REST_Controller The singleton instance.
+     * @return KaiGen_REST_Controller The singleton instance.
      */
     public static function get_instance() {
         if (null === self::$instance) {
@@ -114,19 +114,19 @@ final class WP_AI_Image_Gen_REST_Controller {
     private function get_provider_model($provider_id) {
         // For Replicate, get the model based on quality setting
         if ($provider_id === 'replicate') {
-            $quality_settings = get_option('wp_ai_image_gen_quality_settings', []);
+            $quality_settings = get_option('kaigen_quality_settings', []);
             $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
             
-            $provider = wp_ai_image_gen_provider_manager()->get_provider($provider_id);
+            $provider = kaigen_provider_manager()->get_provider($provider_id);
             if ($provider) {
                 $model = $provider->get_model_from_quality_setting($quality);
-                wp_ai_image_gen_debug_log("Selected Replicate model based on quality {$quality}: {$model}");
+                kaigen_debug_log("Selected Replicate model based on quality {$quality}: {$model}");
                 return $model;
             }
         }
 
         // For other providers, use the stored model or default
-        $provider_models = get_option('wp_ai_image_gen_provider_models', []);
+        $provider_models = get_option('kaigen_provider_models', []);
         $default_models = [
             'openai' => 'dall-e-3',
         ];
@@ -138,8 +138,8 @@ final class WP_AI_Image_Gen_REST_Controller {
         if (!empty($default_models[$provider_id])) {
             $model = $default_models[$provider_id];
             $provider_models[$provider_id] = $model;
-            update_option('wp_ai_image_gen_provider_models', $provider_models);
-            wp_ai_image_gen_debug_log("Assigned default model for {$provider_id}: {$model}");
+            update_option('kaigen_provider_models', $provider_models);
+            kaigen_debug_log("Assigned default model for {$provider_id}: {$model}");
             return $model;
         }
 
@@ -153,7 +153,7 @@ final class WP_AI_Image_Gen_REST_Controller {
      */
     private function get_additional_params($request) {
         // Get saved quality settings
-        $quality_settings = get_option('wp_ai_image_gen_quality_settings', []);
+        $quality_settings = get_option('kaigen_quality_settings', []);
         $quality_value = isset($quality_settings['quality']) && $quality_settings['quality'] === 'hd' ? 100 : 80;
         $style_value = isset($quality_settings['style']) ? $quality_settings['style'] : 'natural';
         
@@ -166,7 +166,7 @@ final class WP_AI_Image_Gen_REST_Controller {
         
         // Get the provider and model
         $provider_id = $request->get_param('provider');
-        $provider_models = get_option('wp_ai_image_gen_provider_models', []);
+        $provider_models = get_option('kaigen_provider_models', []);
         $model = $provider_models[$provider_id] ?? '';
         
         // Only include style for non-GPT Image-1 models
@@ -230,7 +230,7 @@ final class WP_AI_Image_Gen_REST_Controller {
 
         while ($retry_count < $max_retries) {
             try {
-                wp_ai_image_gen_debug_log("Attempt " . ($retry_count + 1) . " - Making API request");
+                kaigen_debug_log("Attempt " . ($retry_count + 1) . " - Making API request");
                 
                 $result = $this->make_provider_request($provider_id, $prompt, $model, $additional_params);
                 
@@ -238,7 +238,7 @@ final class WP_AI_Image_Gen_REST_Controller {
                     // Handle failed status with content filtering error
                     if (isset($result['status']) && $result['status'] === 'failed') {
                         if (isset($result['error']) && strpos($result['error'], 'flagged by safety filters') !== false) {
-                            wp_ai_image_gen_debug_log("Content filtered by provider safety system: " . $result['error']);
+                            kaigen_debug_log("Content filtered by provider safety system: " . $result['error']);
                             return new WP_Error(
                                 'content_filtered',
                                 'The image was flagged by the provider\'s safety filters. Please modify your prompt and try again.',
@@ -253,7 +253,7 @@ final class WP_AI_Image_Gen_REST_Controller {
 
                     // Check if we have a WordPress attachment ID
                     if (isset($result['url']) && isset($result['id']) && is_numeric($result['id']) && $result['id'] > 0) {
-                        wp_ai_image_gen_debug_log("Image generated and added to media library: " . wp_json_encode($result));
+                        kaigen_debug_log("Image generated and added to media library: " . wp_json_encode($result));
                         // Format response for WordPress media
                         $response_data = [
                             'url' => $result['url'],
@@ -265,7 +265,7 @@ final class WP_AI_Image_Gen_REST_Controller {
                     
                     // Handle direct URL response without WordPress attachment
                     if (isset($result['url'])) {
-                        wp_ai_image_gen_debug_log("Image generated with URL: " . wp_json_encode($result));
+                        kaigen_debug_log("Image generated with URL: " . wp_json_encode($result));
                         // Return the result without an ID
                         $response_data = [
                             'url' => $result['url'],
@@ -276,7 +276,7 @@ final class WP_AI_Image_Gen_REST_Controller {
                     
                     // Handle processing status
                     if (isset($result['status']) && ($result['status'] === 'processing' || $result['status'] === 'starting')) {
-                        wp_ai_image_gen_debug_log("Image still processing with status: " . $result['status']);
+                        kaigen_debug_log("Image still processing with status: " . $result['status']);
                         throw new Exception('Image still processing');
                     }
                     
@@ -285,7 +285,7 @@ final class WP_AI_Image_Gen_REST_Controller {
 
                 // Handle content moderation errors (400) - return immediately without retrying
                 if ($result->get_error_code() === 'content_moderation') {
-                    wp_ai_image_gen_debug_log("Content moderation error - not retrying: " . $result->get_error_message());
+                    kaigen_debug_log("Content moderation error - not retrying: " . $result->get_error_message());
                     return $result;
                 }
 
@@ -305,7 +305,7 @@ final class WP_AI_Image_Gen_REST_Controller {
 
             } catch (Exception $e) {
                 $retry_count++;
-                wp_ai_image_gen_debug_log("Attempt {$retry_count} failed: " . $e->getMessage());
+                kaigen_debug_log("Attempt {$retry_count} failed: " . $e->getMessage());
                 
                 if ($retry_count >= $max_retries) {
                     return new WP_Error(
@@ -330,13 +330,13 @@ final class WP_AI_Image_Gen_REST_Controller {
      * @return array|WP_Error The result or error.
      */
     private function make_provider_request($provider_id, $prompt, $model, $additional_params) {
-        $provider = wp_ai_image_gen_provider_manager()->get_provider($provider_id);
+        $provider = kaigen_provider_manager()->get_provider($provider_id);
         if (!$provider) {
             return new WP_Error('invalid_provider', "Invalid provider: {$provider_id}");
         }
 
         // Get API keys from options
-        $api_keys = get_option('wp_ai_image_gen_provider_api_keys', []);
+        $api_keys = get_option('kaigen_provider_api_keys', []);
         $api_key = isset($api_keys[$provider_id]) ? $api_keys[$provider_id] : '';
         
         $provider = new $provider($api_key, $model);
@@ -350,7 +350,7 @@ final class WP_AI_Image_Gen_REST_Controller {
      */
     public function get_providers_with_keys() {
         try {
-            $providers = wp_ai_image_gen_admin()->get_active_providers();
+            $providers = kaigen_admin()->get_active_providers();
             return new WP_REST_Response($providers, 200);
         } catch (Exception $e) {
             return new WP_REST_Response(
@@ -366,7 +366,7 @@ final class WP_AI_Image_Gen_REST_Controller {
      */
     public function get_image_to_image_providers() {
         try {
-            $image_to_image_providers = wp_ai_image_gen_provider_manager()->get_image_to_image_providers();
+            $image_to_image_providers = kaigen_provider_manager()->get_image_to_image_providers();
             return new WP_REST_Response($image_to_image_providers, 200);
         } catch (Exception $e) {
             return new WP_REST_Response(
@@ -384,8 +384,8 @@ final class WP_AI_Image_Gen_REST_Controller {
      * @param array $additional_params Additional parameters.
      */
     private function log_request_details($prompt, $provider_id, $model, $additional_params) {
-        wp_ai_image_gen_debug_log("Starting image generation request");
-        wp_ai_image_gen_debug_log("Prompt: {$prompt}, Provider: {$provider_id}, Model: {$model}");
+        kaigen_debug_log("Starting image generation request");
+        kaigen_debug_log("Prompt: {$prompt}, Provider: {$provider_id}, Model: {$model}");
         
         // Create a copy of additional params for logging to prevent logging full image URLs
         $log_params = $additional_params;
@@ -393,19 +393,17 @@ final class WP_AI_Image_Gen_REST_Controller {
             $log_params['source_image_url'] = '(source image URL provided)';
         }
         
-        wp_ai_image_gen_debug_log("Additional params: " . wp_json_encode($log_params));
+        kaigen_debug_log("Additional params: " . wp_json_encode($log_params));
     }
 }
 
 /**
  * Gets the singleton instance of the REST controller.
- * @return WP_AI_Image_Gen_REST_Controller The REST controller instance.
+ * @return KaiGen_REST_Controller The REST controller instance.
  */
-function wp_ai_image_gen_rest_controller() {
-    return WP_AI_Image_Gen_REST_Controller::get_instance();
+function kaigen_rest_controller() {
+    return KaiGen_REST_Controller::get_instance();
 }
 
-// Initialize the REST controller
-add_action('init', function() {
-    wp_ai_image_gen_rest_controller();
-}, 10);
+// Initialize the REST API functionality
+kaigen_rest_controller();

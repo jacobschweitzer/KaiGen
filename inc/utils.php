@@ -1,18 +1,16 @@
 <?php
 /**
- * Utility functions for WP AI Image Gen plugin.
- *
- * @package WP_AI_Image_Gen
+ * Utility functions for the plugin.
+ * @package KaiGen
  */
 
 /**
- * Logs debug information if WP_AI_IMAGE_GEN_DEBUG_LOG is set to true.
+ * Logs debug information if KAIGEN_DEBUG_LOG is set to true.
  *
- * @param string $message The debug message to log.
- * @return void
+ * @param string $message The message to log.
  */
-function wp_ai_image_gen_debug_log($message) {
-    if (defined('WP_AI_IMAGE_GEN_DEBUG_LOG') && WP_AI_IMAGE_GEN_DEBUG_LOG) {
-        error_log("WP AI Image Gen Debug: " . $message);
-    }
+function kaigen_debug_log($message) {
+	if (defined('KAIGEN_DEBUG_LOG') && KAIGEN_DEBUG_LOG) {
+		error_log('[KaiGen] ' . $message);
+	}
 }

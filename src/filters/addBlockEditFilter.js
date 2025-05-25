@@ -12,7 +12,7 @@ import { generateImage } from '../api'; // Import API functions for image genera
  * @param {function} BlockEdit - The original BlockEdit component.
  * @returns {function} A new BlockEdit component with additional regeneration functionality.
  */
-addFilter('editor.BlockEdit', 'wp-ai-image-gen/add-regenerate-button', (BlockEdit) => {
+addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
     // Return a new functional component that wraps the original BlockEdit.
     return (props) => {
         // Only modify core/image blocks.
@@ -30,7 +30,7 @@ addFilter('editor.BlockEdit', 'wp-ai-image-gen/add-regenerate-button', (BlockEdi
             const initializeProvider = async () => {
                 try {
                     // Get the main provider from localized data
-                    const mainProvider = window.wpAiImageGen?.mainProvider;
+                    const mainProvider = window.kaiGen?.mainProvider;
 
                     if (!mainProvider) {
                         console.error('No main provider configured in localized data');
@@ -61,7 +61,7 @@ addFilter('editor.BlockEdit', 'wp-ai-image-gen/add-regenerate-button', (BlockEdi
             const finalPrompt = prompt || props.attributes.alt || "no alt text or prompt, please just enhance";
 
             // Get the main provider from localized data
-            const mainProvider = window.wpAiImageGen?.mainProvider;
+            const mainProvider = window.kaiGen?.mainProvider;
 
             if (!mainProvider) {
                 console.error('No main provider configured');

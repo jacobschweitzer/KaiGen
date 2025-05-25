@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       WP AI Image Gen
+ * Plugin Name:       KaiGen
  * Description:       A plugin to generate images using AI.
  * Requires at least: 6.1
  * Requires PHP:      7.0
@@ -8,13 +8,13 @@
  * Author:            Jacob Schweitzer
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       wp-ai-image-gen
+ * Text Domain:       kaigen
  *
  * @category Plugin
- * @package  WP_AI_Image_Gen
+ * @package  KaiGen
  * @author   Jacob Schweitzer <jacoballanschweitzer@gmail.com>
  * @license  GPL-2.0-or-later https://www.gnu.org/licenses/gpl-2.0.html
- * @link     https://jacobschweitzer.com/wp-ai-image-gen
+ * @link     https://jacobschweitzer.com/kaigen
  */
 
 // Exit if accessed directly.
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Set a debug log flag.
-define( 'WP_AI_IMAGE_GEN_DEBUG_LOG', true );
+define( 'KAIGEN_DEBUG_LOG', true );
 
 // Load utility functions first
 require_once __DIR__ . '/inc/utils.php';

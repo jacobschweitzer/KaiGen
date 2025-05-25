@@ -29,14 +29,14 @@ __webpack_require__.r(__webpack_exports__);
  */
 const generateImage = async (prompt, callback, options = {}) => {
   try {
-    // Get the main provider setting from editor settings
-    const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.wp_ai_image_gen_main_provider;
-    if (!mainProvider) {
-      throw new Error('No main provider configured. Please check your plugin settings.');
+    // Get the provider setting from editor settings
+    const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
+    if (!provider) {
+      throw new Error('No provider configured. Please check your plugin settings.');
     }
     const data = {
       prompt,
-      provider: mainProvider // Use the main provider setting
+      provider: provider
     };
 
     // Add source image URL if provided
@@ -64,7 +64,7 @@ const generateImage = async (prompt, callback, options = {}) => {
       data.style = options.style;
     }
     const response = await wp.apiFetch({
-      path: '/wp-ai-image-gen/v1/generate-image',
+      path: '/kaigen/v1/generate-image',
       method: 'POST',
       data: data
     });
@@ -386,7 +386,7 @@ __webpack_require__.r(__webpack_exports__);
  * @param {function} BlockEdit - The original BlockEdit component.
  * @returns {function} A new BlockEdit component with additional regeneration functionality.
  */
-(0,_wordpress_hooks__WEBPACK_IMPORTED_MODULE_1__.addFilter)('editor.BlockEdit', 'wp-ai-image-gen/add-regenerate-button', BlockEdit => {
+(0,_wordpress_hooks__WEBPACK_IMPORTED_MODULE_1__.addFilter)('editor.BlockEdit', 'kaigen/add-regenerate-button', BlockEdit => {
   // Return a new functional component that wraps the original BlockEdit.
   return props => {
     // Only modify core/image blocks.
@@ -406,7 +406,7 @@ __webpack_require__.r(__webpack_exports__);
       const initializeProvider = async () => {
         try {
           // Get the main provider from localized data
-          const mainProvider = window.wpAiImageGen?.mainProvider;
+          const mainProvider = window.kaiGen?.mainProvider;
           if (!mainProvider) {
             console.error('No main provider configured in localized data');
             return;
@@ -436,7 +436,7 @@ __webpack_require__.r(__webpack_exports__);
       const finalPrompt = prompt || props.attributes.alt || "no alt text or prompt, please just enhance";
 
       // Get the main provider from localized data
-      const mainProvider = window.wpAiImageGen?.mainProvider;
+      const mainProvider = window.kaiGen?.mainProvider;
       if (!mainProvider) {
         console.error('No main provider configured');
         wp.data.dispatch('core/notices').createErrorNotice('No AI provider configured. Please check your plugin settings.', {
@@ -542,7 +542,7 @@ __webpack_require__.r(__webpack_exports__);
  * @param {Object} props - Properties passed to the MediaUpload component.
  * @returns {JSX.Element} The enhanced MediaUpload component with the AITab.
  */
-(0,_wordpress_hooks__WEBPACK_IMPORTED_MODULE_1__.addFilter)('editor.MediaUpload', 'wp-ai-image-gen/add-ai-tab', OriginalMediaUpload => {
+(0,_wordpress_hooks__WEBPACK_IMPORTED_MODULE_1__.addFilter)('editor.MediaUpload', 'kaigen/add-ai-tab', OriginalMediaUpload => {
   // Return a new component which wraps the original MediaUpload.
   return props => {
     // Check if the MediaUpload is used for a single image block.
@@ -610,10 +610,10 @@ __webpack_require__.r(__webpack_exports__);
  *
  * @returns {void}
  */
-(0,_wordpress_rich_text__WEBPACK_IMPORTED_MODULE_4__.registerFormatType)('wp-ai-image-gen/custom-format', {
+(0,_wordpress_rich_text__WEBPACK_IMPORTED_MODULE_4__.registerFormatType)('kaigen/custom-format', {
   title: 'AI Image Gen',
   tagName: 'span',
-  className: 'wp-ai-image-gen-format',
+  className: 'kaigen-format',
   edit: ({
     isActive,
     value,
@@ -649,7 +649,7 @@ __webpack_require__.r(__webpack_exports__);
         }
 
         // Get the main provider from editor settings
-        const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.wp_ai_image_gen_main_provider;
+        const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
         if (!mainProvider) {
           wp.data.dispatch('core/notices').createErrorNotice('No AI provider configured. Please set one in the plugin settings.', {
             type: 'snackbar'

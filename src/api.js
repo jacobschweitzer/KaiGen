@@ -15,15 +15,15 @@
  */
 export const generateImage = async (prompt, callback, options = {}) => {
     try {
-        // Get the main provider setting from editor settings
-        const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.wp_ai_image_gen_main_provider;
-        if (!mainProvider) {
-            throw new Error('No main provider configured. Please check your plugin settings.');
+        // Get the provider setting from editor settings
+        const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
+        if (!provider) {
+            throw new Error('No provider configured. Please check your plugin settings.');
         }
         
         const data = { 
             prompt,
-            provider: mainProvider // Use the main provider setting
+            provider: provider
         };
         
         // Add source image URL if provided
@@ -52,7 +52,7 @@ export const generateImage = async (prompt, callback, options = {}) => {
         }
         
         const response = await wp.apiFetch({
-            path: '/wp-ai-image-gen/v1/generate-image',
+            path: '/kaigen/v1/generate-image',
             method: 'POST',
             data: data,
         });
