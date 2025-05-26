@@ -59,6 +59,19 @@ class KaiGen_Admin {
 		add_filter('block_editor_settings_all', function($settings) {
 			$provider = get_option('kaigen_provider', '');
 			
+			// If no provider is set but we have active providers, use OpenAI if available, otherwise use the first active provider
+			if (empty($provider)) {
+				$active_providers = $this->get_active_providers(); // Get fresh list
+				if (!empty($active_providers)) {
+					$api_keys = get_option('kaigen_provider_api_keys', []);
+					if (isset($api_keys['openai']) && !empty($api_keys['openai'])) {
+						$provider = 'openai';
+					} else {
+						$provider = $active_providers[0];
+					}
+				}
+			}
+			
 			// Ensure settings is an array
 			if (!is_array($settings)) {
 				$settings = [];
@@ -361,12 +374,15 @@ class KaiGen_Admin {
 			$provider = get_option('kaigen_provider', '');
 
 			// If no provider is set but we have active providers, use OpenAI if available, otherwise use the first active provider
-			if (empty($provider) && !empty($this->active_providers)) {
-				$api_keys = get_option('kaigen_provider_api_keys', []);
-				if (isset($api_keys['openai']) && !empty($api_keys['openai'])) {
-					$provider = 'openai';
-				} else {
-					$provider = $this->active_providers[0];
+			if (empty($provider)) {
+				$active_providers = $this->get_active_providers(); // Get fresh list instead of cached
+				if (!empty($active_providers)) {
+					$api_keys = get_option('kaigen_provider_api_keys', []);
+					if (isset($api_keys['openai']) && !empty($api_keys['openai'])) {
+						$provider = 'openai';
+					} else {
+						$provider = $active_providers[0];
+					}
 				}
 			}
 
