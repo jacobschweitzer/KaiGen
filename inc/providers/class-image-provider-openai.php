@@ -42,6 +42,11 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
      * @return array|WP_Error The API response or error.
      */
     public function make_api_request($prompt, $additional_params = []) {
+        // Validate API key format immediately before any processing
+        if (!$this->validate_api_key()) {
+            return new WP_Error('invalid_api_key_format', 'API key format is invalid. OpenAI API keys should start with sk-proj-, sk-None-, sk-svcacct-, or sk-');
+        }
+
         $source_image_url = $additional_params['source_image_url'] ?? null;
         $max_retries = 3; // Reduce max retries to fail faster
         $timeout = 60; // Set request timeout to 60 seconds
