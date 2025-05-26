@@ -3,10 +3,10 @@
  * Interface for image generation providers.
  * This interface defines the contract that all image provider implementations must follow.
  *
- * @package wp-ai-image-gen
+ * @package KaiGen
  */
 
-interface WP_AI_Image_Provider_Interface {
+interface KaiGen_Image_Provider_Interface {
     /**
      * Gets the unique identifier for this provider.
      *

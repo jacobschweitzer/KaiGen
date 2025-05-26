@@ -1,10 +1,10 @@
 <?php
 /**
- * Class for handling common image operations in WP AI Image Gen plugin.
+ * Class for handling common image operations in KaiGen plugin.
  *
- * @package WP_AI_Image_Gen
+ * @package KaiGen
  */
-class WP_AI_Image_Handler {
+class KaiGen_Image_Handler {
     /**
      * Downloads an image from a given URL.
      *
@@ -12,7 +12,7 @@ class WP_AI_Image_Handler {
      * @return string|WP_Error The image data or WP_Error on failure.
      */
     public static function download_image($url) {
-        wp_ai_image_gen_debug_log("Downloading image from URL: $url");
+        kaigen_debug_log("Downloading image from URL: $url");
 
         $response = wp_remote_get($url, ['timeout' => 60]);
 
@@ -39,7 +39,7 @@ class WP_AI_Image_Handler {
     public static function upload_to_media_library($image_data, $prompt) {
         // Download the image if a URL is provided
         if (filter_var($image_data, FILTER_VALIDATE_URL)) {
-            wp_ai_image_gen_debug_log("Downloading image from URL for media library: " . $image_data);
+            kaigen_debug_log("Downloading image from URL for media library: " . $image_data);
             $image_data = self::download_image($image_data);
             if (is_wp_error($image_data)) {
                 return $image_data;
@@ -53,7 +53,7 @@ class WP_AI_Image_Handler {
         // Generate a filename with prompt and unique ID
         $filename = 'ai-' . $prompt_slug . '-' . uniqid() . '.webp';
         
-        wp_ai_image_gen_debug_log("Uploading image to media library with filename: " . $filename);
+        kaigen_debug_log("Uploading image to media library with filename: " . $filename);
         $upload = wp_upload_bits($filename, null, $image_data);
 
         if ($upload['error']) {
@@ -104,7 +104,7 @@ class WP_AI_Image_Handler {
      * @return string|WP_Error The URL of the saved image file or WP_Error on failure.
      */
     public static function data_uri_to_image($data_uri) {
-        wp_ai_image_gen_debug_log("Converting data URI to image");
+        kaigen_debug_log("Converting data URI to image");
         
         $parts = explode(',', $data_uri, 2);
         if (count($parts) !== 2) {

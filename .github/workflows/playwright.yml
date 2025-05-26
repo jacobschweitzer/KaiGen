@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: E2E Tests 🚀
 
 on:
   push:
@@ -15,55 +15,52 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
+      # Set up Node with npm caching
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
           cache: npm
 
+      # Install dependencies
       - name: Install dependencies
         run: npm ci
 
-      - name: Create docker-compose alias for Docker Compose v2
-        run: |
-          # Create a wrapper script that forwards arguments to "docker compose"
-          echo '#!/bin/sh
-          docker compose "$@"' | sudo tee /usr/local/bin/docker-compose
-          # Make the script executable
-          sudo chmod +x /usr/local/bin/docker-compose
-
-
-      # Cache Playwright browsers to speed up subsequent runs.
+      # Cache Playwright browsers
       - name: Cache Playwright browsers
-        id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
 
-      # Only install browsers if cache miss occurred.
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      # Install only Chromium browser for speed
+      - name: Install Chromium only
         run: npx playwright install chromium --with-deps
 
-      # Install and configure WordPress environment.
-      - name: Install WordPress Environment
-        run: npm install -g @wordpress/env
+      # Install WordPress Playground CLI
+      - name: Install WordPress Playground CLI
+        run: npm install -g @wp-playground/cli
 
-      # Start WordPress environment and wait for it to be ready.
-      - name: Start WordPress Environment
+      # Start WordPress Playground server in background
+      - name: Start WordPress Playground
         run: |
-          npx wp-env start
-          npx wait-on -t 60000 http://localhost:8889/wp-admin http://localhost:8889/wp-login.php
+          npx @wp-playground/cli server \
+            --mount=.:/wordpress/wp-content/plugins/kaigen \
+            --blueprint=.github/blueprints/simple.json \
+            --port=9400 &
+          
+          # Wait for the server to be ready
+          npx wait-on -t 60000 http://localhost:9400
 
-      - name: Run Playwright tests
-        run: npx playwright test
+      # Run tests using the playground setup (same as local)
+      - name: Run E2E tests
+        run: npm run test:playground
 
       - uses: actions/upload-artifact@v4
         if: always()

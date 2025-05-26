@@ -1,4 +1,4 @@
-=== WP AI Image Gen ===
+=== KaiGen ===
 Contributors:      Jacob Schweitzer
 Tags:              block
 Tested up to:      6.6.2
@@ -13,16 +13,16 @@ Includes a Gutenberg block to insert a prompt that generates an image and insert
 
 == Installation ==
 Activate the plugin
-Add your OpenAI API key in Settings -> WP AI Image Gen
+Add your OpenAI API key in Settings -> KaiGen
 
 == How To Gen ==
 Edit a post
 Insert an image block
-Click the "Generate AI Image" button in the block toolbar
+Click the "KaiGen" button in the block toolbar
 Put a prompt into the input box
 Click the Generate Image button
 (wait up to 30 seconds - OpenAI API can be slow sometimes)
 View/Edit the inserted image block (the alt text contains the prompt)
 
 == Screenshots ==
-![Screenshot](https://github.com/jacobschweitzer/wp-ai-image-gen/edit/main/assets/image.jpg?raw=true)
+![Screenshot](https://github.com/jacobschweitzer/kaigen/edit/main/assets/image.jpg?raw=true)

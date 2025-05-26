@@ -1,14 +1,14 @@
 <?php
 /**
- * Replicate API provider implementation for WP AI Image Gen.
+ * Replicate API provider implementation for KaiGen.
  *
- * @package WP_AI_Image_Gen
+ * @package KaiGen
  */
 
 /**
  * This class handles image generation using the Replicate API service.
  */
-class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
+class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
     /**
      * The base URL for the Replicate API.
      */
@@ -52,11 +52,11 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
      */
     public function get_current_model() {
         // Get all quality-related options to debug
-        $quality_settings = get_option('wp_ai_image_gen_quality_settings');
-        $quality_setting = get_option('wp_ai_image_gen_quality_setting');
-        wp_ai_image_gen_debug_log("All quality settings from options:");
-        wp_ai_image_gen_debug_log("- wp_ai_image_gen_quality_settings: " . wp_json_encode($quality_settings));
-        wp_ai_image_gen_debug_log("- wp_ai_image_gen_quality_setting: " . wp_json_encode($quality_setting));
+        $quality_settings = get_option('kaigen_quality_settings');
+        $quality_setting = get_option('kaigen_quality_setting');
+        kaigen_debug_log("All quality settings from options:");
+        kaigen_debug_log("- kaigen_quality_settings: " . wp_json_encode($quality_settings));
+        kaigen_debug_log("- kaigen_quality_setting: " . wp_json_encode($quality_setting));
         
         // Use the correct option name
         $quality = 'medium'; // Default
@@ -64,10 +64,10 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
             $quality = $quality_settings['quality'];
         }
         
-        wp_ai_image_gen_debug_log("Selected quality: " . $quality);
+        kaigen_debug_log("Selected quality: " . $quality);
         
         $model = $this->get_model_from_quality_setting($quality);
-        wp_ai_image_gen_debug_log("Selected model based on quality: " . $model);
+        kaigen_debug_log("Selected model based on quality: " . $model);
         return $model;
     }
 
@@ -91,7 +91,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
             )
         ];
 
-        wp_ai_image_gen_debug_log("Sending sync request to Replicate API: " . wp_json_encode($body));
+        kaigen_debug_log("Sending sync request to Replicate API: " . wp_json_encode($body));
         
         $api_url = self::API_BASE_URL . "{$this->model}/predictions";
 
@@ -110,7 +110,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        wp_ai_image_gen_debug_log("Replicate API response: " . wp_json_encode($body));
+        kaigen_debug_log("Replicate API response: " . wp_json_encode($body));
 
         // If we got a completed prediction with output, return it immediately
         if (isset($body['status']) && $body['status'] === 'succeeded' && 
@@ -135,7 +135,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
         $headers = $this->get_request_headers();
         $api_url = "https://api.replicate.com/v1/predictions/{$prediction_id}";
 
-        wp_ai_image_gen_debug_log("Checking prediction status: " . $api_url);
+        kaigen_debug_log("Checking prediction status: " . $api_url);
 
         $response = wp_remote_get(
             $api_url,
@@ -150,7 +150,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        wp_ai_image_gen_debug_log("Replicate API status response: " . wp_json_encode($body));
+        kaigen_debug_log("Replicate API status response: " . wp_json_encode($body));
 
         // Return the full response to let the process_api_response handle it
         return $body;
@@ -162,7 +162,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
      * @return string|WP_Error The image URL/data or error.
      */
     public function process_api_response($response) {
-        wp_ai_image_gen_debug_log("Raw Replicate response: " . wp_json_encode($response));
+        kaigen_debug_log("Raw Replicate response: " . wp_json_encode($response));
 
         if (!is_array($response)) {
             return new WP_Error('replicate_error', 'Invalid response format from Replicate');
@@ -182,7 +182,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
 
         // Check the prediction status
         $status = $response['status'] ?? 'unknown';
-        wp_ai_image_gen_debug_log("Replicate prediction status: " . $status);
+        kaigen_debug_log("Replicate prediction status: " . $status);
 
         // Handle failed status specifically
         if ($status === 'failed') {
@@ -213,7 +213,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
         // Handle succeeded status with direct output URL
         if ($status === 'succeeded' && !empty($response['output'])) {
             $image_url = is_array($response['output']) ? $response['output'][0] : $response['output'];
-            wp_ai_image_gen_debug_log('Extracted image URL from Replicate: ' . $image_url);
+            kaigen_debug_log('Extracted image URL from Replicate: ' . $image_url);
             return $image_url;
         }
 
@@ -259,7 +259,7 @@ class WP_AI_Image_Provider_Replicate extends WP_AI_Image_Provider {
      * @return string The model.
      */
     public function get_model_from_quality_setting($quality_setting) {
-        wp_ai_image_gen_debug_log("Mapping quality setting to model: " . $quality_setting);
+        kaigen_debug_log("Mapping quality setting to model: " . $quality_setting);
         switch ($quality_setting) {
             case 'low':
                 $model = 'black-forest-labs/flux-schnell';

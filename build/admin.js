@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",(function(){document.querySelectorAll(".kaigen-remove-key").forEach((function(e){e.addEventListener("click",(function(){const e=this.getAttribute("data-provider"),t=document.getElementById("kaigen_"+e+"_api_key");t&&(t.value="")}))}))}));

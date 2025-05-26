@@ -19,13 +19,16 @@ jobs:
           npm ci
           npm run build
 
+      - name: Stash build changes
+        run: git stash push -m "Build artifacts"
+
       - name: Switch to built branch (or create it)
         run: |
           git switch --orphan main-built
           git rm -rf .
 
-      - name: Copy build output
-        run: cp -R build/* .
+      - name: Apply stashed build changes
+        run: git stash pop
 
       - name: Commit & push to built
         env:

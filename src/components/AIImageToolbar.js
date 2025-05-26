@@ -43,11 +43,7 @@ const AIImageToolbar = ({
                 <ToolbarGroup>
                     <ToolbarButton
                         icon={isRegenerating ? <Spinner /> : "update"}
-                        label={isRegenerating 
-                            ? "Regenerating AI Image..." 
-                            : supportsImageToImage 
-                                ? "Regenerate AI Image (using source image)" 
-                                : "Regenerate AI Image"}
+                        label={isRegenerating ? "KaiGen is generating..." : "KaiGen"}
                         onClick={() => setIsModalOpen(true)}
                         disabled={isRegenerating}
                     />
@@ -55,7 +51,7 @@ const AIImageToolbar = ({
 
                 {isModalOpen && (
                     <Modal
-                        title="Modify AI Image"
+                        title="KaiGen : Edit Image"
                         onRequestClose={() => {
                             setIsModalOpen(false);
                             setPrompt('');
@@ -96,7 +92,7 @@ const AIImageToolbar = ({
             <ToolbarGroup>
                 <ToolbarButton
                     icon={isGenerating ? <Spinner /> : "format-image"}
-                    label={isGenerating ? "Generating AI Image..." : "Generate AI Image"}
+                    label={isGenerating ? "KaiGen is generating..." : "KaiGen"}
                     onClick={onGenerateImage}
                     disabled={isGenerating}
                 />

@@ -12,10 +12,10 @@ import { generateImage } from '../api'; // Import API function for image generat
  *
  * @returns {void}
  */
-registerFormatType('wp-ai-image-gen/custom-format', {
+registerFormatType('kaigen/custom-format', {
     title: 'AI Image Gen',
     tagName: 'span',
-    className: 'wp-ai-image-gen-format',
+    className: 'kaigen-format',
     edit: ({ isActive, value, onChange }) => { // This edit function adds AI image functionality to the block.
         // Create state for generation state.
         const [isGenerating, setIsGenerating] = useState(false); // Indicates if an image is being generated.
@@ -43,9 +43,9 @@ registerFormatType('wp-ai-image-gen/custom-format', {
                     return;
                 }
 
-                // Get the main provider from editor settings
-                const mainProvider = wp.data.select('core/editor')?.getEditorSettings()?.wp_ai_image_gen_main_provider;
-                if (!mainProvider) {
+                // Get the provider from editor settings
+                const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider;
+                if (!provider) {
                     wp.data.dispatch('core/notices').createErrorNotice(
                         'No AI provider configured. Please set one in the plugin settings.',
                         { type: 'snackbar' }

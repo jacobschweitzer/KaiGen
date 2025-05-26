@@ -2,10 +2,10 @@
 /**
  * Abstract class for image generation providers.
  *
- * @package wp-ai-image-gen
+ * @package KaiGen
  */
 
-abstract class WP_AI_Image_Provider implements WP_AI_Image_Provider_Interface {
+abstract class KaiGen_Image_Provider implements KaiGen_Image_Provider_Interface {
     /**
      * The API key for the provider.
      * @var string
@@ -133,24 +133,24 @@ abstract class WP_AI_Image_Provider implements WP_AI_Image_Provider_Interface {
             // Handle different response formats
             if (is_array($result) && isset($result['url']) && isset($result['id']) && $result['id'] > 0) {
                 // This is already a fully processed result with proper WP media ID
-                wp_ai_image_gen_debug_log("Using pre-processed result with media ID: " . $result['id']);
+                kaigen_debug_log("Using pre-processed result with media ID: " . $result['id']);
                 return $result;
             } else if (is_array($result) && isset($result['url'])) {
                 // This has a URL but no valid ID, so upload to media library
-                wp_ai_image_gen_debug_log("Uploading array result URL to media library");
-                return WP_AI_Image_Handler::upload_to_media_library($result['url'], $prompt);
+                kaigen_debug_log("Uploading array result URL to media library");
+                return KaiGen_Image_Handler::upload_to_media_library($result['url'], $prompt);
             } else if (is_string($result) && filter_var($result, FILTER_VALIDATE_URL)) {
                 // This is a URL string, upload to media library
-                wp_ai_image_gen_debug_log("Uploading URL to media library: " . $result);
-                return WP_AI_Image_Handler::upload_to_media_library($result, $prompt);
+                kaigen_debug_log("Uploading URL to media library: " . $result);
+                return KaiGen_Image_Handler::upload_to_media_library($result, $prompt);
             } else if (is_string($result) && strlen($result) > 100) {
                 // This is likely raw image data, upload to media library
-                wp_ai_image_gen_debug_log("Uploading raw image data to media library");
-                return WP_AI_Image_Handler::upload_to_media_library($result, $prompt);
+                kaigen_debug_log("Uploading raw image data to media library");
+                return KaiGen_Image_Handler::upload_to_media_library($result, $prompt);
             }
             
             // Fallback for unexpected result format
-            wp_ai_image_gen_debug_log("Invalid result format: " . wp_json_encode($result));
+            kaigen_debug_log("Invalid result format: " . wp_json_encode($result));
             return new WP_Error('invalid_result', 'Invalid result format from provider');
         } catch (Exception $e) {
             return new WP_Error('generation_failed', $e->getMessage());

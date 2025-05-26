@@ -60,14 +60,14 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     onClick={() => setIsModalOpen(true)}
                     className="components-button is-next-40px-default-size is-secondary"
                 >
-                    Generate AI Image
+                    KaiGen
                 </Button>
             </div>
 
             {/* Modal for entering the prompt and generating the image. */}
             {isModalOpen && (
                 <Modal
-                    title="WP AI Image Gen" // Modal title.
+                    title="KaiGen" // Modal title.
                     onRequestClose={() => setIsModalOpen(false)} // Closes the modal.
                 >
                     {/* Display error message if present. */}
@@ -75,7 +75,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     
                     {/* Textarea to enter the image prompt. */}
                     <TextareaControl
-                        label="Enter your image prompt"
+                        label="Prompt"
                         value={prompt}
                         onChange={setPrompt} // Updates the prompt state.
                         rows={4}
@@ -90,10 +90,10 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                         {isLoading ? (
                             <>
                                 <Spinner /> {/* Display spinner during loading. */}
-                                Generating...
+                                KaiGen is generating...
                             </>
                         ) : (
-                            'Generate Image'
+                            'KaiGen'
                         )}
                     </Button>
                 </Modal>
