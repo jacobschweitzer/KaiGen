@@ -99,9 +99,6 @@ final class KaiGen_REST_Controller {
         // Get additional parameters with defaults
         $additional_params = $this->get_additional_params($request);
 
-        // Log request details
-        $this->log_request_details($prompt, $provider_id, $model, $additional_params);
-
         // Handle retries for image generation
         return $this->handle_generation_with_retries($provider_id, $prompt, $model, $additional_params);
     }
@@ -120,7 +117,6 @@ final class KaiGen_REST_Controller {
             $provider = kaigen_provider_manager()->get_provider($provider_id);
             if ($provider) {
                 $model = $provider->get_model_from_quality_setting($quality);
-                kaigen_debug_log("Selected Replicate model based on quality {$quality}: {$model}");
                 return $model;
             }
         }
@@ -139,7 +135,6 @@ final class KaiGen_REST_Controller {
             $model = $default_models[$provider_id];
             $provider_models[$provider_id] = $model;
             update_option('kaigen_provider_models', $provider_models);
-            kaigen_debug_log("Assigned default model for {$provider_id}: {$model}");
             return $model;
         }
 
@@ -229,16 +224,13 @@ final class KaiGen_REST_Controller {
         $max_delay = 20;
 
         while ($retry_count < $max_retries) {
-            try {
-                kaigen_debug_log("Attempt " . ($retry_count + 1) . " - Making API request");
-                
+            try {                
                 $result = $this->make_provider_request($provider_id, $prompt, $model, $additional_params);
                 
                 if (!is_wp_error($result)) {
                     // Handle failed status with content filtering error
                     if (isset($result['status']) && $result['status'] === 'failed') {
                         if (isset($result['error']) && strpos($result['error'], 'flagged by safety filters') !== false) {
-                            kaigen_debug_log("Content filtered by provider safety system: " . $result['error']);
                             return new WP_Error(
                                 'content_filtered',
                                 'The image was flagged by the provider\'s safety filters. Please modify your prompt and try again.',
@@ -253,7 +245,6 @@ final class KaiGen_REST_Controller {
 
                     // Check if we have a WordPress attachment ID
                     if (isset($result['url']) && isset($result['id']) && is_numeric($result['id']) && $result['id'] > 0) {
-                        kaigen_debug_log("Image generated and added to media library: " . wp_json_encode($result));
                         // Format response for WordPress media
                         $response_data = [
                             'url' => $result['url'],
@@ -265,7 +256,6 @@ final class KaiGen_REST_Controller {
                     
                     // Handle direct URL response without WordPress attachment
                     if (isset($result['url'])) {
-                        kaigen_debug_log("Image generated with URL: " . wp_json_encode($result));
                         // Return the result without an ID
                         $response_data = [
                             'url' => $result['url'],
@@ -276,7 +266,6 @@ final class KaiGen_REST_Controller {
                     
                     // Handle processing status
                     if (isset($result['status']) && ($result['status'] === 'processing' || $result['status'] === 'starting')) {
-                        kaigen_debug_log("Image still processing with status: " . $result['status']);
                         throw new Exception('Image still processing');
                     }
                     
@@ -285,7 +274,6 @@ final class KaiGen_REST_Controller {
 
                 // Handle content moderation errors (400) - return immediately without retrying
                 if ($result->get_error_code() === 'content_moderation') {
-                    kaigen_debug_log("Content moderation error - not retrying: " . $result->get_error_message());
                     return $result;
                 }
 
@@ -305,7 +293,6 @@ final class KaiGen_REST_Controller {
 
             } catch (Exception $e) {
                 $retry_count++;
-                kaigen_debug_log("Attempt {$retry_count} failed: " . $e->getMessage());
                 
                 if ($retry_count >= $max_retries) {
                     return new WP_Error(
@@ -374,26 +361,6 @@ final class KaiGen_REST_Controller {
                 500
             );
         }
-    }
-
-    /**
-     * Logs request details for debugging.
-     * @param string $prompt The generation prompt.
-     * @param string $provider_id The provider ID.
-     * @param string $model The model being used.
-     * @param array $additional_params Additional parameters.
-     */
-    private function log_request_details($prompt, $provider_id, $model, $additional_params) {
-        kaigen_debug_log("Starting image generation request");
-        kaigen_debug_log("Prompt: {$prompt}, Provider: {$provider_id}, Model: {$model}");
-        
-        // Create a copy of additional params for logging to prevent logging full image URLs
-        $log_params = $additional_params;
-        if (isset($log_params['source_image_url'])) {
-            $log_params['source_image_url'] = '(source image URL provided)';
-        }
-        
-        kaigen_debug_log("Additional params: " . wp_json_encode($log_params));
     }
 }
 

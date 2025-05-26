@@ -22,12 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Set a debug log flag.
-define( 'KAIGEN_DEBUG_LOG', true );
-
-// Load utility functions first
-require_once __DIR__ . '/inc/utils.php';
-
 // Load base classes and interfaces
 require_once __DIR__ . '/inc/class-image-handler.php';
 require_once __DIR__ . '/inc/interface-image-provider.php';

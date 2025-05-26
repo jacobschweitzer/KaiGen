@@ -12,8 +12,6 @@ class KaiGen_Image_Handler {
      * @return string|WP_Error The image data or WP_Error on failure.
      */
     public static function download_image($url) {
-        kaigen_debug_log("Downloading image from URL: $url");
-
         $response = wp_remote_get($url, ['timeout' => 60]);
 
         if (is_wp_error($response)) {
@@ -39,7 +37,6 @@ class KaiGen_Image_Handler {
     public static function upload_to_media_library($image_data, $prompt) {
         // Download the image if a URL is provided
         if (filter_var($image_data, FILTER_VALIDATE_URL)) {
-            kaigen_debug_log("Downloading image from URL for media library: " . $image_data);
             $image_data = self::download_image($image_data);
             if (is_wp_error($image_data)) {
                 return $image_data;
@@ -53,7 +50,6 @@ class KaiGen_Image_Handler {
         // Generate a filename with prompt and unique ID
         $filename = 'ai-' . $prompt_slug . '-' . uniqid() . '.webp';
         
-        kaigen_debug_log("Uploading image to media library with filename: " . $filename);
         $upload = wp_upload_bits($filename, null, $image_data);
 
         if ($upload['error']) {
@@ -103,9 +99,7 @@ class KaiGen_Image_Handler {
      * @param string $data_uri The data URI containing the image data.
      * @return string|WP_Error The URL of the saved image file or WP_Error on failure.
      */
-    public static function data_uri_to_image($data_uri) {
-        kaigen_debug_log("Converting data URI to image");
-        
+    public static function data_uri_to_image($data_uri) {        
         $parts = explode(',', $data_uri, 2);
         if (count($parts) !== 2) {
             return new WP_Error('invalid_uri', 'Invalid data URI format.');
@@ -127,13 +121,17 @@ class KaiGen_Image_Handler {
         $file_path = trailingslashit($upload_dir['path']) . $filename;
         $file_url = trailingslashit($upload_dir['url']) . $filename;
 
-        if (file_put_contents($file_path, $image_data) === false) {
-            return new WP_Error('save_failed', 'Failed to save the image file.');
+        // Initialize WP_Filesystem
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once(ABSPATH . '/wp-admin/includes/file.php');
+            WP_Filesystem();
         }
 
-        $stat = stat(dirname($file_path));
-        $perms = $stat['mode'] & 0000666;
-        chmod($file_path, $perms);
+        // Use WP_Filesystem to write the file
+        if (!$wp_filesystem->put_contents($file_path, $image_data, FS_CHMOD_FILE)) {
+            return new WP_Error('save_failed', 'Failed to save the image file.');
+        }
 
         return $file_url;
     }

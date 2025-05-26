@@ -274,10 +274,8 @@ class KaiGen_Admin {
 	 */
 	public function render_providers_section() {
 		if (empty($this->providers)) {
-			kaigen_debug_log("No providers available in the provider list");
 			echo '<p class="notice notice-warning">No AI image providers are currently available. Please check the plugin installation.</p>';
 		} else {
-			kaigen_debug_log("Available providers: " . wp_json_encode($this->providers));
 			echo '<p>Configure your API keys and models for each AI image provider.</p>';
 		}
 	}

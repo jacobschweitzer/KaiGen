@@ -77,7 +77,6 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         // Log if we're using image-to-image
         if ( ! empty( $source_image_url ) ) {
             $endpoint = self::IMAGE_EDIT_API_BASE_URL;
-            kaigen_debug_log("Using image-to-image with GPT Image-1: {$source_image_url}");
         }
         
         // Get quality setting from admin options
@@ -164,15 +163,12 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             $body = wp_json_encode($body);
         }
         
-        kaigen_debug_log("OpenAI API request to: " . $endpoint);
-        
         // Make the API request with retries
         $attempt = 0;
         $last_error = null;
         
         while ($attempt < $max_retries) {
             $attempt++;
-            kaigen_debug_log("Attempt {$attempt} of {$max_retries}");
             
             $response = wp_remote_post(
                 $endpoint,
@@ -189,27 +185,20 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                 
                 // Check if it's a timeout error
                 if (strpos($error_message, 'timeout') !== false) {
-                    kaigen_debug_log("Timeout error on attempt {$attempt}: {$error_message}");
                     if ($attempt < $max_retries) {
-                        kaigen_debug_log("Waiting {$retry_delay} seconds before retry...");
                         sleep($retry_delay);
                         continue;
                     }
                 }
                 
                 // For other errors, return immediately
-                kaigen_debug_log("Error on attempt {$attempt}: {$error_message}");
                 return $response;
             }
             
             $response_body = wp_remote_retrieve_body($response);
             $response_code = wp_remote_retrieve_response_code($response);
-            
-            kaigen_debug_log("Response code: " . $response_code);
-            kaigen_debug_log("Response body: " . $response_body);
-            
+
             if ($response_code !== 200) {
-                kaigen_debug_log("Error response from OpenAI API: " . $response_body);
                 
                 // Parse error response
                 $error_data = json_decode($response_body, true);
@@ -218,7 +207,6 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                     
                     // Check for specific error about image URL in prompt
                     if (strpos($error_message, 'image URL') !== false) {
-                        kaigen_debug_log("Error with image URL in prompt, retrying with text only");
                         
                         // Remove the image URL from the body and retry
                         $body['prompt'] = $prompt;
@@ -267,23 +255,19 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
      */
     public function process_api_response($response) {
         // Log the raw response for debugging
-        kaigen_debug_log("Raw OpenAI response: " . wp_json_encode($response));
 
         // Check for error in response
         if (!empty($response['error'])) {
-            kaigen_debug_log("OpenAI API error: " . wp_json_encode($response['error']));
             return new WP_Error('openai_error', $response['error']['message'] ?? 'Unknown error occurred');
         }
 
         // Check for valid response format
         if (empty($response['data']) || !is_array($response['data'])) {
-            kaigen_debug_log("Invalid OpenAI response format: " . wp_json_encode($response));
             return new WP_Error('openai_error', 'Invalid response format from OpenAI');
         }
 
         // Check for either URL or b64_json in the first data item
         if (empty($response['data'][0]['url']) && empty($response['data'][0]['b64_json'])) {
-            kaigen_debug_log("Missing URL or b64_json in OpenAI response: " . wp_json_encode($response['data'][0]));
             return new WP_Error('openai_error', 'Missing image data in OpenAI response');
         }
 
@@ -294,7 +278,6 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             
             // Validate URL format
             if (!filter_var($image_url, FILTER_VALIDATE_URL)) {
-                kaigen_debug_log("Invalid URL in OpenAI response: " . $image_url);
                 return new WP_Error('openai_error', 'Invalid image URL in response');
             }
         } else if (!empty($response['data'][0]['b64_json'])) {
@@ -303,17 +286,14 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             $image_data = base64_decode($b64_json);
             
             if (!$image_data) {
-                kaigen_debug_log("Invalid base64 data in OpenAI response");
                 return new WP_Error('openai_error', 'Invalid base64 image data in response');
             }
             
             // Return the raw image data - the parent class will handle uploading to media library
-            kaigen_debug_log("Successfully extracted base64 image data from OpenAI response");
             return $image_data;
         }
 
         // Just return the URL - the parent class will handle uploading to media library
-        kaigen_debug_log("Successfully extracted image URL from OpenAI response: " . $image_url);
         return $image_url;
     }
 
