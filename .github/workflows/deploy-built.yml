@@ -12,30 +12,69 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0   # so you can push to orphan branch
+          fetch-depth: 0
 
       - name: Install dependencies & build
         run: |
           npm ci
           npm run build
 
-      - name: Stash build changes
-        run: git stash push -m "Build artifacts"
-
-      - name: Switch to built branch (or create it)
+      - name: Check if built branch exists
+        id: check_branch
         run: |
-          git switch --orphan main-built
-          git rm -rf .
+          if git show-ref --verify --quiet refs/remotes/origin/main-built; then
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Apply stashed build changes
-        run: git stash pop
+      - name: Switch to existing built branch
+        if: steps.check_branch.outputs.branch_exists == 'true'
+        run: |
+          git checkout main-built
+          git reset --hard origin/main-built
 
-      - name: Commit & push to built
+      - name: Create new orphan built branch
+        if: steps.check_branch.outputs.branch_exists == 'false'
+        run: |
+          git checkout --orphan main-built
+          # Clear the index for orphan branch
+          git rm -rf . || true
+
+      - name: Copy source files to built branch
+        run: |
+          # Copy all files from main branch except development files
+          git checkout main -- .
+          
+          # Remove development-only files and directories
+          rm -rf node_modules/ || true
+          rm -rf tests/ || true
+          rm -rf playwright/ || true
+          rm -rf playwright-report/ || true
+          rm -rf .github/ || true
+          rm -rf src/ || true
+          rm -f package.json || true
+          rm -f package-lock.json || true
+          rm -f playwright.config.ts || true
+          rm -f .wp-env.json || true
+          rm -f .editorconfig || true
+          rm -f .gitignore || true
+          rm -f CLAUDE.md || true
+          rm -f README.md || true
+          
+          # Ensure build artifacts are present (they should be from the build step)
+          ls -la
+
+      - name: Commit & push to built branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "ci: update built artifacts"
-          git push --force origin main-built
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "ci: update built artifacts"
+            git push --force origin main-built
+          fi
