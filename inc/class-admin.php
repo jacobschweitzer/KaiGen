@@ -177,7 +177,7 @@ class KaiGen_Admin {
 			'kaigen-settings',
 			'kaigen_settings_section',
 			[
-				'providers' => $this->active_providers,
+				'providers' => array_keys($this->providers), // Show all providers, not just active ones
 			]
 		);
 
@@ -274,11 +274,9 @@ class KaiGen_Admin {
 	 */
 	public function render_providers_section() {
 		if (empty($this->providers)) {
-			kaigen_debug_log("No providers available in the provider list");
 			echo '<p class="notice notice-warning">No AI image providers are currently available. Please check the plugin installation.</p>';
 		} else {
-			kaigen_debug_log("Available providers: " . wp_json_encode($this->providers));
-			echo '<p>Configure your API keys and models for each AI image provider.</p>';
+			echo '<p>First, select your preferred AI image provider from the dropdown below, then enter your API key for that provider.</p>';
 		}
 	}
 
@@ -355,8 +353,8 @@ class KaiGen_Admin {
 	 */
 	public function sanitize_provider($input) {
 		$sanitized_input = sanitize_text_field($input);
-		// Only allow active providers to be set as the provider.
-		if (!empty($sanitized_input) && !in_array($sanitized_input, $this->active_providers)) {
+		// Allow any valid provider to be selected, not just active ones
+		if (!empty($sanitized_input) && !array_key_exists($sanitized_input, $this->providers)) {
 			return '';
 		}
 		return $sanitized_input;
@@ -403,7 +401,7 @@ class KaiGen_Admin {
 		} else if ( in_array( $hook, ['settings_page_kaigen-settings'] ) ) {
 			wp_enqueue_script(
 				'kaigen-admin',
-				plugin_dir_url(dirname(__FILE__)) . 'build/admin.js/',
+				plugin_dir_url(dirname(__FILE__)) . 'build/admin.js',
 				[],
 				'1.0.0',
 				true

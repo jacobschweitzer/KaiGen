@@ -54,20 +54,14 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         // Get all quality-related options to debug
         $quality_settings = get_option('kaigen_quality_settings');
         $quality_setting = get_option('kaigen_quality_setting');
-        kaigen_debug_log("All quality settings from options:");
-        kaigen_debug_log("- kaigen_quality_settings: " . wp_json_encode($quality_settings));
-        kaigen_debug_log("- kaigen_quality_setting: " . wp_json_encode($quality_setting));
-        
+
         // Use the correct option name
         $quality = 'medium'; // Default
         if (is_array($quality_settings) && isset($quality_settings['quality'])) {
             $quality = $quality_settings['quality'];
         }
         
-        kaigen_debug_log("Selected quality: " . $quality);
-        
         $model = $this->get_model_from_quality_setting($quality);
-        kaigen_debug_log("Selected model based on quality: " . $model);
         return $model;
     }
 
@@ -90,8 +84,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $additional_params
             )
         ];
-
-        kaigen_debug_log("Sending sync request to Replicate API: " . wp_json_encode($body));
         
         $api_url = self::API_BASE_URL . "{$this->model}/predictions";
 
@@ -110,7 +102,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        kaigen_debug_log("Replicate API response: " . wp_json_encode($body));
 
         // If we got a completed prediction with output, return it immediately
         if (isset($body['status']) && $body['status'] === 'succeeded' && 
@@ -135,8 +126,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         $headers = $this->get_request_headers();
         $api_url = "https://api.replicate.com/v1/predictions/{$prediction_id}";
 
-        kaigen_debug_log("Checking prediction status: " . $api_url);
-
         $response = wp_remote_get(
             $api_url,
             [
@@ -150,7 +139,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        kaigen_debug_log("Replicate API status response: " . wp_json_encode($body));
 
         // Return the full response to let the process_api_response handle it
         return $body;
@@ -162,7 +150,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string|WP_Error The image URL/data or error.
      */
     public function process_api_response($response) {
-        kaigen_debug_log("Raw Replicate response: " . wp_json_encode($response));
 
         if (!is_array($response)) {
             return new WP_Error('replicate_error', 'Invalid response format from Replicate');
@@ -182,7 +169,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
 
         // Check the prediction status
         $status = $response['status'] ?? 'unknown';
-        kaigen_debug_log("Replicate prediction status: " . $status);
 
         // Handle failed status specifically
         if ($status === 'failed') {
@@ -213,7 +199,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         // Handle succeeded status with direct output URL
         if ($status === 'succeeded' && !empty($response['output'])) {
             $image_url = is_array($response['output']) ? $response['output'][0] : $response['output'];
-            kaigen_debug_log('Extracted image URL from Replicate: ' . $image_url);
             return $image_url;
         }
 
@@ -259,19 +244,18 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string The model.
      */
     public function get_model_from_quality_setting($quality_setting) {
-        kaigen_debug_log("Mapping quality setting to model: " . $quality_setting);
         switch ($quality_setting) {
             case 'low':
                 $model = 'black-forest-labs/flux-schnell';
                 break;
             case 'medium':
-                $model = 'google/imagen-3';
-                break;
-            case 'high':
                 $model = 'recraft-ai/recraft-v3';
                 break;
+            case 'high':
+                $model = 'google/imagen-4';
+                break;
             default:
-                $model = 'google/imagen-3'; // Default to medium quality
+                $model = 'recraft-ai/recraft-v3'; // Default to medium quality
         }
         return $model;
     }

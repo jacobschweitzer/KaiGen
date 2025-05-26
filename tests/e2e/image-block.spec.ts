@@ -21,7 +21,22 @@ async function configureKaiGenProvider(page: any) {
         throw new Error(`Expected "KaiGen Settings" but got "${pageTitle}"`);
     }
     
-    // Set the API key
+    // Select the provider first
+    const providerSelect = page.locator('select[name="kaigen_provider"]');
+    if (await providerSelect.count() > 0) {
+        const options = await providerSelect.locator('option').allTextContents();
+        
+        const hasOpenAI = options.some(option => option.toLowerCase().includes('openai'));
+        
+        if (hasOpenAI) {
+            await providerSelect.selectOption('openai');
+            
+            // Wait a moment for the API key field to become available
+            await page.waitForTimeout(500);
+        }
+    }
+    
+    // Set the API key after selecting the provider
     const apiKeyField = page.locator('input[name="kaigen_provider_api_keys[openai]"]');
     if (await apiKeyField.count() > 0) {
         await apiKeyField.fill('test-api-key-for-testing-purposes');
@@ -33,7 +48,7 @@ async function configureKaiGenProvider(page: any) {
         await qualitySelect.selectOption('medium');
     }
     
-    // Save settings to activate provider
+    // Save all settings at once
     const saveButton = page.locator('input[type="submit"][value="Save Changes"], button[type="submit"]');
     if (await saveButton.count() > 0) {
         await saveButton.click();
@@ -45,29 +60,6 @@ async function configureKaiGenProvider(page: any) {
         }
         
         await page.waitForTimeout(1000);
-    }
-    
-    // Now select the provider
-    const providerSelect = page.locator('select[name="kaigen_provider"]');
-    if (await providerSelect.count() > 0) {
-        const options = await providerSelect.locator('option').allTextContents();
-        
-        const hasOpenAI = options.some(option => option.toLowerCase().includes('openai'));
-        
-        if (hasOpenAI) {
-            await providerSelect.selectOption('openai');
-            
-            // Save provider selection
-            if (await saveButton.count() > 0) {
-                await saveButton.click();
-                
-                try {
-                    await page.waitForSelector('.notice-success, .updated', { timeout: 5000 });
-                } catch (error) {
-                    // Continue even if no notice appears
-                }
-            }
-        }
     }
 }
 

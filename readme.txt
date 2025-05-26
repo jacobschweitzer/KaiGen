@@ -1,19 +1,20 @@
 === KaiGen ===
 Contributors:      Jacob Schweitzer
 Tags:              block
-Tested up to:      6.6.2
+Tested up to:      6.8
 Stable tag:        0.1.7
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
-Easy way to generate and insert AI images into your posts using OpenAI and DALL-E 3.
+Easy way to generate and insert AI images into your posts using OpenAI or Replicate.
 
 == Description ==
 Includes a Gutenberg block to insert a prompt that generates an image and inserts an image block into the current post.
 
 == Installation ==
 Activate the plugin
-Add your OpenAI API key in Settings -> KaiGen
+Add your OpenAI or Replicate API key in Settings -> KaiGen
+Choose your Provider from the dropdown
 
 == How To Gen ==
 Edit a post

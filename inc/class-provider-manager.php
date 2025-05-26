@@ -54,7 +54,6 @@ class KaiGen_Provider_Manager {
         $provider_files = glob($providers_dir . 'class-image-provider-*.php');
         
         if (empty($provider_files)) {
-            kaigen_debug_log("No provider files found in directory");
             return;
         }
 
