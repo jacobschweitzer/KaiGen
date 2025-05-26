@@ -24,24 +24,21 @@ jobs:
           npm ci
           npm run build
 
-      - name: Delete existing built branch if it exists
+      - name: Create or update built branch from main
         run: |
-          # Delete remote branch if it exists
-          git push origin --delete main-built || true
-          # Delete local branch if it exists
-          git branch -D main-built || true
+          # Check if built branch exists remotely
+          if git ls-remote --heads origin main-built | grep -q main-built; then
+            # Branch exists, check it out
+            git checkout main-built
+            # Reset to match main exactly (preserving history)
+            git reset --hard main
+          else
+            # Branch doesn't exist, create it from main
+            git checkout -b main-built
+          fi
 
-      - name: Create fresh orphan built branch
+      - name: Remove development files and commit built version
         run: |
-          git checkout --orphan main-built
-          # Clear the index for orphan branch
-          git rm -rf . || true
-
-      - name: Copy source files to built branch
-        run: |
-          # Copy all files from main branch except development files
-          git checkout main -- .
-          
           # Remove development-only files and directories
           rm -rf node_modules/ || true
           rm -rf tests/ || true
@@ -58,10 +55,10 @@ jobs:
           rm -f CLAUDE.md || true
           rm -f README.md || true
           
-          # Ensure build artifacts are present (they should be from the build step)
+          # Ensure build artifacts are present
           ls -la
 
-      - name: Commit & push to built branch
+      - name: Commit & push built version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -71,6 +68,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "ci: update built artifacts"
+            git commit -m "ci: update built artifacts (remove dev files)"
             git push --force origin main-built
           fi
