@@ -54,6 +54,9 @@ class KaiGen_Admin {
 		add_action('admin_menu', [$this, 'add_settings_page']);
 		add_action('admin_init', [$this, 'register_settings']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
+		
+		// Add settings link to plugin page
+		add_filter('plugin_action_links_' . plugin_basename(KAIGEN_PLUGIN_FILE), [$this, 'add_plugin_action_links']);
 
 		// Add the provider setting to the editor settings
 		add_filter('block_editor_settings_all', function($settings) {
@@ -425,6 +428,18 @@ class KaiGen_Admin {
 			}
 		}
 		return $active_providers;
+	}
+
+	/**
+	 * Adds a settings link to the plugin's action links on the WordPress plugins page.
+	 * 
+	 * @param array $links The existing action links.
+	 * @return array The modified action links.
+	 */
+	public function add_plugin_action_links($links) {
+		$settings_link = '<a href="' . admin_url('options-general.php?page=kaigen-settings') . '">' . __('Settings', 'kaigen') . '</a>';
+		array_unshift($links, $settings_link);
+		return $links;
 	}
 }
 
