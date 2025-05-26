@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Define plugin constants
+define( 'KAIGEN_PLUGIN_FILE', __FILE__ );
+
 // Load base classes and interfaces
 require_once __DIR__ . '/inc/class-image-handler.php';
 require_once __DIR__ . '/inc/interface-image-provider.php';
