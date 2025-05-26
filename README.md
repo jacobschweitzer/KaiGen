@@ -5,13 +5,12 @@
 Includes a WordPress Gutenberg block with a prompt box that generates an image and inserts an image block into the post.
 
 ## Installation
-1. [Download the plugin](https://github.com/jacobschweitzer/kaigen/archive/refs/heads/main.zip).
-2. Upload and activate the plugin to your site.
-3. Get API keys for the providers you want to use.
+1. [Download KaiGen](https://github.com/jacobschweitzer/KaiGen/archive/refs/heads/main-built.zip)
+2. Upload and Activate KaiGen
+3. Get API keys for the providers you want to use:
 - [OpenAI](https://platform.openai.com/settings/profile?tab=api-keys)
 - [Replicate](https://replicate.com/account/api-tokens)
 4. Add your API keys in Settings -> KaiGen in the WordPress admin.
-
 
 ## How To Gen
 1. Edit a post
