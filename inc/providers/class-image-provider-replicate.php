@@ -78,10 +78,19 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         }
 
         $headers = $this->get_request_headers();
+
+        $input_data = ['prompt' => $prompt];
+        // Check if the current model supports image-to-image and input_image is provided
+        if ($this->supports_image_to_image() && !empty($additional_params['input_image'])) {
+            $input_data['input_image'] = $additional_params['input_image'];
+            // Remove input_image from additional_params to prevent duplication
+            unset($additional_params['input_image']);
+        }
+
         $body = [
             'input' => array_merge(
-                ['prompt' => $prompt],
-                $additional_params
+                $input_data,
+                $additional_params // Add other params like aspect_ratio etc.
             )
         ];
         
@@ -235,6 +244,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             'black-forest-labs/flux-1.1-pro' => 'Flux 1.1 Pro by Black Forest Labs (high quality)',
             'recraft-ai/recraft-v3'          => 'Recraft V3 by Recraft AI (high quality)',
             'google/imagen-3'                => 'Imagen 3 by Google (highest quality)',
+            'black-forest-labs/flux-kontext-pro' => 'Flux Kontext Pro by Black Forest Labs (image-to-image)',
         ];
     }
 
@@ -252,11 +262,23 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'recraft-ai/recraft-v3';
                 break;
             case 'high':
-                $model = 'google/imagen-4';
+                $model = 'google/imagen-3'; // Corrected to imagen-3 as per available models
+                break;
+            case 'image_to_image':
+                $model = 'black-forest-labs/flux-kontext-pro';
                 break;
             default:
-                $model = 'recraft-ai/recraft-v3'; // Default to medium quality
+                $model = 'recraft-ai/recraft-v3'; // Default to medium quality, a text-to-image model
         }
         return $model;
+    }
+
+    /**
+     * Checks if the current model supports image-to-image.
+     *
+     * @return bool True if the model supports image-to-image, false otherwise.
+     */
+    public function supports_image_to_image() {
+        return $this->model === 'black-forest-labs/flux-kontext-pro';
     }
 }
