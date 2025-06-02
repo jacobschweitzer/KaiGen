@@ -31,3 +31,4 @@ Includes a WordPress Gutenberg block with a prompt box that generates an image a
 - [Recraft V3 by Recraft AI](https://replicate.com/recraft-ai/recraft-v3)
 - [Imagen 4 by Google](https://replicate.com/google/imagen-4)
 - [GPT Image 1 by OpenAI](https://openai.com/index/image-generation-api)
+- [Flux Kontext Pro by Black Forest Labs](https://replicate.com/black-forest-labs/flux-kontext-pro)
