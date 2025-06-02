@@ -337,12 +337,12 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
     }
     
     /**
-     * Checks if this provider supports image-to-image generation with the current model.
+     * Checks if this provider supports image-to-image generation.
      *
      * @return bool True if image-to-image is supported, false otherwise.
      */
     public function supports_image_to_image() {
-        // GPT Image-1 supports image-to-image generation by including references in the prompt
+        // OpenAI's GPT Image-1 supports image-to-image generation via the edits endpoint
         return true;
     }
 

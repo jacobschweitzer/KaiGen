@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * REST API functionality for the KaiGen plugin.
  *
@@ -326,9 +331,10 @@ final class KaiGen_REST_Controller {
         $api_keys = get_option('kaigen_provider_api_keys', []);
         $api_key = isset($api_keys[$provider_id]) ? $api_keys[$provider_id] : '';
         
-        $provider = new $provider($api_key, $model);
+        $provider_class = get_class($provider);
+        $provider_instance = new $provider_class($api_key, $model);
         
-        return $provider->generate_image($prompt, $additional_params);
+        return $provider_instance->generate_image($prompt, $additional_params);
     }
 
     /**

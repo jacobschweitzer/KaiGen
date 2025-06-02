@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Class that manages all AI image provider instances and their registration.
  */
@@ -104,7 +109,7 @@ class KaiGen_Provider_Manager {
     }
     
     /**
-     * Checks if a provider supports image-to-image generation with its current model.
+     * Checks if a provider supports image-to-image generation.
      * @param string $provider_id The ID of the provider to check.
      * @return bool True if the provider supports image-to-image, false otherwise.
      */
@@ -114,22 +119,14 @@ class KaiGen_Provider_Manager {
             return false;
         }
         
-        // Get provider's current model
-        $provider_models = get_option('kaigen_provider_models', []);
+        // Check if we have a valid API key
         $api_keys = get_option('kaigen_provider_api_keys', []);
-        
-        // Check if we have a valid API key and model set
         if (!isset($api_keys[$provider_id]) || empty($api_keys[$provider_id])) {
             return false;
         }
         
-        $model = isset($provider_models[$provider_id]) ? $provider_models[$provider_id] : '';
-        
-        // Create a new instance with the current API key and model
-        $provider_class = get_class($provider);
-        $provider_instance = new $provider_class($api_keys[$provider_id], $model);
-        
-        return $provider_instance->supports_image_to_image();
+        // Simply check if the provider supports image-to-image
+        return $provider->supports_image_to_image();
     }
     
     /**

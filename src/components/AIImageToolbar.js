@@ -36,8 +36,8 @@ const AIImageToolbar = ({
         setError(null);
     };
 
-    // Render a regenerate button if the current block is an image block.
-    if (isImageBlock) {
+    // Render a regenerate button if the current block is an image block and provider supports image-to-image.
+    if (isImageBlock && supportsImageToImage) {
         return (
             <>
                 <ToolbarGroup>
