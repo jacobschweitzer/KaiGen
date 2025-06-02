@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Contains the admin page settings.
  *
@@ -400,6 +405,7 @@ class KaiGen_Admin {
 				'ajaxUrl' => admin_url('admin-ajax.php'),
 				'nonce' => wp_create_nonce('kaigen_nonce'),
 				'provider' => $provider,
+				'supportsImageToImage' => $this->provider_supports_image_to_image($provider),
 			]);
 		} else if ( in_array( $hook, ['settings_page_kaigen-settings'] ) ) {
 			wp_enqueue_script(
@@ -440,6 +446,21 @@ class KaiGen_Admin {
 		$settings_link = '<a href="' . admin_url('options-general.php?page=kaigen-settings') . '">' . __('Settings', 'kaigen') . '</a>';
 		array_unshift($links, $settings_link);
 		return $links;
+	}
+
+	/**
+	 * Checks if a provider supports image-to-image generation.
+	 * 
+	 * @param string $provider The provider ID.
+	 * @return bool True if the provider supports image-to-image generation, false otherwise.
+	 */
+	private function provider_supports_image_to_image($provider) {
+		if (empty($provider)) {
+			return false;
+		}
+		
+		$provider_manager = kaigen_provider_manager();
+		return $provider_manager->provider_supports_image_to_image($provider);
 	}
 }
 

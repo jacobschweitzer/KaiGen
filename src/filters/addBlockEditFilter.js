@@ -29,16 +29,17 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
         useEffect(() => {
             const initializeProvider = async () => {
                 try {
-                    // Get the provider from localized data
+                    // Get the provider and image-to-image support from localized data
                     const provider = window.kaiGen?.provider;
+                    const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
 
                     if (!provider) {
                         console.error('No provider configured in localized data');
                         return;
                     }
 
-                    // Only OpenAI's gpt-image-1 supports image-to-image
-                    setSupportsImageToImage(provider === 'openai');
+                    // Set image-to-image support based on localized data
+                    setSupportsImageToImage(supportsImageToImage);
                 } catch (err) {
                     console.error('Failed to initialize provider:', err);
                 }
@@ -144,16 +145,14 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
         return (
             <>
                 <BlockEdit {...props} />
-                {supportsImageToImage && (
-                    <BlockControls>
-                        <AIImageToolbar
-                            isRegenerating={isRegenerating}
-                            onRegenerateImage={handleRegenerateImage}
-                            isImageBlock={true}
-                            supportsImageToImage={supportsImageToImage}
-                        />
-                    </BlockControls>
-                )}
+                <BlockControls>
+                    <AIImageToolbar
+                        isRegenerating={isRegenerating}
+                        onRegenerateImage={handleRegenerateImage}
+                        isImageBlock={true}
+                        supportsImageToImage={supportsImageToImage}
+                    />
+                </BlockControls>
             </>
         );
     };

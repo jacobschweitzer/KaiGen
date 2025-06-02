@@ -90,13 +90,11 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         
         // Map quality settings to supported values
         $quality_map = [
-            'low' => 'low',
+            'low'    => 'low',
             'medium' => 'medium',
-            'high' => 'high',
-            'hd' => 'high', // Map 'hd' to 'high'
-            'auto' => 'auto'
+            'high'   => 'high',
         ];
-        
+
         // Ensure we're using a supported quality value
         $quality = isset($quality_map[$quality]) ? $quality_map[$quality] : 'medium';
         
@@ -121,6 +119,11 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             $body .= "--{$boundary}\r\n";
             $body .= 'Content-Disposition: form-data; name="prompt"' . "\r\n\r\n";
             $body .= $prompt . "\r\n";
+            
+            // Add quality parameter
+            $body .= "--{$boundary}\r\n";
+            $body .= 'Content-Disposition: form-data; name="quality"' . "\r\n\r\n";
+            $body .= $quality . "\r\n";
             
             // Add image files
             if (is_array($source_image_url)) {
@@ -337,12 +340,12 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
     }
     
     /**
-     * Checks if this provider supports image-to-image generation with the current model.
+     * Checks if this provider supports image-to-image generation.
      *
      * @return bool True if image-to-image is supported, false otherwise.
      */
     public function supports_image_to_image() {
-        // GPT Image-1 supports image-to-image generation by including references in the prompt
+        // OpenAI's GPT Image-1 supports image-to-image generation via the edits endpoint
         return true;
     }
 

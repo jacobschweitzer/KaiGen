@@ -78,14 +78,40 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         }
 
         $headers = $this->get_request_headers();
+
+        $input_data = ['prompt' => $prompt];
+        
+        // Determine which model to use
+        $model_to_use = $this->model;
+        
+        // Handle source_image_url parameter (convert to input_image for Replicate)
+        $source_image_url = $additional_params['source_image_url'] ?? $additional_params['input_image'] ?? null;
+        
+        // If source image is provided, use the hardcoded image-to-image model
+        if (!empty($source_image_url)) {
+            $model_to_use = $this->get_image_to_image_model();
+            
+            // Convert localhost URLs to base64 data URLs
+            $processed_image = $this->process_image_url($source_image_url);
+            if (is_wp_error($processed_image)) {
+                return $processed_image;
+            }
+            
+            $input_data['input_image'] = $processed_image;
+        }
+        
+        // Remove these parameters to prevent duplication
+        unset($additional_params['source_image_url']);
+        unset($additional_params['input_image']);
+
         $body = [
             'input' => array_merge(
-                ['prompt' => $prompt],
-                $additional_params
+                $input_data,
+                $additional_params // Add other params like aspect_ratio etc.
             )
         ];
         
-        $api_url = self::API_BASE_URL . "{$this->model}/predictions";
+        $api_url = self::API_BASE_URL . "{$model_to_use}/predictions";
 
         // Make initial request with shorter timeout since we're just waiting for the URL
         $response = wp_remote_post(
@@ -234,8 +260,27 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
             'black-forest-labs/flux-1.1-pro' => 'Flux 1.1 Pro by Black Forest Labs (high quality)',
             'recraft-ai/recraft-v3'          => 'Recraft V3 by Recraft AI (high quality)',
-            'google/imagen-3'                => 'Imagen 3 by Google (highest quality)',
+            'google/imagen-4'                => 'Imagen 4 by Google (highest quality)',
         ];
+    }
+
+    /**
+     * Gets the hardcoded image-to-image model for Replicate.
+     *
+     * @return string The image-to-image model.
+     */
+    private function get_image_to_image_model() {
+        return 'black-forest-labs/flux-kontext-pro';
+    }
+
+    /**
+     * Checks if this provider supports image-to-image generation.
+     *
+     * @return bool True if image-to-image is supported, false otherwise.
+     */
+    public function supports_image_to_image() {
+        // Replicate supports image-to-image via flux-kontext-pro
+        return true;
     }
 
     /**
@@ -258,5 +303,45 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'recraft-ai/recraft-v3'; // Default to medium quality
         }
         return $model;
+    }
+
+    /**
+     * Processes image URL for Replicate API.
+     * Always converts images to base64 data URLs for reliability.
+     * 
+     * @param string $image_url The image URL to process.
+     * @return string|WP_Error The base64 data URL, or error.
+     */
+    private function process_image_url($image_url) {
+        // Download the image and convert to base64
+        $response = wp_remote_get($image_url);
+        
+        if (is_wp_error($response)) {
+            return new WP_Error('image_download_failed', 'Failed to download image: ' . $response->get_error_message());
+        }
+        
+        $image_data = wp_remote_retrieve_body($response);
+        if (empty($image_data)) {
+            return new WP_Error('empty_image_data', 'Downloaded image data is empty');
+        }
+        
+        // Get the content type
+        $content_type = wp_remote_retrieve_header($response, 'content-type');
+        if (empty($content_type)) {
+            // Try to determine from file extension
+            $extension = strtolower(pathinfo($image_url, PATHINFO_EXTENSION));
+            $mime_types = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'webp' => 'image/webp',
+                'gif' => 'image/gif'
+            ];
+            $content_type = $mime_types[$extension] ?? 'image/jpeg';
+        }
+        
+        // Convert to base64 data URL
+        $base64_data = base64_encode($image_data);
+        return "data:{$content_type};base64,{$base64_data}";
     }
 }
