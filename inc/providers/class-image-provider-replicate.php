@@ -260,7 +260,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
             'black-forest-labs/flux-1.1-pro' => 'Flux 1.1 Pro by Black Forest Labs (high quality)',
             'recraft-ai/recraft-v3'          => 'Recraft V3 by Recraft AI (high quality)',
-            'google/imagen-3'                => 'Imagen 3 by Google (highest quality)',
+            'google/imagen-4'                => 'Imagen 4 by Google (highest quality)',
         ];
     }
 
@@ -297,7 +297,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'recraft-ai/recraft-v3';
                 break;
             case 'high':
-                $model = 'google/imagen-3';
+                $model = 'google/imagen-4';
                 break;
             default:
                 $model = 'recraft-ai/recraft-v3'; // Default to medium quality

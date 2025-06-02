@@ -125,13 +125,13 @@ class KaiGen_Image_Provider_Replicate_Test extends TestCase {
         $this->assertIsArray($models);
         $this->assertArrayHasKey('black-forest-labs/flux-kontext-pro', $models);
         $this->assertEquals('Flux Kontext Pro by Black Forest Labs (image-to-image)', $models['black-forest-labs/flux-kontext-pro']);
-        $this->assertArrayHasKey('google/imagen-3', $models);
+        $this->assertArrayHasKey('google/imagen-4', $models);
     }
 
     public function test_get_model_from_quality_setting() {
         $this->assertEquals('black-forest-labs/flux-schnell', $this->provider->get_model_from_quality_setting('low'));
         $this->assertEquals('recraft-ai/recraft-v3', $this->provider->get_model_from_quality_setting('medium'));
-        $this->assertEquals('google/imagen-3', $this->provider->get_model_from_quality_setting('high'));
+        $this->assertEquals('google/imagen-4', $this->provider->get_model_from_quality_setting('high'));
         $this->assertEquals('black-forest-labs/flux-kontext-pro', $this->provider->get_model_from_quality_setting('image_to_image'));
         // Test default case
         $this->assertEquals('recraft-ai/recraft-v3', $this->provider->get_model_from_quality_setting('unknown_quality'));
@@ -153,7 +153,7 @@ class KaiGen_Image_Provider_Replicate_Test extends TestCase {
 
     public function test_make_api_request_text_to_image() {
         // Set up a text-to-image model
-        $this->set_option('kaigen_quality_settings', ['quality' => 'high']); // e.g., google/imagen-3
+        $this->set_option('kaigen_quality_settings', ['quality' => 'high']); // e.g., google/imagen-4
         $this->set_option('kaigen_quality_setting', 'high');
         $provider = new KaiGen_Image_Provider_Replicate($this->api_key);
 
@@ -163,7 +163,7 @@ class KaiGen_Image_Provider_Replicate_Test extends TestCase {
         $provider->make_api_request($prompt);
 
         $this->assertEquals(1, WP_Remote_Post_Spy::$actual_calls);
-        $this->assertStringContainsString('google/imagen-3/predictions', WP_Remote_Post_Spy::$called_url);
+        $this->assertStringContainsString('google/imagen-4/predictions', WP_Remote_Post_Spy::$called_url);
 
         $request_body = json_decode(WP_Remote_Post_Spy::$called_args['body'], true);
         $this->assertArrayHasKey('prompt', $request_body['input']);
