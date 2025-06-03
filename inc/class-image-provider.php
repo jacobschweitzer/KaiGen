@@ -136,13 +136,13 @@ abstract class KaiGen_Image_Provider implements KaiGen_Image_Provider_Interface 
                 return $result;
             } else if (is_array($result) && isset($result['url'])) {
                 // This has a URL but no valid ID, so upload to media library
-                return KaiGen_Image_Handler::upload_to_media_library($result['url'], $prompt);
+                return KaiGen_Image_Handler::upload_to_media_library($result['url'], $prompt, $this->get_name(), $this->get_current_model());
             } else if (is_string($result) && filter_var($result, FILTER_VALIDATE_URL)) {
                 // This is a URL string, upload to media library
-                return KaiGen_Image_Handler::upload_to_media_library($result, $prompt);
+                return KaiGen_Image_Handler::upload_to_media_library($result, $prompt, $this->get_name(), $this->get_current_model());
             } else if (is_string($result) && strlen($result) > 100) {
                 // This is likely raw image data, upload to media library
-                return KaiGen_Image_Handler::upload_to_media_library($result, $prompt);
+                return KaiGen_Image_Handler::upload_to_media_library($result, $prompt, $this->get_name(), $this->get_current_model());
             }
             
             // Fallback for unexpected result format
