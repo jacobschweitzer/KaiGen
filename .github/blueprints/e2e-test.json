@@ -1,0 +1,45 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "preferredVersions": {
+    "php": "8.1",
+    "wp": "latest"
+  },
+  "features": {
+    "networking": true
+  },
+  "landingPage": "/wp-admin/post-new.php",
+  "steps": [
+    {
+      "step": "runWpInstallationWizard",
+      "options": {
+        "adminUsername": "admin",
+        "adminPassword": "password"
+      }
+    },
+    {
+      "step": "writeFile",
+      "path": "/wordpress/wp-content/mu-plugins/http-mock.php",
+      "data": {
+        "$ref": "../../tests/http-mock.php"
+      }
+    },
+    {
+      "step": "activatePlugin",
+      "pluginPath": "/wordpress/wp-content/plugins/kaigen"
+    },
+    {
+      "step": "defineWpConfigConsts",
+      "consts": {
+        "E2E_TESTING": true,
+        "WP_DEBUG": true,
+        "WP_DEBUG_LOG": true,
+        "WP_DEBUG_DISPLAY": false
+      }
+    },
+    {
+      "step": "login",
+      "username": "admin",
+      "password": "password"
+    }
+  ]
+}

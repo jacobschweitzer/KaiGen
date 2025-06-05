@@ -32,3 +32,21 @@ Includes a WordPress Gutenberg block with a prompt box that generates an image a
 - [Imagen 4 by Google](https://replicate.com/google/imagen-4)
 - [GPT Image 1 by OpenAI](https://openai.com/index/image-generation-api)
 - [Flux Kontext Pro by Black Forest Labs](https://replicate.com/black-forest-labs/flux-kontext-pro)
+
+## Testing
+
+### E2E Testing with Mocked APIs
+
+KaiGen includes comprehensive end-to-end tests that run without making actual API calls. The tests use HTTP mocking to intercept external requests and return predictable responses.
+
+To run e2e tests:
+
+```bash
+# Start WordPress Playground with e2e test configuration
+npm run playground:e2e
+
+# In another terminal, run the tests
+npm run test:e2e
+```
+
+For more details, see [tests/e2e/README.md](tests/e2e/README.md).
