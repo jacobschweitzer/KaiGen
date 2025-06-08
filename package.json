@@ -16,7 +16,7 @@
     "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start src/index.js src/admin.js",
     "wp-env": "wp-env",
-    "playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/simple.json --port=9400",
+    "playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
     "test:env:start": "wp-env start && sleep 10",
     "test:env:stop": "wp-env stop",
     "test:e2e": "playwright test",

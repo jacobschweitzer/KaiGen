@@ -33,8 +33,8 @@ export default defineConfig({
   
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL for WordPress Playground */
-    baseURL: 'http://localhost:9400',
+    /* Base URL for WordPress Playground - use 127.0.0.1 to avoid CORS issues */
+    baseURL: 'http://127.0.0.1:9400',
 
     /* Disable video and trace recording in CI for performance */
     video: process.env.CI ? 'off' : 'on-first-retry',
