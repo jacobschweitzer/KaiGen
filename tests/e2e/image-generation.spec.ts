@@ -4,6 +4,65 @@
  */
 import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 
+/**
+ * Helper function to configure KaiGen provider settings via WordPress admin.
+ */
+async function configureKaiGenProvider(page: any) {
+    // Navigate to the KaiGen settings page
+    await page.goto('/wp-admin/options-general.php?page=kaigen-settings');
+    
+    // Wait for the settings page to load
+    await page.waitForSelector('.wrap h1', { timeout: 10000 });
+    
+    // Verify we're on the correct page
+    const pageTitle = await page.locator('.wrap h1').textContent();
+    
+    if (pageTitle !== 'KaiGen Settings') {
+        throw new Error(`Expected "KaiGen Settings" but got "${pageTitle}"`);
+    }
+    
+    // Select the provider first
+    const providerSelect = page.locator('select[name="kaigen_provider"]');
+    if (await providerSelect.count() > 0) {
+        const options = await providerSelect.locator('option').allTextContents();
+        
+        const hasOpenAI = options.some(option => option.toLowerCase().includes('openai'));
+        
+        if (hasOpenAI) {
+            await providerSelect.selectOption('openai');
+            
+            // Wait a moment for the API key field to become available
+            await page.waitForTimeout(500);
+        }
+    }
+    
+    // Set the API key after selecting the provider
+    const apiKeyField = page.locator('input[name="kaigen_provider_api_keys[openai]"]');
+    if (await apiKeyField.count() > 0) {
+        await apiKeyField.fill('sk-test-e2e-key-1234567890');
+    }
+    
+    // Set quality settings
+    const qualitySelect = page.locator('select[name="kaigen_quality_settings[quality]"]');
+    if (await qualitySelect.count() > 0) {
+        await qualitySelect.selectOption('medium');
+    }
+    
+    // Save all settings at once
+    const saveButton = page.locator('input[type="submit"][value="Save Changes"], button[type="submit"]');
+    if (await saveButton.count() > 0) {
+        await saveButton.click();
+        
+        try {
+            await page.waitForSelector('.notice-success, .updated', { timeout: 5000 });
+        } catch (error) {
+            // Continue even if no notice appears
+        }
+        
+        await page.waitForTimeout(1000);
+    }
+}
+
 test.describe('KaiGen Image Generation', () => {
 
 
@@ -18,35 +77,8 @@ test.describe('KaiGen Image Generation', () => {
         await page.goto('/wp-admin/');
         await page.waitForLoadState('networkidle');
         
-        // Verify that the mock is loaded by checking for the E2E_TESTING constant
-        const mockStatus = await page.evaluate(() => {
-            return window.wp && window.wp.hooks ? 'WordPress loaded' : 'WordPress not ready';
-        });
-        console.log('WordPress status:', mockStatus);
-        
         // Configure KaiGen settings
-        await page.goto('/wp-admin/options-general.php?page=kaigen-settings');
-        await page.waitForSelector('.wrap h1', { timeout: 10000 });
-        
-        // Select OpenAI provider
-        const providerSelect = page.locator('select[name="kaigen_provider"]');
-        await providerSelect.selectOption('openai');
-        await page.waitForTimeout(500);
-        
-        // Set API key (will be intercepted by mock)
-        const apiKeyField = page.locator('input[name="kaigen_provider_api_keys[openai]"]');
-        await apiKeyField.fill('sk-test-e2e-key-1234567890');
-        
-        // Set quality
-        const qualitySelect = page.locator('select[name="kaigen_quality_settings[quality]"]');
-        await qualitySelect.selectOption('medium');
-        
-        // Save settings
-        const saveButton = page.locator('input[type="submit"][value="Save Changes"]');
-        await saveButton.click();
-        
-        // Wait for success notice
-        await page.waitForSelector('.notice-success, .updated', { timeout: 5000 }).catch(() => {});
+        await configureKaiGenProvider(page);
         
         await context.close();
     });
@@ -57,19 +89,79 @@ test.describe('KaiGen Image Generation', () => {
     });
 
     /**
+     * Test case for verifying image block placeholder buttons.
+     */
+    test('should show all image source buttons in placeholder', async ({ editor, page }) => {
+        // Insert the image block
+        await editor.insertBlock({ name: 'core/image' });
+        
+        const imageBlockSelector = '[data-type="core/image"]';
+        const imageBlock = editor.canvas.locator(imageBlockSelector);
+        
+        // Wait for the block to be visible
+        await expect(imageBlock).toBeVisible({ timeout: 10000 });
+        
+        // Verify the media placeholder is visible
+        const mediaPlaceholder = imageBlock.locator('.components-placeholder');
+        await expect(mediaPlaceholder).toBeVisible();
+        
+        // Check for Upload button
+        const uploadButton = imageBlock.getByRole('button', { name: /upload/i });
+        await expect(uploadButton).toBeVisible();
+
+        // Check for Media Library button
+        const mediaLibraryButton = imageBlock.getByRole('button', { name: /media library/i });
+        await expect(mediaLibraryButton).toBeVisible();
+        
+        // Check for Insert from URL button
+        const insertFromURLButton = imageBlock.getByRole('button', { name: /insert from url/i });
+        await expect(insertFromURLButton).toBeVisible();
+
+        // Look for the "KaiGen" button
+        const aiGenerateButton = editor.canvas.getByRole('button', { 
+            name: 'KaiGen',
+            exact: true 
+        });
+        
+        // Verify the KaiGen button exists and is visible
+        await expect(aiGenerateButton).toBeVisible({ timeout: 10000 });
+        await expect(aiGenerateButton).toBeEnabled();
+    });
+
+    /**
+     * Test case for verifying provider data is available in editor.
+     */
+    test('should have provider data available in editor', async ({ editor, page }) => {
+        // Insert image block to trigger editor scripts
+        await editor.insertBlock({ name: 'core/image' });
+        
+        const imageBlockSelector = '[data-type="core/image"]';
+        const imageBlock = editor.canvas.locator(imageBlockSelector);
+        await expect(imageBlock).toBeVisible({ timeout: 10000 });
+        
+        // Wait for scripts to load
+        await page.waitForTimeout(2000);
+        
+        // Check if kaiGen object is available
+        const kaiGenData = await page.evaluate(() => {
+            return (window as any).kaiGen || null;
+        });
+        
+        // Verify that kaiGen data exists and has provider
+        expect(kaiGenData).toBeTruthy();
+        expect(kaiGenData).toHaveProperty('provider');
+        expect(kaiGenData.provider).toBe('openai');
+    });
+
+    /**
      * Test successful image generation with OpenAI provider
      */
     test('should generate image successfully with OpenAI', async ({ editor, page }) => {
-        // Add debugging to see what's happening in the browser console
-        page.on('console', msg => console.log('Browser console:', msg.text()));
-        page.on('pageerror', error => console.log('Page error:', error.message));
-        
         // Check for a Content Security Policy
         const csp = await page.evaluate(() => {
             const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
             return meta ? meta.getAttribute('content') : 'No CSP meta tag found.';
         });
-        console.log('Content Security Policy:', csp);
 
         // Insert image block
         await editor.insertBlock({ name: 'core/image' });
@@ -123,7 +215,6 @@ test.describe('KaiGen Image Generation', () => {
                 };
             }
         });
-        console.log('API check result:', apiCheck);
         
         await generateButton.click();
         
@@ -143,8 +234,6 @@ test.describe('KaiGen Image Generation', () => {
             // Get the image src
             const imageSrc = await insertedImage.getAttribute('src');
             expect(imageSrc).toBeTruthy();
-            
-            console.log('Generated image SRC:', imageSrc);
 
             // Wait for the image to be fully loaded and rendered before taking screenshots
             await insertedImage.evaluate(image => {
@@ -172,7 +261,6 @@ test.describe('KaiGen Image Generation', () => {
             // If modal didn't close, check for error messages
             if (await modal.isVisible()) {
                 const errorText = await modal.textContent();
-                console.log('Modal content when test failed:', errorText);
             }
             
             // Check if it's the offline error
@@ -253,8 +341,6 @@ test.describe('KaiGen Image Generation', () => {
             // Get the image src
             const imageSrc = await insertedImage.getAttribute('src');
             expect(imageSrc).toBeTruthy();
-            
-            console.log('Generated image URL (Replicate):', imageSrc);
 
             // Wait for the image to be fully loaded and rendered
             await insertedImage.evaluate(image => {
@@ -332,11 +418,7 @@ test.describe('KaiGen Image Generation', () => {
         
         // Modal should still be open with error message
         await expect(modal).toBeVisible({ timeout: 5000 });
-        
-        // Check for error message in modal
-        const modalContent = await modal.textContent();
-        console.log('Error test modal content:', modalContent);
-        
+
         // Close modal
         const closeButton = page.locator('.components-modal__header button[aria-label*="Close" i]');
         if (await closeButton.count() > 0) {
