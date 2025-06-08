@@ -43,7 +43,7 @@ To run e2e tests:
 
 ```bash
 # Start WordPress Playground with e2e test configuration
-npm run playground:e2e
+npm run playground:start
 
 # In another terminal, run the tests
 npm run test:e2e

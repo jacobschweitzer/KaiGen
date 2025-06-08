@@ -13,6 +13,9 @@ if (!defined('E2E_TESTING') && !str_contains($_SERVER['HTTP_HOST'] ?? '', 'local
     return;
 }
 
+// Log that we're in test mode
+error_log('KaiGen E2E Mock: Test environment detected - E2E_TESTING: ' . (defined('E2E_TESTING') ? 'true' : 'false') . ', Host: ' . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
+
 /**
  * Filter to intercept HTTP requests and return mocked responses.
  */
@@ -79,13 +82,18 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     if (str_contains($url, 'api.openai.com/v1/images/generations')) {
         error_log('KaiGen E2E Mock: Returning mocked OpenAI generation response');
         
+        // 24x24 green checkmark.
+        $png_base64 = 'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAPJJREFUSEvt1M0RgjAQBOCWq3QD3SA36QbphGyQbpBuoG4g3SAdwAbtJg7sCg7QhZAEb3L5l5CQUlq4W3h5IcwQ2gU3nd23sQggoZoJAxzEa243u0G2QAvzKLRNC9gQwpIBbeoV0A+w/wN8AcflGqY7QPl4gA3kNaYg9k/wbQCNY3E0sA0LDUQx3wFj2Gr+C8wd4AxbMMSx3wBs5piO2b4C3MwzzHds3gFv5hjO274CPs0xzHcv3gFv5hrW2z4C3s0wrLf8BrOYZ1lv+wns5plWW/4DOs9zLP8B7OYZ1mGfAQTwC3b3/wFSGddpE8wD/gAAAABJRU5ErkJggg==';
+        $base64_image = $png_base64;
+        
         return [
             'headers'  => ['content-type' => 'application/json'],
             'body'     => wp_json_encode([
                 'created' => time(),
                 'data' => [
                     [
-                        'url' => 'https://via.placeholder.com/1024x1024.png?text=AI+Generated+Image',
+                        // Provide base64 image data via b64_json key per OpenAI spec
+                        'b64_json' => $base64_image,
                         'revised_prompt' => 'A beautiful sunset over mountains with vibrant colors'
                     ]
                 ]
@@ -103,13 +111,15 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     if (str_contains($url, 'api.openai.com/v1/images/edits')) {
         error_log('KaiGen E2E Mock: Returning mocked OpenAI edit response');
         
+        $placeholder_base64 = 'iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAfUlEQVR42u3RAQ0AAAjDMO5fNCxICg0B0FEBGUgDJSMpIyljKSMrYykhKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKWOpIyllKWw/4Ab2agQMAAAAAElFTkSuQmCC';
+        
         return [
             'headers'  => ['content-type' => 'application/json'],
             'body'     => wp_json_encode([
                 'created' => time(),
                 'data' => [
                     [
-                        'url' => 'https://via.placeholder.com/1024x1024.png?text=AI+Edited+Image',
+                        'b64_json' => $placeholder_base64,
                         'revised_prompt' => 'An edited version of the original image'
                     ]
                 ]
@@ -129,7 +139,6 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
         
         $prediction_id = 'test-' . uniqid();
         
-        // Return immediately succeeded response (simulating sync mode)
         return [
             'headers'  => ['content-type' => 'application/json'],
             'body'     => wp_json_encode([
@@ -182,8 +191,8 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     if (str_contains($url, 'via.placeholder.com')) {
         error_log('KaiGen E2E Mock: Returning mocked placeholder image');
         
-        // Return a simple 1x1 transparent PNG
-        $png_data = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+        $png_placeholder_base64 = 'iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAfUlEQVR42u3RAQ0AAAjDMO5fNCxICg0B0FEBGUgDJSMpIyljKSMrYykhKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKWOpIyllKWw/4Ab2agQMAAAAAElFTkSuQmCC';
+        $png_data = base64_decode($png_placeholder_base64);
         
         return [
             'headers'  => [
@@ -203,6 +212,25 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     // Allow all other requests to proceed normally
     return $pre;
 }, 10, 3);
+
+// Intercept direct requests for "uploaded" mock images and serve the file data.
+// This is needed because the browser will request the URL returned by the media library.
+add_action('template_redirect', function() {
+    $url = $_SERVER['REQUEST_URI'];
+    
+    if (str_contains($url, '/wp-content/uploads/') && (str_ends_with($url, '.webp') || str_ends_with($url, '.png'))) {
+        error_log('KaiGen E2E Mock (template_redirect): Serving mocked image for uploaded file request: ' . $url);
+
+        // Serve a consistent green checkmark for any generated image request
+        $png_base64 = 'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAPJJREFUSEvt1M0RgjAQBOCWq3QD3SA36QbphGyQbpBuoG4g3SAdwAbtJg7sCg7QhZAEb3L5l5CQUlq4W3h5IcwQ2gU3nd23sQggoZoJAxzEa243u0G2QAvzKLRNC9gQwpIBbeoV0A+w/wN8AcflGqY7QPl4gA3kNaYg9k/wbQCNY3E0sA0LDUQx3wFj2Gr+C8wd4AxbMMSx3wBs5piO2b4C3MwzzHds3gFv5hjO274CPs0xzHcv3gFv5hrW2z4C3s0wrLf8BrOYZ1lv+wns5plWW/4DOs9zLP8B7OYZ1mGfAQTwC3b3/wFSGddpE8wD/gAAAABJRU5ErkJggg==';
+        $png_data = base64_decode($png_base64);
+
+        header('Content-Type: image/png');
+        header('Content-Length: ' . strlen($png_data));
+        echo $png_data;
+        die();
+    }
+});
 
 // Also add a filter to mock successful uploads
 add_filter('wp_handle_sideload_prefilter', function($file) {

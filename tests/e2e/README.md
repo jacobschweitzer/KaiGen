@@ -39,6 +39,16 @@ The e2e tests use Playwright to test the complete image generation flow without 
 ### With WordPress Playground (Recommended)
 
 ```bash
+# Start Playground with e2e test blueprint (includes HTTP mock)
+npm run playground:start
+
+# In another terminal, run tests
+npm run test:e2e
+```
+
+Or manually:
+
+```bash
 # Start Playground with e2e test blueprint
 npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400
 

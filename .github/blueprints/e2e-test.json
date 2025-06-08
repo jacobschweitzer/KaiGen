@@ -19,9 +19,7 @@
     {
       "step": "writeFile",
       "path": "/wordpress/wp-content/mu-plugins/http-mock.php",
-      "data": {
-        "$ref": "../../tests/http-mock.php"
-      }
+      "data": "<?php require_once __DIR__ . '/../plugins/kaigen/tests/http-mock.php';"
     },
     {
       "step": "activatePlugin",

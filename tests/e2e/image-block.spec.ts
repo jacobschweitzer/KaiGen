@@ -39,7 +39,7 @@ async function configureKaiGenProvider(page: any) {
     // Set the API key after selecting the provider
     const apiKeyField = page.locator('input[name="kaigen_provider_api_keys[openai]"]');
     if (await apiKeyField.count() > 0) {
-        await apiKeyField.fill('test-api-key-for-testing-purposes');
+        await apiKeyField.fill('sk-test-e2e-key-1234567890');
     }
     
     // Set quality settings
