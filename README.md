@@ -7,7 +7,7 @@ Includes a WordPress Gutenberg block with a prompt box that generates an image a
 **GitHub Repository:** https://github.com/jacobschweitzer/KaiGen
 
 ## Installation
-1. [Download KaiGen](https://github.com/jacobschweitzer/KaiGen/archive/refs/heads/main-built.zip)
+1. [Download KaiGen](https://github.com/jacobschweitzer/KaiGen/releases/download/latest/kaigen.zip)
 2. Upload and Activate KaiGen
 3. Get API keys for the providers you want to use:
 - [OpenAI](https://platform.openai.com/settings/profile?tab=api-keys)
