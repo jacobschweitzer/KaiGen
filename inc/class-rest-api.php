@@ -282,6 +282,18 @@ final class KaiGen_REST_Controller {
                     return $result;
                 }
 
+                // Handle image-to-image specific errors - return immediately without retrying
+                if (in_array($result->get_error_code(), [
+                    'image_to_image_error',
+                    'image_to_image_failed', 
+                    'model_error',
+                    'image_download_failed',
+                    'empty_image_data',
+                    'replicate_validation_error'
+                ])) {
+                    return $result;
+                }
+
                 // Handle pending status
                 if ($result->get_error_code() === 'replicate_pending' || 
                     $result->get_error_code() === 'processing') {

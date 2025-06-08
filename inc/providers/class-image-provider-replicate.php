@@ -84,25 +84,52 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         // Determine which model to use
         $model_to_use = $this->model;
         
-        // Handle source_image_url parameter (convert to input_image for Replicate)
+        // Handle source_image_url parameter (convert to input_image for Replicate flux-kontext-pro)
         $source_image_url = $additional_params['source_image_url'] ?? $additional_params['input_image'] ?? null;
         
         // If source image is provided, use the hardcoded image-to-image model
         if (!empty($source_image_url)) {
             $model_to_use = $this->get_image_to_image_model();
-            
+
             // Convert localhost URLs to base64 data URLs
             $processed_image = $this->process_image_url($source_image_url);
             if (is_wp_error($processed_image)) {
+                // Return image processing errors immediately without retry
                 return $processed_image;
             }
             
+            // Use 'input_image' parameter for flux-kontext-pro model (confirmed by official schema)
             $input_data['input_image'] = $processed_image;
         }
         
         // Remove these parameters to prevent duplication
         unset($additional_params['source_image_url']);
         unset($additional_params['input_image']);
+
+        // Filter parameters based on the model being used
+        if (!empty($source_image_url)) {
+            // For flux-kontext-pro, only keep valid parameters according to schema
+            $valid_kontext_params = ['seed', 'aspect_ratio', 'output_format', 'safety_tolerance'];
+            $filtered_params = [];
+            
+            foreach ($valid_kontext_params as $param) {
+                if (isset($additional_params[$param])) {
+                    $value = $additional_params[$param];
+                    
+                    // Validate and fix output_format for flux-kontext-pro
+                    if ($param === 'output_format') {
+                        if (!in_array($value, ['jpg', 'png'])) {
+                            // Convert unsupported formats to png
+                            $value = 'png';
+                        }
+                    }
+                    
+                    $filtered_params[$param] = $value;
+                }
+            }
+            
+            $additional_params = $filtered_params;
+        }
 
         $body = [
             'input' => array_merge(
@@ -127,7 +154,24 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             return $response;
         }
 
+        $response_code = wp_remote_retrieve_response_code($response);
+
         $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        // Handle 422 validation errors specifically - RETURN IMMEDIATELY
+        if ($response_code === 422) {
+            $error_message = 'Validation error from Replicate API';
+            if (isset($body['detail'])) {
+                $error_message = 'Validation error: ' . (is_array($body['detail']) ? json_encode($body['detail']) : $body['detail']);
+            }
+            return new WP_Error('replicate_validation_error', $error_message);
+        }
+
+        // Check for immediate errors in the response
+        if (!empty($body['error'])) {
+            // Return API errors immediately without retry
+            return new WP_Error('replicate_api_error', $body['error']);
+        }
 
         // If we got a completed prediction with output, return it immediately
         if (isset($body['status']) && $body['status'] === 'succeeded' && 
@@ -183,14 +227,34 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
 
         // Check for error in response
         if (!empty($response['error'])) {
+            $error_message = $response['error'];
+            
+            // Check for image-to-image specific errors
+            if (strpos($error_message, 'image') !== false && strpos($error_message, 'parameter') !== false) {
+                return new WP_Error(
+                    'image_to_image_error',
+                    'Image-to-image generation failed: ' . $error_message . '. Please check that your source image is valid and accessible.'
+                );
+            }
+            
+            // Check for model-specific errors
+            if (strpos($error_message, 'flux-kontext-pro') !== false || strpos($error_message, 'model') !== false) {
+                return new WP_Error(
+                    'model_error',
+                    'Model error: ' . $error_message . '. The image-to-image model may be temporarily unavailable.'
+                );
+            }
+            
             // Return a user-friendly error for content moderation failures
-            if (strpos($response['error'], '400 Image generation failed') !== false) {
+            if (strpos($error_message, '400 Image generation failed') !== false) {
                 return new WP_Error(
                     'content_moderation',
                     'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
                 );
             }
-            return new WP_Error('replicate_error', $response['error']);
+            
+            // Return the raw error for other cases
+            return new WP_Error('replicate_error', $error_message);
         }
 
         // Check the prediction status
@@ -203,6 +267,15 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             // Check both error field and logs for detailed error messages
             $error_details = $response['error'] ?? '';
             $logs = $response['logs'] ?? '';
+            
+            // Look for image-to-image specific failures
+            if (
+                strpos($error_details . $logs, "image") !== false && 
+                strpos($error_details . $logs, "parameter") !== false
+            ) {
+                $error_message = 'Image-to-image generation failed. Please check that your source image is valid and accessible.';
+                return new WP_Error('image_to_image_failed', $error_message);
+            }
             
             // Look for content moderation failures in both error and logs
             if (
@@ -313,16 +386,44 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string|WP_Error The base64 data URL, or error.
      */
     private function process_image_url($image_url) {
-        // Download the image and convert to base64
-        $response = wp_remote_get($image_url);
+        // Check if the URL is accessible first with a HEAD request
+        $head_response = wp_remote_head($image_url, ['timeout' => 10]);
+        
+        if (is_wp_error($head_response)) {
+            $error_message = 'Image URL not accessible: ' . $head_response->get_error_message();
+            return new WP_Error('image_not_accessible', $error_message);
+        }
+        
+        $content_length = wp_remote_retrieve_header($head_response, 'content-length');
+        if ($content_length && $content_length > 10 * 1024 * 1024) { // 10MB limit
+            $error_message = 'Image too large: ' . round($content_length / 1024 / 1024, 2) . 'MB (max 10MB)';
+            return new WP_Error('image_too_large', $error_message);
+        }
+        
+        // Download the image and convert to base64 with increased timeout
+        $response = wp_remote_get($image_url, [
+            'timeout' => 30, // Increased from default 5 seconds to 30 seconds
+        ]);
         
         if (is_wp_error($response)) {
-            return new WP_Error('image_download_failed', 'Failed to download image: ' . $response->get_error_message());
+            $error_message = 'Failed to download image: ' . $response->get_error_message();
+            return new WP_Error('image_download_failed', $error_message);
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code !== 200) {
+            $error_message = "Failed to download image: HTTP {$response_code}";
+            return new WP_Error('image_download_failed', $error_message);
         }
         
         $image_data = wp_remote_retrieve_body($response);
         if (empty($image_data)) {
             return new WP_Error('empty_image_data', 'Downloaded image data is empty');
+        }
+        
+        // Check if we got a reasonable amount of data (at least 1KB)
+        if (strlen($image_data) < 1024) {
+            return new WP_Error('empty_image_data', 'Downloaded image data is too small (less than 1KB)');
         }
         
         // Get the content type
@@ -342,6 +443,8 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         
         // Convert to base64 data URL
         $base64_data = base64_encode($image_data);
-        return "data:{$content_type};base64,{$base64_data}";
+        $data_url = "data:{$content_type};base64,{$base64_data}";
+        
+        return $data_url;
     }
 }
