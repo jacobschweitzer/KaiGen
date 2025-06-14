@@ -32,9 +32,11 @@ class KaiGen_Image_Handler {
      *
      * @param string $image_data The raw image data or URL.
      * @param string $prompt The prompt used to generate the image (for alt text).
+     * @param string $provider_name The name of the image generation provider.
+     * @param string $model_id The ID of the model used for generation.
      * @return array|WP_Error Array containing the uploaded image URL and ID, or WP_Error on failure.
      */
-    public static function upload_to_media_library($image_data, $prompt) {
+    public static function upload_to_media_library($image_data, $prompt, $provider_name, $model_id) {
         // Download the image if a URL is provided
         if (filter_var($image_data, FILTER_VALIDATE_URL)) {
             $image_data = self::download_image($image_data);
@@ -69,7 +71,7 @@ class KaiGen_Image_Handler {
         $attachment = [
             'post_mime_type' => $filetype['type'],
             'post_title'     => $title,
-            'post_content'   => 'Generated with prompt: ' . $prompt,
+            'post_content'   => 'Generated with prompt: ' . $prompt . '. Provider: ' . $provider_name . ', Model: ' . $model_id,
             'post_status'    => 'inherit',
             'post_excerpt'   => wp_trim_words($prompt, 5, '...'),
         ];
