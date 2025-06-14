@@ -394,12 +394,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             return new WP_Error('image_not_accessible', $error_message);
         }
         
-        $content_length = wp_remote_retrieve_header($head_response, 'content-length');
-        if ($content_length && $content_length > 10 * 1024 * 1024) { // 10MB limit
-            $error_message = 'Image too large: ' . round($content_length / 1024 / 1024, 2) . 'MB (max 10MB)';
-            return new WP_Error('image_too_large', $error_message);
-        }
-        
         // Download the image and convert to base64 with increased timeout
         $response = wp_remote_get($image_url, [
             'timeout' => 30, // Increased from default 5 seconds to 30 seconds
