@@ -414,12 +414,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         if (empty($image_data)) {
             return new WP_Error('empty_image_data', 'Downloaded image data is empty');
         }
-        
-        // Check if we got a reasonable amount of data (at least 1KB)
-        if (strlen($image_data) < 1024) {
-            return new WP_Error('empty_image_data', 'Downloaded image data is too small (less than 1KB)');
-        }
-        
+
         // Get the content type
         $content_type = wp_remote_retrieve_header($response, 'content-type');
         if (empty($content_type)) {
