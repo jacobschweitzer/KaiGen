@@ -68,16 +68,16 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
 
     return (
         <>
-            {/* Button to open the AI image generation modal */}
-            <div className="block-editor-media-placeholder__url-input-container">
-                <Button
-                    variant="secondary"
-                    onClick={() => setIsModalOpen(true)}
-                    className="components-button is-next-40px-default-size is-secondary"
-                >
-                    KaiGen
-                </Button>
-            </div>
+            {/* KaiGen button – rendered inside the main placeholder buttons container */}
+            <Button
+                variant="secondary"
+                onClick={() => setIsModalOpen(true)}
+                className="components-button is-next-40px-default-size is-secondary kaigen-placeholder-button"
+                /* Ensure it shows after the core buttons by leveraging flex order (the container is flex-based) */
+                style={{ order: 99 }}
+            >
+                KaiGen
+            </Button>
 
             {/* Modal for entering the prompt and generating the image. */}
             {isModalOpen && (
