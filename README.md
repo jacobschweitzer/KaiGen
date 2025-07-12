@@ -7,12 +7,52 @@ Includes a WordPress Gutenberg block with a prompt box that generates an image a
 **GitHub Repository:** https://github.com/jacobschweitzer/KaiGen
 
 ## Installation
-1. [Download KaiGen](https://github.com/jacobschweitzer/KaiGen/releases/download/latest/kaigen.zip)
+1. [Download KaiGen](https://github.com/jacobschweitzer/KaiGen/releases/latest)
 2. Upload and Activate KaiGen
 3. Get API keys for the providers you want to use:
 - [OpenAI](https://platform.openai.com/settings/profile?tab=api-keys)
 - [Replicate](https://replicate.com/account/api-tokens)
 4. Add your API keys in Settings -> KaiGen in the WordPress admin.
+
+## Releases and Deployment
+
+### Release Strategy
+- **Versioned Releases**: Created when version tags are pushed (e.g., `v0.1.9`, `v0.2.0`)
+- **WordPress.org Deployment**: Automatic deployment to WordPress.org plugin repository when version tags are pushed
+
+### GitHub Actions Workflow
+The project uses [WordPress Plugin Deploy](https://github.com/marketplace/actions/wordpress-plugin-deploy) action for:
+- Automated file exclusion using `.distignore`
+- ZIP file generation
+- WordPress.org repository deployment
+- GitHub release creation
+
+File exclusion is managed by `.distignore` which excludes development files like:
+- Source files (`/src`)
+- Tests (`/tests`, `/playwright`)
+- Node modules (`/node_modules`)
+- Configuration files (`package.json`, `playwright.config.ts`)
+- Development documentation (`README.md`, `CLAUDE.md`)
+
+### Creating a New Release
+To create a new versioned release:
+
+1. Update the version number in all files:
+   - `kaigen.php`: `Version:           0.2.0`
+   - `readme.txt`: `Stable tag:        0.2.0`  
+   - `package.json`: `"version": "0.2.0"`
+
+2. Commit and push to main:
+   ```bash
+   git add .
+   git commit -m "Bump version to 0.2.0"
+   git push origin main
+   ```
+
+3. The GitHub Actions workflow will automatically:
+   - Create a version tag (e.g., `v0.2.0`) if it doesn't exist
+   - Deploy to WordPress.org plugin repository (when the tag is created)
+   - Create a GitHub release with attached ZIP file
 
 ## How To Gen
 1. Edit a post

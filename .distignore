@@ -1,0 +1,34 @@
+# Directories to exclude from WordPress.org deployment
+/.git
+/.github
+/node_modules
+/src
+/tests
+/playwright
+/playwright-report
+/artifacts
+
+# Development files
+package.json
+package-lock.json
+playwright.config.ts
+.wp-env.json
+.editorconfig
+.gitignore
+.gitattributes
+CLAUDE.md
+README.md
+
+# Build configuration files
+*.config.js
+*.config.ts
+
+# Test files
+**/test-*
+**/*.test.js
+**/*.spec.js
+**/*.spec.ts
+
+# Documentation (keep readme.txt for WordPress.org)
+*.md
+!readme.txt 

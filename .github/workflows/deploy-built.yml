@@ -1,19 +1,38 @@
-name: Deploy Built Branch
+name: Deploy and Release Plugin
 
 on:
   push:
     branches:
       - main
+    tags:
+      - '*'
 
 permissions:
   contents: write
   actions: read
 
 jobs:
+  # Update readme and assets only (runs on main branch pushes)
+  update-assets:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: WordPress.org plugin asset/readme update
+        uses: 10up/action-wordpress-plugin-asset-update@stable
+        env:
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SLUG: kaigen
+
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -24,71 +43,45 @@ jobs:
           npm ci
           npm run build
 
-      - name: Create or update built branch from main
+      # Create version tag if it doesn't exist when pushing to main
+      - name: Create version tag
+        if: github.ref == 'refs/heads/main'
         run: |
-          # Check if built branch exists remotely
-          if git ls-remote --heads origin main-built | grep -q main-built; then
-            # Branch exists, check it out
-            git checkout main-built
-            # Reset to match main exactly (preserving history)
-            git reset --hard main
-          else
-            # Branch doesn't exist, create it from main
-            git checkout -b main-built
-          fi
-
-      - name: Remove development files and commit built version
-        run: |
-          # Remove development-only files and directories
-          rm -rf node_modules/ || true
-          rm -rf tests/ || true
-          rm -rf playwright/ || true
-          rm -rf playwright-report/ || true
-          rm -rf .github/ || true
-          rm -rf src/ || true
-          rm -f package.json || true
-          rm -f package-lock.json || true
-          rm -f playwright.config.ts || true
-          rm -f .wp-env.json || true
-          rm -f .editorconfig || true
-          rm -f .gitignore || true
-          rm -f CLAUDE.md || true
-          rm -f README.md || true
+          # Extract version from kaigen.php
+          VERSION=$(grep -E "Version:\s*[0-9]+\.[0-9]+\.[0-9]+" kaigen.php | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          echo "Current version: $VERSION"
           
-          # Ensure build artifacts are present
-          ls -la
-
-      - name: Commit & push built version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
+          # Check if tag exists
+          if ! git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            # Configure git
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            
+            # Create and push tag
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
+            echo "Created tag v$VERSION"
           else
-            git commit -m "ci: update built artifacts (remove dev files)"
-            git push --force origin main-built
+            echo "Tag v$VERSION already exists"
           fi
 
-      - name: Set up release variables
-        id: vars
-        run: |
-          echo "RELEASE_TAG=latest" >> $GITHUB_ENV
-          echo "ZIP_NAME=kaigen.zip" >> $GITHUB_ENV
+      # Deploy to WordPress.org when version tags are pushed
+      - name: WordPress Plugin Deploy
+        if: startsWith(github.ref, 'refs/tags/')
+        id: wp-deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: kaigen
 
-      - name: Create ZIP for release
-        run: |
-          zip -r $ZIP_NAME . -x "*.git*" -x "*.github*"
-          ls -la $ZIP_NAME
-
-      - name: Create or update GitHub Release
+      # Create versioned GitHub release when version tags are pushed  
+      - name: Create versioned GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: Release ${{ env.RELEASE_TAG }}
-          files: ${{ env.ZIP_NAME }}
+          files: ${{ steps.wp-deploy.outputs.zip-path }}
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
-          make_latest: true
