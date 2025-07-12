@@ -105,7 +105,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                         key={img.id}
                                         src={img.url}
                                         alt={img.alt || ''}
-                                        onClick={() => setSelectedRef(img)}
+                                        onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
                                         style={{
                                             width: '80px',
                                             height: '80px',

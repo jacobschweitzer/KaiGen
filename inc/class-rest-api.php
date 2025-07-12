@@ -397,7 +397,7 @@ final class KaiGen_REST_Controller {
         $query = new WP_Query([
             'post_type'      => 'attachment',
             'post_status'    => 'inherit',
-            'posts_per_page' => -1,
+            'posts_per_page' => 100,
             'meta_key'       => 'kaigen_reference_image',
             'meta_value'     => 1,
         ]);
