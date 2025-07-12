@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
 import { Button, TextareaControl, Modal, Spinner } from '@wordpress/components'; // Import necessary UI components.
+import kaiGenLogo from '../../assets/KaiGen-logo-no-background.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
 /**
@@ -70,20 +71,45 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
         <>
             {/* KaiGen button – rendered inside the main placeholder buttons container */}
             <Button
-                variant="secondary"
                 onClick={() => setIsModalOpen(true)}
-                className="components-button is-next-40px-default-size is-secondary kaigen-placeholder-button"
-                /* Ensure it shows after the core buttons by leveraging flex order (the container is flex-based) */
-                style={{ order: 99 }}
+                className="kaigen-placeholder-button"
+                style={{
+                    order: 99,
+                    padding: 0,
+                    background: 'transparent',
+                    border: 'none',
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+                aria-label="KaiGen creator"
+                role="button"
+                title="KaiGen creator"
             >
-                KaiGen
+                <img
+                    src={kaiGenLogo}
+                    alt="KaiGen"
+                    style={{ height: '40px', width: '40px', objectFit: 'contain', border: 'none', background: 'transparent' }}
+                    aria-label="KaiGen logo"
+                    role="button"
+                    title="KaiGen logo"
+                />
             </Button>
 
             {/* Modal for entering the prompt and generating the image. */}
             {isModalOpen && (
                 <Modal
-                    title="KaiGen" // Modal title.
-                    onRequestClose={() => setIsModalOpen(false)} // Closes the modal.
+                    title={
+                        <img
+                            src={kaiGenLogo}
+                            alt="KaiGen logo"
+                            style={{ height: '80px', width: 'auto', display: 'block' }}
+                        />
+                    }
+                    aria-label="KaiGen"
+                    onRequestClose={() => setIsModalOpen(false)}
                 >
                     {/* Display error message if present. */}
                     {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -98,7 +124,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
 
                     {supportsImageToImage && referenceImages.length > 0 && (
                         <>
-                            <p>Reference Images</p>
+                            <h3>Reference Images</h3>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
                                 {referenceImages.map((img) => (
                                     <img
@@ -111,7 +137,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                             height: '80px',
                                             objectFit: 'cover',
                                             cursor: 'pointer',
-                                            border: selectedRef && selectedRef.id === img.id ? '2px solid #007cba' : '2px solid transparent',
+                                            border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent',
                                         }}
                                     />
                                 ))}

@@ -257,12 +257,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
 /* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../api */ "./src/api.js");
+/* harmony import */ var _assets_KaiGen_logo_no_background_png__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../assets/KaiGen-logo-no-background.png */ "./assets/KaiGen-logo-no-background.png");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../api */ "./src/api.js");
 
 // This file contains the AITab React component used to generate AI images through a modal.
 
  // Import WordPress hooks.
  // Import necessary UI components.
+ // Import KaiGen logo
  // Import API functions.
 
 /**
@@ -288,7 +290,7 @@ const AITab = ({
   const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
   (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
     if (isModalOpen && supportsImageToImage) {
-      (0,_api__WEBPACK_IMPORTED_MODULE_3__.fetchReferenceImages)().then(setReferenceImages);
+      (0,_api__WEBPACK_IMPORTED_MODULE_4__.fetchReferenceImages)().then(setReferenceImages);
     }
   }, [isModalOpen]);
 
@@ -313,7 +315,7 @@ const AITab = ({
     }
 
     // Call generateImage API function with the prompt
-    (0,_api__WEBPACK_IMPORTED_MODULE_3__.generateImage)(prompt.trim(), media => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_4__.generateImage)(prompt.trim(), media => {
       if (media.error) {
         setError(media.error); // Set error if generation fails.
         setIsLoading(false); // End loading state.
@@ -330,17 +332,47 @@ const AITab = ({
     return null;
   }
   return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
-    variant: "secondary",
     onClick: () => setIsModalOpen(true),
-    className: "components-button is-next-40px-default-size is-secondary kaigen-placeholder-button"
-    /* Ensure it shows after the core buttons by leveraging flex order (the container is flex-based) */,
+    className: "kaigen-placeholder-button",
     style: {
-      order: 99
-    }
-  }, "KaiGen"), isModalOpen && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Modal, {
-    title: "KaiGen" // Modal title.
-    ,
-    onRequestClose: () => setIsModalOpen(false) // Closes the modal.
+      order: 99,
+      padding: 0,
+      background: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      minWidth: 'auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    "aria-label": "KaiGen creator",
+    role: "button",
+    title: "KaiGen creator"
+  }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+    src: _assets_KaiGen_logo_no_background_png__WEBPACK_IMPORTED_MODULE_3__,
+    alt: "KaiGen",
+    style: {
+      height: '40px',
+      width: '40px',
+      objectFit: 'contain',
+      border: 'none',
+      background: 'transparent'
+    },
+    "aria-label": "KaiGen logo",
+    role: "button",
+    title: "KaiGen logo"
+  })), isModalOpen && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Modal, {
+    title: (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+      src: _assets_KaiGen_logo_no_background_png__WEBPACK_IMPORTED_MODULE_3__,
+      alt: "KaiGen logo",
+      style: {
+        height: '80px',
+        width: 'auto',
+        display: 'block'
+      }
+    }),
+    "aria-label": "KaiGen",
+    onRequestClose: () => setIsModalOpen(false)
   }, error && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", {
     style: {
       color: 'red'
@@ -351,7 +383,7 @@ const AITab = ({
     onChange: setPrompt // Updates the prompt state.
     ,
     rows: 4
-  }), supportsImageToImage && referenceImages.length > 0 && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Reference Images"), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+  }), supportsImageToImage && referenceImages.length > 0 && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("h3", null, "Reference Images"), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     style: {
       display: 'flex',
       flexWrap: 'wrap',
@@ -368,7 +400,7 @@ const AITab = ({
       height: '80px',
       objectFit: 'cover',
       cursor: 'pointer',
-      border: selectedRef && selectedRef.id === img.id ? '2px solid #007cba' : '2px solid transparent'
+      border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent'
     }
   })))), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
     variant: "primary" // Uses primary styling.
@@ -743,6 +775,16 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./assets/KaiGen-logo-no-background.png":
+/*!**********************************************!*\
+  !*** ./assets/KaiGen-logo-no-background.png ***!
+  \**********************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+module.exports = __webpack_require__.p + "images/KaiGen-logo-no-background.c1f3e519.png";
+
+/***/ }),
+
 /***/ "react":
 /*!************************!*\
   !*** external "React" ***!
@@ -864,6 +906,18 @@ module.exports = window["wp"]["richText"];
 /******/ 		};
 /******/ 	})();
 /******/ 	
+/******/ 	/* webpack/runtime/global */
+/******/ 	(() => {
+/******/ 		__webpack_require__.g = (function() {
+/******/ 			if (typeof globalThis === 'object') return globalThis;
+/******/ 			try {
+/******/ 				return this || new Function('return this')();
+/******/ 			} catch (e) {
+/******/ 				if (typeof window === 'object') return window;
+/******/ 			}
+/******/ 		})();
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */
 /******/ 	(() => {
 /******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
@@ -878,6 +932,29 @@ module.exports = window["wp"]["richText"];
 /******/ 			}
 /******/ 			Object.defineProperty(exports, '__esModule', { value: true });
 /******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/publicPath */
+/******/ 	(() => {
+/******/ 		var scriptUrl;
+/******/ 		if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
+/******/ 		var document = __webpack_require__.g.document;
+/******/ 		if (!scriptUrl && document) {
+/******/ 			if (document.currentScript)
+/******/ 				scriptUrl = document.currentScript.src;
+/******/ 			if (!scriptUrl) {
+/******/ 				var scripts = document.getElementsByTagName("script");
+/******/ 				if(scripts.length) {
+/******/ 					var i = scripts.length - 1;
+/******/ 					while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/ 		// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration
+/******/ 		// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.
+/******/ 		if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+/******/ 		scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+/******/ 		__webpack_require__.p = scriptUrl;
 /******/ 	})();
 /******/ 	
 /************************************************************************/
