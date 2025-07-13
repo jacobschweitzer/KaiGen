@@ -124,23 +124,34 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
 
                     {supportsImageToImage && referenceImages.length > 0 && (
                         <>
-                            <h3>Reference Images</h3>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
-                                {referenceImages.map((img) => (
-                                    <img
-                                        key={img.id}
-                                        src={img.url}
-                                        alt={img.alt || ''}
-                                        onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
-                                        style={{
-                                            width: '80px',
-                                            height: '80px',
-                                            objectFit: 'cover',
-                                            cursor: 'pointer',
-                                            border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent',
-                                        }}
-                                    />
-                                ))}
+                            <div style={{ width: '250px', marginBottom: '8px' }}>
+                                <h4 style={{ margin: '0 0 4px 0' }}>Reference Images</h4>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        overflowX: 'auto',
+                                        overflowY: 'hidden',
+                                        gap: '4px',
+                                        WebkitOverflowScrolling: 'touch',
+                                    }}
+                                >
+                                    {referenceImages.map((img) => (
+                                        <img
+                                            key={img.id}
+                                            src={img.url}
+                                            alt={img.alt || ''}
+                                            onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
+                                            style={{
+                                                width: '80px',
+                                                height: '80px',
+                                                objectFit: 'cover',
+                                                cursor: 'pointer',
+                                                flex: '0 0 auto',
+                                                border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent',
+                                            }}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         </>
                     )}
