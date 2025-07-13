@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
 import { Button, TextareaControl, Modal, Spinner } from '@wordpress/components'; // Import necessary UI components.
-import kaiGenLogo from '../../assets/KaiGen-logo-no-background.png'; // Import KaiGen logo
+import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
 /**
@@ -84,9 +84,9 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     alignItems: 'center',
                     justifyContent: 'center',
                 }}
-                aria-label="KaiGen creator"
+                aria-label="KaiGen"
                 role="button"
-                title="KaiGen creator"
+                title="KaiGen"
             >
                 <img
                     src={kaiGenLogo}
