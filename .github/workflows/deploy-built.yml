@@ -46,21 +46,18 @@ jobs:
       # Create version tag if it doesn't exist when pushing to main
       - name: Create version tag
         if: github.ref == 'refs/heads/main'
+        # no extra env needed
         run: |
-          # Extract version from kaigen.php
-          VERSION=$(grep -E "Version:\s*[0-9]+\.[0-9]+\.[0-9]+" kaigen.php | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          VERSION=$(grep -E "Version:\s*[0-9]+\.[0-9]+\.[0-9]+" kaigen.php \
+                    | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
           echo "Current version: $VERSION"
-          
-          # Check if tag exists
+
           if ! git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            # Configure git
-            git config user.name "github-actions[bot]"
+            git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            
-            # Create and push tag
+
             git tag "v$VERSION"
             git push origin "v$VERSION"
-            echo "Created tag v$VERSION"
           else
             echo "Tag v$VERSION already exists"
           fi
