@@ -13,7 +13,7 @@ Includes a Gutenberg block to insert a prompt that generates an image and insert
 
 == Installation ==
 Activate the plugin
-Add your OpenAI or Replicate API key in Settings -> KaiGen
+Add your OpenAI and/or Replicate API key in Settings -> KaiGen
 Choose your Provider from the dropdown
 
 == How To Gen ==
