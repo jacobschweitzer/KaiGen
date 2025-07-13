@@ -1,27 +1,35 @@
 name: Deploy to WordPress.org
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_run:
+    workflows: ["Deploy and Release Plugin"]
+    types: [completed]
 
 permissions:
   contents: write
   actions: read
 
 jobs:
-  build-and-deploy:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Install dependencies & build
         run: |
           npm ci
           npm run build
+
+      - name: Extract plugin version
+        id: vars
+        run: |
+          VERSION=$(grep -E "Version:\s*[0-9]+\.[0-9]+\.[0-9]+" kaigen.php | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: WordPress Plugin Deploy
         id: wp-deploy
@@ -32,10 +40,12 @@ jobs:
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SLUG: kaigen
+          VERSION: v${{ steps.vars.outputs.version }}
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.vars.outputs.version }}
           files: ${{ steps.wp-deploy.outputs.zip-path }}
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false 
