@@ -15,6 +15,7 @@ jobs:
   # Update readme and assets only (runs on main branch pushes)
   update-assets:
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
@@ -28,6 +29,7 @@ jobs:
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SLUG: kaigen
+          IGNORE_OTHER_FILES: true
 
   build-and-deploy:
     runs-on: ubuntu-latest
