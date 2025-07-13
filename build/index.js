@@ -425,7 +425,7 @@ const AITab = ({
     style: {
       width: '80px',
       height: '80px',
-      objectFit: 'cover',
+      objectFit: 'contain',
       cursor: 'pointer',
       flex: '0 0 auto',
       border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent'
@@ -457,14 +457,20 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var _wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @wordpress/block-editor */ "@wordpress/block-editor");
 /* harmony import */ var _wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var _components_AIImageToolbar__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../components/AIImageToolbar */ "./src/components/AIImageToolbar.js");
-/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../api */ "./src/api.js");
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @wordpress/api-fetch */ "@wordpress/api-fetch");
+/* harmony import */ var _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var _components_AIImageToolbar__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../components/AIImageToolbar */ "./src/components/AIImageToolbar.js");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../api */ "./src/api.js");
 
 // This file modifies the block editor for core/image blocks to include an AI image regeneration button.
 
  // Import the addFilter function.
  // Import necessary React hooks.
- // Import BlockControls for toolbar.
+ // Import Block & Inspector controls.
+ // Import components for sidebar UI.
+ // Import apiFetch for REST requests.
  // Import the AIImageToolbar component.
  // Import API functions for image generation.
 
@@ -483,6 +489,9 @@ __webpack_require__.r(__webpack_exports__);
         ...props
       });
     }
+
+    // Determine if the image has a valid WordPress attachment ID
+    const hasValidId = props.attributes.id && typeof props.attributes.id === 'number' && props.attributes.id > 0;
 
     // State to manage regeneration progress and errors.
     const [isRegenerating, setIsRegenerating] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_2__.useState)(false); // Indicates if regeneration is in progress.
@@ -552,7 +561,7 @@ __webpack_require__.r(__webpack_exports__);
 
         // Wrap the generateImage call in a promise.
         const result = await new Promise((resolve, reject) => {
-          (0,_api__WEBPACK_IMPORTED_MODULE_5__.generateImage)(finalPrompt, result => {
+          (0,_api__WEBPACK_IMPORTED_MODULE_7__.generateImage)(finalPrompt, result => {
             if (result.error) {
               reject(new Error(result.error));
             } else {
@@ -596,12 +605,62 @@ __webpack_require__.r(__webpack_exports__);
     };
     return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(BlockEdit, {
       ...props
-    }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.BlockControls, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_components_AIImageToolbar__WEBPACK_IMPORTED_MODULE_4__["default"], {
+    }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.BlockControls, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_components_AIImageToolbar__WEBPACK_IMPORTED_MODULE_6__["default"], {
       isRegenerating: isRegenerating,
       onRegenerateImage: handleRegenerateImage,
       isImageBlock: true,
       supportsImageToImage: supportsImageToImage
-    })));
+    })), hasValidId && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.InspectorControls, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.PanelBody, {
+      title: "KaiGen Settings",
+      initialOpen: false
+    }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.CheckboxControl, {
+      label: "Reference image",
+      checked: props.attributes.kaigen_reference_image || false,
+      onChange: async newValue => {
+        // Update block attribute for UI state
+        props.setAttributes({
+          kaigen_reference_image: newValue
+        });
+
+        // Update attachment meta via REST API
+        try {
+          await _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_5___default()({
+            path: `/wp/v2/media/${props.attributes.id}`,
+            method: 'POST',
+            data: {
+              meta: {
+                kaigen_reference_image: newValue ? 1 : 0
+              }
+            }
+          });
+        } catch (err) {
+          console.error('Failed to update reference image meta:', err);
+          wp.data.dispatch('core/notices').createErrorNotice('Failed to update reference image meta', {
+            type: 'snackbar'
+          });
+        }
+      },
+      help: "Add to the list of reference images."
+    }))));
+  };
+});
+
+// Extend the core/image block to include the new attribute.
+(0,_wordpress_hooks__WEBPACK_IMPORTED_MODULE_1__.addFilter)('blocks.registerBlockType', 'kaigen/add-reference-image-attribute', (settings, name) => {
+  if (name !== 'core/image') {
+    return settings;
+  }
+
+  // Inject the attribute if it doesn't already exist.
+  return {
+    ...settings,
+    attributes: {
+      ...settings.attributes,
+      kaigen_reference_image: {
+        type: 'boolean',
+        default: false
+      }
+    }
   };
 });
 
@@ -820,6 +879,16 @@ module.exports = __webpack_require__.p + "images/KaiGen-logo-128x128.e1e4be15.pn
 /***/ ((module) => {
 
 module.exports = window["React"];
+
+/***/ }),
+
+/***/ "@wordpress/api-fetch":
+/*!**********************************!*\
+  !*** external ["wp","apiFetch"] ***!
+  \**********************************/
+/***/ ((module) => {
+
+module.exports = window["wp"]["apiFetch"];
 
 /***/ }),
 

@@ -144,7 +144,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                             style={{
                                                 width: '80px',
                                                 height: '80px',
-                                                objectFit: 'cover',
+                                                objectFit: 'contain',
                                                 cursor: 'pointer',
                                                 flex: '0 0 auto',
                                                 border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent',

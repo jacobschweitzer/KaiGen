@@ -2,7 +2,9 @@
 
 import { addFilter } from '@wordpress/hooks'; // Import the addFilter function.
 import { useState, useEffect } from '@wordpress/element'; // Import necessary React hooks.
-import { BlockControls } from '@wordpress/block-editor'; // Import BlockControls for toolbar.
+import { BlockControls, InspectorControls } from '@wordpress/block-editor'; // Import Block & Inspector controls.
+import { PanelBody, CheckboxControl } from '@wordpress/components'; // Import components for sidebar UI.
+import apiFetch from '@wordpress/api-fetch'; // Import apiFetch for REST requests.
 import AIImageToolbar from '../components/AIImageToolbar'; // Import the AIImageToolbar component.
 import { generateImage } from '../api'; // Import API functions for image generation.
 
@@ -19,6 +21,9 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
         if (props.name !== 'core/image') {
             return <BlockEdit {...props} />;
         }
+
+        // Determine if the image has a valid WordPress attachment ID
+        const hasValidId = props.attributes.id && typeof props.attributes.id === 'number' && props.attributes.id > 0;
 
         // State to manage regeneration progress and errors.
         const [isRegenerating, setIsRegenerating] = useState(false); // Indicates if regeneration is in progress.
@@ -153,7 +158,63 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                         supportsImageToImage={supportsImageToImage}
                     />
                 </BlockControls>
+                {/* Sidebar controls, only show when attachment has a valid ID */}
+                {hasValidId && (
+                    <InspectorControls>
+                        <PanelBody title="KaiGen Settings" initialOpen={false}>
+                            <CheckboxControl
+                                label="Reference image"
+                                checked={props.attributes.kaigen_reference_image || false}
+                                onChange={async (newValue) => {
+                                    // Update block attribute for UI state
+                                    props.setAttributes({ kaigen_reference_image: newValue });
+
+                                    // Update attachment meta via REST API
+                                    try {
+                                        await apiFetch({
+                                            path: `/wp/v2/media/${props.attributes.id}`,
+                                            method: 'POST',
+                                            data: {
+                                                meta: { kaigen_reference_image: newValue ? 1 : 0 },
+                                            },
+                                        });
+                                    } catch (err) {
+                                        console.error('Failed to update reference image meta:', err);
+                                        wp.data.dispatch('core/notices').createErrorNotice(
+                                            'Failed to update reference image meta',
+                                            { type: 'snackbar' }
+                                        );
+                                    }
+                                }}
+                                help="Add to the list of reference images."
+                            />
+                        </PanelBody>
+                    </InspectorControls>
+                )}
             </>
         );
     };
 });
+
+// Extend the core/image block to include the new attribute.
+addFilter(
+    'blocks.registerBlockType',
+    'kaigen/add-reference-image-attribute',
+    (settings, name) => {
+        if (name !== 'core/image') {
+            return settings;
+        }
+
+        // Inject the attribute if it doesn't already exist.
+        return {
+            ...settings,
+            attributes: {
+                ...settings.attributes,
+                kaigen_reference_image: {
+                    type: 'boolean',
+                    default: false,
+                },
+            },
+        };
+    }
+);
