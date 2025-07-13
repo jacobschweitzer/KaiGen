@@ -64,24 +64,3 @@ jobs:
           else
             echo "Tag v$VERSION already exists"
           fi
-
-      # Deploy to WordPress.org when version tags are pushed
-      - name: WordPress Plugin Deploy
-        if: startsWith(github.ref, 'refs/tags/')
-        id: wp-deploy
-        uses: 10up/action-wordpress-plugin-deploy@stable
-        with:
-          generate-zip: true
-        env:
-          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SLUG: kaigen
-
-      # Create versioned GitHub release when version tags are pushed  
-      - name: Create versioned GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ steps.wp-deploy.outputs.zip-path }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: false
