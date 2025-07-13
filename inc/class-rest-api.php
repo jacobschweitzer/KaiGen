@@ -75,6 +75,13 @@ final class KaiGen_REST_Controller {
             'callback'            => [$this, 'get_image_to_image_providers'],
             'permission_callback' => [$this, 'check_permission'],
         ]);
+
+        // Register the reference images endpoint
+        register_rest_route(self::API_NAMESPACE, '/reference-images', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'get_reference_images'],
+            'permission_callback' => [$this, 'check_permission'],
+        ]);
     }
 
     /**
@@ -379,6 +386,32 @@ final class KaiGen_REST_Controller {
                 500
             );
         }
+    }
+
+    /**
+     * Retrieves all images marked as reference images.
+     *
+     * @return WP_REST_Response The response containing reference images.
+     */
+    public function get_reference_images() {
+        $query = new WP_Query([
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'posts_per_page' => 100,
+            'meta_key'       => 'kaigen_reference_image',
+            'meta_value'     => 1,
+        ]);
+
+        $images = [];
+        foreach ($query->posts as $post) {
+            $images[] = [
+                'id'  => $post->ID,
+                'url' => wp_get_attachment_url($post->ID),
+                'alt' => get_post_meta($post->ID, '_wp_attachment_image_alt', true),
+            ];
+        }
+
+        return new WP_REST_Response($images, 200);
     }
 }
 

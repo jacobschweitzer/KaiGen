@@ -59,7 +59,8 @@ class KaiGen_Admin {
 		add_action('admin_menu', [$this, 'add_settings_page']);
 		add_action('admin_init', [$this, 'register_settings']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
-		
+		add_action('init', [$this, 'register_reference_image_meta']);
+			
 		// Add settings link to plugin page
 		add_filter('plugin_action_links_' . plugin_basename(KAIGEN_PLUGIN_FILE), [$this, 'add_plugin_action_links']);
 
@@ -456,11 +457,64 @@ class KaiGen_Admin {
 	 */
 	private function provider_supports_image_to_image($provider) {
 		if (empty($provider)) {
-			return false;
+		return false;
 		}
 		
 		$provider_manager = kaigen_provider_manager();
 		return $provider_manager->provider_supports_image_to_image($provider);
+	}
+
+	/**
+	 * Registers the reference image meta and edit form fields.
+	 *
+	 * @return void
+	 */
+	public function register_reference_image_meta() {
+		register_post_meta(
+			'attachment',
+			'kaigen_reference_image',
+			[
+				'show_in_rest'  => true,
+				'single'        => true,
+				'type'          => 'boolean',
+				'auth_callback' => function() {
+					return current_user_can( 'upload_files' );
+				},
+			]
+		);
+		
+		add_filter('attachment_fields_to_edit', [$this, 'add_reference_field'], 10, 2);
+		add_filter('attachment_fields_to_save', [$this, 'save_reference_field'], 10, 2);
+	}
+
+	/**
+	 * Adds the reference image checkbox to the attachment edit form.
+	 *
+	 * @param array   \$form_fields Current form fields.
+	 * @param WP_Post \$post        Attachment post.
+	 * @return array Modified form fields.
+	 */
+	public function add_reference_field($form_fields, $post) {
+		$value = (bool) get_post_meta($post->ID, 'kaigen_reference_image', true);
+		$form_fields['kaigen_reference_image'] = [
+			'label' => __('Reference Image', 'kaigen'),
+			'input' => 'html',
+			'html'  => '<input type="checkbox" name="attachments[' . esc_attr($post->ID) . '][kaigen_reference_image]" value="1"' . checked($value, true, false) . '/>',
+		];
+		return $form_fields;
+	}
+
+	/**
+	 * Saves the reference image checkbox value.
+	 *
+	 * @param array \$post       Attachment post data.
+	 * @param array \$attachment Attachment form fields.
+	 * @return array Modified post data.
+	 */
+	public function save_reference_field($post, $attachment) {
+		$value = isset($attachment['kaigen_reference_image']) ? 1 : 0;
+		update_post_meta($post['ID'], 'kaigen_reference_image', $value);
+		return $post;
 	}
 }
 

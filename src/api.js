@@ -107,4 +107,22 @@ export const generateImage = async (prompt, callback, options = {}) => {
             error: error.message || 'An unknown error occurred while generating the image'
         });
     }
-}; 
+};
+
+/**
+ * Fetches all reference images marked in the media library.
+ *
+ * @returns {Promise<Array>} Array of image objects.
+ */
+export const fetchReferenceImages = async () => {
+    try {
+        const response = await wp.apiFetch({
+            path: '/kaigen/v1/reference-images',
+            method: 'GET',
+        });
+        return Array.isArray(response) ? response : [];
+    } catch (error) {
+        console.error('Failed to fetch reference images:', error);
+        return [];
+    }
+};

@@ -117,11 +117,8 @@ test.describe('KaiGen Image Generation', () => {
         const insertFromURLButton = imageBlock.getByRole('button', { name: /insert from url/i });
         await expect(insertFromURLButton).toBeVisible();
 
-        // Look for the "KaiGen" button
-        const aiGenerateButton = editor.canvas.getByRole('button', { 
-            name: 'KaiGen',
-            exact: true 
-        });
+        // Look for the KaiGen placeholder button (updated selector)
+        const aiGenerateButton = editor.canvas.locator('.kaigen-placeholder-button');
         
         // Verify the KaiGen button exists and is visible
         await expect(aiGenerateButton).toBeVisible({ timeout: 10000 });
@@ -169,11 +166,8 @@ test.describe('KaiGen Image Generation', () => {
         const imageBlock = editor.canvas.locator('[data-type="core/image"]');
         await expect(imageBlock).toBeVisible({ timeout: 10000 });
         
-        // Click KaiGen button
-        const kaiGenButton = editor.canvas.getByRole('button', { 
-            name: 'KaiGen',
-            exact: true 
-        });
+        // Click KaiGen button (updated selector)
+        const kaiGenButton = editor.canvas.locator('.kaigen-placeholder-button');
         await expect(kaiGenButton).toBeVisible({ timeout: 10000 });
         await kaiGenButton.click();
         
@@ -305,11 +299,8 @@ test.describe('KaiGen Image Generation', () => {
         const imageBlock = editor.canvas.locator('[data-type="core/image"]');
         await expect(imageBlock).toBeVisible({ timeout: 10000 });
         
-        // Click KaiGen button
-        const kaiGenButton = editor.canvas.getByRole('button', { 
-            name: 'KaiGen',
-            exact: true 
-        });
+        // Click KaiGen button (updated selector)
+        const kaiGenButton = editor.canvas.locator('.kaigen-placeholder-button');
         await expect(kaiGenButton).toBeVisible({ timeout: 10000 });
         await kaiGenButton.click();
         
@@ -391,11 +382,8 @@ test.describe('KaiGen Image Generation', () => {
         const imageBlock = editor.canvas.locator('[data-type="core/image"]');
         await expect(imageBlock).toBeVisible({ timeout: 10000 });
         
-        // Click KaiGen button
-        const kaiGenButton = editor.canvas.getByRole('button', { 
-            name: 'KaiGen',
-            exact: true 
-        });
+        // Click KaiGen button (updated selector)
+        const kaiGenButton = editor.canvas.locator('.kaigen-placeholder-button');
         await expect(kaiGenButton).toBeVisible({ timeout: 10000 });
         await kaiGenButton.click();
         

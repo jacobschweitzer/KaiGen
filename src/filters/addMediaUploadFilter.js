@@ -17,6 +17,7 @@ addFilter('editor.MediaUpload', 'kaigen/add-ai-tab', (OriginalMediaUpload) => {
 
         // Retrieve the currently selected block from the editor.
         const selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+
         // Determine if the block is an image block.
         const isImageBlock = selectedBlock && selectedBlock.name === 'core/image';
 
