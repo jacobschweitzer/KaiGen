@@ -150,6 +150,19 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                 $body .= $image_data . "\r\n";
             }
             
+            // Add mask parameter if provided
+            if (isset($additional_params['mask'])) {
+                $mask_data = $this->get_image_data($additional_params['mask']);
+                if (is_wp_error($mask_data)) {
+                    return $mask_data;
+                }
+
+                $body .= "--{$boundary}\r\n";
+                $body .= 'Content-Disposition: form-data; name="mask"; filename="' . basename($additional_params['mask']) . '"' . "\r\n";
+                $body .= 'Content-Type: ' . $this->get_image_mime_type($additional_params['mask']) . "\r\n\r\n";
+                $body .= $mask_data . "\r\n";
+            }
+
             // Close the multipart body
             $body .= "--{$boundary}--\r\n";
             
@@ -166,6 +179,11 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             if (isset($additional_params['aspect_ratio'])) {
                 list($width, $height) = $this->map_aspect_ratio_to_dimensions($additional_params['aspect_ratio'] ?? '1:1');
                 $body['size'] = "{$width}x{$height}";
+            }
+
+            // Add fidelity parameter if provided
+            if (isset($additional_params['fidelity'])) {
+                $body['fidelity'] = $additional_params['fidelity'];
             }
             
             $body = wp_json_encode($body);
