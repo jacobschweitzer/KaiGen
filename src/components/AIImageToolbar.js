@@ -1,7 +1,7 @@
 // This file contains the AIImageToolbar component used in block toolbars for AI image actions.
 
 import { useState } from '@wordpress/element';
-import { Spinner, ToolbarButton, ToolbarGroup, Modal, TextareaControl, Button } from '@wordpress/components';
+import { Spinner, ToolbarButton, ToolbarGroup, Modal, TextareaControl, Button, CheckboxControl } from '@wordpress/components';
 import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png';
 
 /**
@@ -29,12 +29,14 @@ const AIImageToolbar = ({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [error, setError] = useState(null);
+    const [inputFidelity, setInputFidelity] = useState('low');
 
     const handleRegenerate = () => {
-        onRegenerateImage(prompt.trim());
+        onRegenerateImage(prompt.trim(), inputFidelity);
         setIsModalOpen(false);
         setPrompt('');
         setError(null);
+        setInputFidelity('low');
     };
 
     // Render a regenerate button if the current block is an image block and provider supports image-to-image.
@@ -74,6 +76,15 @@ const AIImageToolbar = ({
                             rows={4}
                         />
                         
+                        {window.kaiGen?.provider === 'openai' && (
+                            <CheckboxControl
+                                label="High Fidelity"
+                                checked={inputFidelity === 'high'}
+                                onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
+                                help="Control how much effort the model will exert to match the style and features of input images."
+                            />
+                        )}
+
                         <Button
                             variant="primary"
                             onClick={handleRegenerate}

@@ -1,7 +1,7 @@
 // This file contains the AITab React component used to generate AI images through a modal.
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
-import { Button, TextareaControl, Modal, Spinner } from '@wordpress/components'; // Import necessary UI components.
+import { Button, TextareaControl, Modal, Spinner, CheckboxControl } from '@wordpress/components'; // Import necessary UI components.
 import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
@@ -21,6 +21,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
     const [error, setError] = useState(null); // Holds any error messages.
     const [referenceImages, setReferenceImages] = useState([]);
     const [selectedRef, setSelectedRef] = useState(null);
+    const [inputFidelity, setInputFidelity] = useState('low');
 
     const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
 
@@ -44,7 +45,9 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
         setIsLoading(true); // Start loading state.
         setError(null); // Clear any previous errors.
 
-        const options = {};
+        const options = {
+            input_fidelity: inputFidelity,
+        };
         if (selectedRef) {
             options.sourceImageUrl = selectedRef.url;
         }
@@ -121,6 +124,15 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                         onChange={setPrompt} // Updates the prompt state.
                         rows={4}
                     />
+
+                    {supportsImageToImage && selectedRef && window.kaiGen?.provider === 'openai' && (
+                        <CheckboxControl
+                            label="High Fidelity"
+                            checked={inputFidelity === 'high'}
+                            onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
+                            help="Control how much effort the model will exert to match the style and features of input images."
+                        />
+                    )}
 
                     {supportsImageToImage && referenceImages.length > 0 && (
                         <>
