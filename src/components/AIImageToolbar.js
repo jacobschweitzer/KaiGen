@@ -76,12 +76,14 @@ const AIImageToolbar = ({
                             rows={4}
                         />
                         
-                        <CheckboxControl
-                            label="High Fidelity"
-                            checked={inputFidelity === 'high'}
-                            onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
-                            help="Control how much effort the model will exert to match the style and features of input images."
-                        />
+                        {window.kaiGen?.provider === 'openai' && (
+                            <CheckboxControl
+                                label="High Fidelity"
+                                checked={inputFidelity === 'high'}
+                                onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
+                                help="Control how much effort the model will exert to match the style and features of input images."
+                            />
+                        )}
 
                         <Button
                             variant="primary"

@@ -125,7 +125,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                         rows={4}
                     />
 
-                    {supportsImageToImage && selectedRef && (
+                    {supportsImageToImage && selectedRef && window.kaiGen?.provider === 'openai' && (
                         <CheckboxControl
                             label="High Fidelity"
                             checked={inputFidelity === 'high'}
