@@ -150,18 +150,6 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                 $body .= $image_data . "\r\n";
             }
             
-            // Add mask parameter if provided
-            if (isset($additional_params['mask'])) {
-                $mask_data = $this->get_image_data($additional_params['mask']);
-                if (is_wp_error($mask_data)) {
-                    return $mask_data;
-                }
-
-                $body .= "--{$boundary}\r\n";
-                $body .= 'Content-Disposition: form-data; name="mask"; filename="' . basename($additional_params['mask']) . '"' . "\r\n";
-                $body .= 'Content-Type: ' . $this->get_image_mime_type($additional_params['mask']) . "\r\n\r\n";
-                $body .= $mask_data . "\r\n";
-            }
 
             // Close the multipart body
             $body .= "--{$boundary}--\r\n";

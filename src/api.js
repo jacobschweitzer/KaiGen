@@ -41,10 +41,6 @@ export const generateImage = async (prompt, callback, options = {}) => {
             data.mask_url = options.maskUrl;
         }
         
-        // Add mask if provided
-        if (options.mask) {
-            data.mask = options.mask;
-        }
 
         // Add moderation level if provided
         if (options.moderation && ['auto', 'low'].includes(options.moderation)) {

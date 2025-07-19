@@ -218,11 +218,6 @@ final class KaiGen_REST_Controller {
             $params['mask_url'] = $mask_url;
         }
 
-        // Add mask if provided
-        $mask = $request->get_param('mask');
-        if (!empty($mask)) {
-            $params['mask'] = $mask;
-        }
 
         // Add fidelity if provided
         $fidelity = $request->get_param('fidelity');
