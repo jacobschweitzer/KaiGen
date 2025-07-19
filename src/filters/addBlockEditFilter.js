@@ -60,7 +60,7 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
          * @param {string} prompt - The prompt for image modification.
          * @returns {Promise<void>} A promise that resolves when regeneration is complete.
          */
-        const handleRegenerateImage = async (prompt, fidelity) => {
+        const handleRegenerateImage = async (prompt, input_fidelity) => {
             setError(null); // Clear any previous errors.
 
             // Use alt text as fallback if no prompt is provided
@@ -86,7 +86,7 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                 
                 // Set up options for image generation
                 const options = {
-                    fidelity: fidelity,
+                    input_fidelity: input_fidelity,
                 };
                 if (supportsImageToImage && sourceImageUrl) {
                     options.sourceImageUrl = sourceImageUrl;

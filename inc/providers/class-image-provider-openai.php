@@ -169,9 +169,9 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                 $body['size'] = "{$width}x{$height}";
             }
 
-            // Add fidelity parameter if provided
-            if (isset($additional_params['fidelity'])) {
-                $body['fidelity'] = $additional_params['fidelity'];
+            // Add input_fidelity parameter if provided
+            if (isset($additional_params['input_fidelity'])) {
+                $body['input_fidelity'] = $additional_params['input_fidelity'];
             }
             
             $body = wp_json_encode($body);

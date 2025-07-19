@@ -1,7 +1,7 @@
 // This file contains the AIImageToolbar component used in block toolbars for AI image actions.
 
 import { useState } from '@wordpress/element';
-import { Spinner, ToolbarButton, ToolbarGroup, Modal, TextareaControl, Button, SelectControl } from '@wordpress/components';
+import { Spinner, ToolbarButton, ToolbarGroup, Modal, TextareaControl, Button, CheckboxControl } from '@wordpress/components';
 import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png';
 
 /**
@@ -29,14 +29,14 @@ const AIImageToolbar = ({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [error, setError] = useState(null);
-    const [fidelity, setFidelity] = useState(1);
+    const [inputFidelity, setInputFidelity] = useState('low');
 
     const handleRegenerate = () => {
-        onRegenerateImage(prompt.trim(), fidelity);
+        onRegenerateImage(prompt.trim(), inputFidelity);
         setIsModalOpen(false);
         setPrompt('');
         setError(null);
-        setFidelity(1);
+        setInputFidelity('low');
     };
 
     // Render a regenerate button if the current block is an image block and provider supports image-to-image.
@@ -76,16 +76,11 @@ const AIImageToolbar = ({
                             rows={4}
                         />
                         
-                        <SelectControl
-                            label="Fidelity"
-                            value={fidelity}
-                            options={[
-                                { label: 'High', value: 1 },
-                                { label: 'Medium', value: 0.5 },
-                                { label: 'Low', value: 0.25 },
-                            ]}
-                            onChange={(value) => setFidelity(parseFloat(value))}
-                            help="Controls how much the image will be changed. High fidelity will result in a more similar image."
+                        <CheckboxControl
+                            label="High Fidelity"
+                            checked={inputFidelity === 'high'}
+                            onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
+                            help="Control how much effort the model will exert to match the style and features of input images."
                         />
 
                         <Button

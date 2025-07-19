@@ -52,9 +52,9 @@ export const generateImage = async (prompt, callback, options = {}) => {
             data.style = options.style;
         }
         
-        // Add fidelity if provided
-        if (options.fidelity) {
-            data.fidelity = options.fidelity;
+        // Add input_fidelity if provided
+        if (options.input_fidelity) {
+            data.input_fidelity = options.input_fidelity;
         }
 
         const response = await wp.apiFetch({

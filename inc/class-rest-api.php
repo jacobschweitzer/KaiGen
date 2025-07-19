@@ -219,10 +219,10 @@ final class KaiGen_REST_Controller {
         }
 
 
-        // Add fidelity if provided
-        $fidelity = $request->get_param('fidelity');
-        if (!empty($fidelity)) {
-            $params['fidelity'] = $fidelity;
+        // Add input_fidelity if provided
+        $input_fidelity = $request->get_param('input_fidelity');
+        if (!empty($input_fidelity)) {
+            $params['input_fidelity'] = $input_fidelity;
         }
 
         return $params;
