@@ -1,7 +1,7 @@
 // This file contains the AITab React component used to generate AI images through a modal.
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
-import { Button, TextareaControl, Modal, Spinner } from '@wordpress/components'; // Import necessary UI components.
+import { Button, TextareaControl, Modal, Spinner, SelectControl } from '@wordpress/components'; // Import necessary UI components.
 import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
@@ -21,6 +21,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
     const [error, setError] = useState(null); // Holds any error messages.
     const [referenceImages, setReferenceImages] = useState([]);
     const [selectedRef, setSelectedRef] = useState(null);
+    const [fidelity, setFidelity] = useState(1);
 
     const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
 
@@ -44,7 +45,9 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
         setIsLoading(true); // Start loading state.
         setError(null); // Clear any previous errors.
 
-        const options = {};
+        const options = {
+            fidelity: fidelity,
+        };
         if (selectedRef) {
             options.sourceImageUrl = selectedRef.url;
         }
@@ -121,6 +124,20 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                         onChange={setPrompt} // Updates the prompt state.
                         rows={4}
                     />
+
+                    {supportsImageToImage && (
+                        <SelectControl
+                            label="Fidelity"
+                            value={fidelity}
+                            options={[
+                                { label: 'High', value: 1 },
+                                { label: 'Medium', value: 0.5 },
+                                { label: 'Low', value: 0.25 },
+                            ]}
+                            onChange={(value) => setFidelity(parseFloat(value))}
+                            help="Controls how much the image will be changed. High fidelity will result in a more similar image."
+                        />
+                    )}
 
                     {supportsImageToImage && referenceImages.length > 0 && (
                         <>
