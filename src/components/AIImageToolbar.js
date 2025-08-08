@@ -81,7 +81,7 @@ const AIImageToolbar = ({
                                 label="High Fidelity"
                                 checked={inputFidelity === 'high'}
                                 onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
-                                help="Control how much effort the model will exert to match the style and features of input images."
+                                help="Improves reference image matching."
                             />
                         )}
 

@@ -125,15 +125,6 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                         rows={4}
                     />
 
-                    {supportsImageToImage && selectedRef && window.kaiGen?.provider === 'openai' && (
-                        <CheckboxControl
-                            label="High Fidelity"
-                            checked={inputFidelity === 'high'}
-                            onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
-                            help="Control how much effort the model will exert to match the style and features of input images."
-                        />
-                    )}
-
                     {supportsImageToImage && referenceImages.length > 0 && (
                         <>
                             <div style={{ width: '250px', marginBottom: '8px' }}>
@@ -145,6 +136,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                         overflowY: 'hidden',
                                         gap: '4px',
                                         WebkitOverflowScrolling: 'touch',
+                                        marginBottom: '8px',
                                     }}
                                 >
                                     {referenceImages.map((img) => (
@@ -164,6 +156,14 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                         />
                                     ))}
                                 </div>
+                                {selectedRef && window.kaiGen?.provider === 'openai' && (
+                                    <CheckboxControl
+                                        label="High Fidelity"
+                                        checked={inputFidelity === 'high'}
+                                        onChange={(isChecked) => setInputFidelity(isChecked ? 'high' : 'low')}
+                                        help="Improves reference image matching."
+                                    />
+                                )}
                             </div>
                         </>
                     )}
