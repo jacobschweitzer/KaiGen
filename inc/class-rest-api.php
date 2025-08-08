@@ -218,6 +218,13 @@ final class KaiGen_REST_Controller {
             $params['mask_url'] = $mask_url;
         }
 
+
+        // Add input_fidelity if provided
+        $input_fidelity = $request->get_param('input_fidelity');
+        if (!empty($input_fidelity)) {
+            $params['input_fidelity'] = $input_fidelity;
+        }
+
         return $params;
     }
 

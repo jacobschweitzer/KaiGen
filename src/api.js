@@ -41,6 +41,7 @@ export const generateImage = async (prompt, callback, options = {}) => {
             data.mask_url = options.maskUrl;
         }
         
+
         // Add moderation level if provided
         if (options.moderation && ['auto', 'low'].includes(options.moderation)) {
             data.moderation = options.moderation;
@@ -51,6 +52,11 @@ export const generateImage = async (prompt, callback, options = {}) => {
             data.style = options.style;
         }
         
+        // Add input_fidelity if provided
+        if (options.input_fidelity) {
+            data.input_fidelity = options.input_fidelity;
+        }
+
         const response = await wp.apiFetch({
             path: '/kaigen/v1/generate-image',
             method: 'POST',

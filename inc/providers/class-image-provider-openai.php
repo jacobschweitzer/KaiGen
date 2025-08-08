@@ -150,6 +150,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                 $body .= $image_data . "\r\n";
             }
             
+
             // Close the multipart body
             $body .= "--{$boundary}--\r\n";
             
@@ -166,6 +167,11 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             if (isset($additional_params['aspect_ratio'])) {
                 list($width, $height) = $this->map_aspect_ratio_to_dimensions($additional_params['aspect_ratio'] ?? '1:1');
                 $body['size'] = "{$width}x{$height}";
+            }
+
+            // Add input_fidelity parameter if provided
+            if (isset($additional_params['input_fidelity'])) {
+                $body['input_fidelity'] = $additional_params['input_fidelity'];
             }
             
             $body = wp_json_encode($body);
