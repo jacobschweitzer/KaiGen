@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
 import { Button, TextareaControl, Modal, Spinner, Dropdown, Dashicon } from '@wordpress/components'; // Import necessary UI components.
-import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
+import kaiGenLogo from '../../assets/KaiGen-logo-64x64.png'; // Import KaiGen logo
+import kaiGenLogoBig from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
 /**
@@ -122,7 +123,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     title={
                         <div className="kaigen-modal__logo-container">
                             <img
-                                src={kaiGenLogo}
+                                src={kaiGenLogoBig}
                                 alt="KaiGen logo"
                                 className="kaigen-modal__logo"
                             />
@@ -140,7 +141,8 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                         {/* Left: Reference Images Button */}
                         {supportsImageToImage && referenceImages.length > 0 && (
                             <Dropdown
-                                popoverProps={{ placement: 'bottom-start' }}
+                                onFocusOutside={() => setIsOpen(false)}
+                                popoverProps={{ placement: 'bottom-start', focusOnMount: true }}
                                 renderToggle={({ isOpen, onToggle }) => (
                                     <Button
                                         className="kaigen-modal__ref-button"
@@ -226,7 +228,8 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
 
                         {/* Right: Settings Button */}
                         <Dropdown
-                            popoverProps={{ placement: 'bottom-end' }}
+                            onFocusOutside={() => setIsOpen(false)}
+                            popoverProps={{ placement: 'bottom-end', focusOnMount: true }}
                             renderToggle={({ isOpen, onToggle }) => (
                                 <Button
                                     className="kaigen-modal__settings-button"

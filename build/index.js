@@ -279,13 +279,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
 /* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _assets_KaiGen_logo_128x128_png__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../assets/KaiGen-logo-128x128.png */ "./assets/KaiGen-logo-128x128.png");
-/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../api */ "./src/api.js");
+/* harmony import */ var _assets_KaiGen_logo_64x64_png__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../assets/KaiGen-logo-64x64.png */ "./assets/KaiGen-logo-64x64.png");
+/* harmony import */ var _assets_KaiGen_logo_128x128_png__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../assets/KaiGen-logo-128x128.png */ "./assets/KaiGen-logo-128x128.png");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../api */ "./src/api.js");
 
 // This file contains the AITab React component used to generate AI images through a modal.
 
  // Import WordPress hooks.
  // Import necessary UI components.
+ // Import KaiGen logo
  // Import KaiGen logo
  // Import API functions.
 
@@ -313,7 +315,7 @@ const AITab = ({
   const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
   (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
     if (isModalOpen && supportsImageToImage) {
-      (0,_api__WEBPACK_IMPORTED_MODULE_4__.fetchReferenceImages)().then(setReferenceImages);
+      (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchReferenceImages)().then(setReferenceImages);
     }
   }, [isModalOpen]);
 
@@ -354,7 +356,7 @@ const AITab = ({
     }
 
     // Call generateImage API function with the prompt
-    (0,_api__WEBPACK_IMPORTED_MODULE_4__.generateImage)(prompt.trim(), media => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_5__.generateImage)(prompt.trim(), media => {
       if (media.error) {
         setError(media.error); // Set error if generation fails.
         setIsLoading(false); // End loading state.
@@ -388,7 +390,7 @@ const AITab = ({
     role: "button",
     title: "KaiGen"
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
-    src: _assets_KaiGen_logo_128x128_png__WEBPACK_IMPORTED_MODULE_3__,
+    src: _assets_KaiGen_logo_64x64_png__WEBPACK_IMPORTED_MODULE_3__,
     alt: "KaiGen",
     style: {
       height: '40px',
@@ -405,7 +407,7 @@ const AITab = ({
     title: (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
       className: "kaigen-modal__logo-container"
     }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
-      src: _assets_KaiGen_logo_128x128_png__WEBPACK_IMPORTED_MODULE_3__,
+      src: _assets_KaiGen_logo_128x128_png__WEBPACK_IMPORTED_MODULE_4__,
       alt: "KaiGen logo",
       className: "kaigen-modal__logo"
     })),
@@ -418,8 +420,10 @@ const AITab = ({
   }, error), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "kaigen-modal__input-container"
   }, supportsImageToImage && referenceImages.length > 0 && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Dropdown, {
+    onFocusOutside: () => setIsOpen(false),
     popoverProps: {
-      placement: 'bottom-start'
+      placement: 'bottom-start',
+      focusOnMount: true
     },
     renderToggle: ({
       isOpen,
@@ -487,8 +491,10 @@ const AITab = ({
   }, isLoading ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, null)) : (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Dashicon, {
     icon: "admin-appearance"
   })), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Dropdown, {
+    onFocusOutside: () => setIsOpen(false),
     popoverProps: {
-      placement: 'bottom-end'
+      placement: 'bottom-end',
+      focusOnMount: true
     },
     renderToggle: ({
       isOpen,
