@@ -265,19 +265,15 @@ final class KaiGen_REST_Controller {
                     throw new Exception('Invalid response format or incomplete generation');
                 }
 
-                // Handle content moderation errors (400) - return immediately without retrying
-                if ($result->get_error_code() === 'content_moderation') {
-                    return $result;
-                }
-
-                // Handle image-to-image specific errors - return immediately without retrying
+                // Handle errors that should not be retried - return immediately
                 if (in_array($result->get_error_code(), [
                     'image_to_image_error',
                     'image_to_image_failed', 
                     'model_error',
                     'image_download_failed',
                     'empty_image_data',
-                    'replicate_validation_error'
+                    'replicate_validation_error',
+                    'content_moderation'
                 ])) {
                     return $result;
                 }

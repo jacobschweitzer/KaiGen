@@ -1,0 +1,108 @@
+/* KaiGen Plugin Admin Styles */
+
+/* ===== MODAL HEADER STYLING ===== */
+
+/* Center the logo in KaiGen modal header */
+.kaigen-modal .components-modal__header .components-modal__header-heading {
+    width: 100%;
+}
+
+.kaigen-modal__logo-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.kaigen-modal__logo {
+    height: 80px;
+    width: auto;
+}
+
+/* ===== INPUT CONTAINER ===== */
+
+.kaigen-modal__input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+/* ===== TEXTAREA ===== */
+
+.kaigen-modal__textarea-container {
+    flex: 1;
+}
+
+.kaigen-modal__textarea .components-textarea-control__input {
+    width: 100% !important;
+    resize: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* ===== BUTTONS ===== */
+
+.kaigen-modal__ref-button,
+.kaigen-modal__settings-button,
+.kaigen-modal__submit-button {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+}
+
+.kaigen-modal__settings-button {
+    background: #f0f0f0 !important;
+}
+
+/* Reference button icon styling */
+.kaigen-modal__ref-button .dashicon {
+    font-size: 18px !important;
+}
+
+/* Settings button icon styling */
+.kaigen-modal__settings-button .dashicon {
+    color: #555 !important;
+    font-size: 18px !important;
+}
+
+/* ===== SUBMIT BUTTON ===== */
+
+.kaigen-modal__submit-container {
+    display: none; /* Hide the separate container since button is now inline */
+}
+
+.kaigen-modal__submit-button {
+    background: #007cba !important;
+    color: white !important;
+    border: 1px solid #007cba !important;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+
+@media (max-width: 600px) {
+    .kaigen-modal__logo {
+        height: 60px;
+    }
+    
+    .kaigen-modal__input-container {
+        gap: 6px;
+    }
+    
+    .kaigen-modal__ref-button,
+    .kaigen-modal__settings-button,
+    .kaigen-modal__submit-button {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+    }
+}

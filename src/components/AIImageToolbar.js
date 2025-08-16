@@ -2,7 +2,7 @@
 
 import { useState } from '@wordpress/element';
 import { Spinner, ToolbarButton, ToolbarGroup, Modal, TextareaControl, Button } from '@wordpress/components';
-import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png';
+import kaiGenLogo from '../../assets/KaiGen-logo-64x64.png';
 
 /**
  * AIImageToolbar component for adding AI image generation or regeneration buttons.

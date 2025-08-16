@@ -1,7 +1,7 @@
 // This file contains the AITab React component used to generate AI images through a modal.
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
-import { Button, TextareaControl, Modal, Spinner } from '@wordpress/components'; // Import necessary UI components.
+import { Button, TextareaControl, Modal, Spinner, Dropdown, Dashicon } from '@wordpress/components'; // Import necessary UI components.
 import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
@@ -30,6 +30,19 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
             fetchReferenceImages().then(setReferenceImages);
         }
     }, [isModalOpen]);
+
+    /**
+     * Handles Enter key press in textarea
+     *
+     * @param {KeyboardEvent} e - The keyboard event
+     * @returns {void}
+     */
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleGenerate();
+        }
+    };
 
     /**
      * Handles the image generation process when the Generate button is clicked.
@@ -105,12 +118,15 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
             {/* Modal for entering the prompt and generating the image. */}
             {isModalOpen && (
                 <Modal
+                    className="kaigen-modal"
                     title={
-                        <img
-                            src={kaiGenLogo}
-                            alt="KaiGen logo"
-                            style={{ height: '80px', width: 'auto', display: 'block' }}
-                        />
+                        <div className="kaigen-modal__logo-container">
+                            <img
+                                src={kaiGenLogo}
+                                alt="KaiGen logo"
+                                className="kaigen-modal__logo"
+                            />
+                        </div>
                     }
                     aria-label="KaiGen"
                     onRequestClose={() => setIsModalOpen(false)}
@@ -118,135 +134,181 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     {/* Display error message if present. */}
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     
-                    {/* Textarea to enter the image prompt. */}
-                    <TextareaControl
-                        label="Prompt"
-                        value={prompt}
-                        onChange={setPrompt} // Updates the prompt state.
-                        rows={4}
-                    />
-
-                    {/* Aspect ratio selector */}
-                    <div style={{ margin: '8px 0 12px 0' }}>
-                        <h4 style={{ margin: '0 0 6px 0' }}>Aspect Ratio</h4>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            {[
-                                { value: '1:1', label: '1:1', title: 'Square' },
-                                { value: '16:9', label: '16:9', title: 'Landscape' },
-                                { value: '9:16', label: '9:16', title: 'Portrait' },
-                            ].map((opt) => (
-                                <Button
-                                    key={opt.value}
-                                    onClick={() => setAspectRatio((prev) => (prev === opt.value ? null : opt.value))}
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    style={{
-                                        border: aspectRatio === opt.value ? '2px solid #007cba' : '1px solid #ccd0d4',
-                                        background: '#fff',
-                                        padding: 0,
-                                        width: '75px',
-                                        height: '75px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        outline: 'none',
-                                        boxShadow: 'none',
-                                    }}
-                                    aria-pressed={aspectRatio === opt.value}
-                                    aria-label={`${opt.title} (${opt.label})`}
-                                    title={`${opt.title} (${opt.label})`}
-                                >
-                                    <div
+                    {/* Horizontal layout container */}
+                    <div className="kaigen-modal__input-container">
+                        
+                        {/* Left: Reference Images Button */}
+                        {supportsImageToImage && referenceImages.length > 0 && (
+                            <Dropdown
+                                popoverProps={{ placement: 'bottom-start' }}
+                                renderToggle={({ isOpen, onToggle }) => (
+                                    <Button
+                                        className="kaigen-modal__ref-button"
+                                        onClick={onToggle}
+                                        aria-expanded={isOpen}
                                         style={{
-                                            width: '50px',
-                                            height: '36px',
-                                            background: 'transparent',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
+                                            background: selectedRef ? '#007cba' : '#f0f0f0',
                                         }}
+                                        aria-label="Reference Images"
                                     >
-                                        {(() => {
-                                            const containerW = 50;
-                                            const containerH = 36;
-                                            const margin = 10; // keep inner preview comfortably inside
-                                            const maxW = containerW - margin;
-                                            const maxH = containerH - margin;
-                                            const [wRatio, hRatio] = opt.value.split(':').map(Number);
-                                            let w = maxW;
-                                            let h = (maxW * hRatio) / wRatio;
-                                            if (h > maxH) {
-                                                h = maxH;
-                                                w = (maxH * wRatio) / hRatio;
-                                            }
-                                            return (
-                                                <div
+                                        <Dashicon 
+                                            icon="format-image" 
+                                            style={{ 
+                                                color: selectedRef ? '#fff' : '#555'
+                                            }} 
+                                        />
+                                    </Button>
+                                )}
+                                renderContent={() => (
+                                    <div style={{ padding: '8px', width: '300px' }}>
+                                        <h4 style={{ margin: '0 0 8px 0' }}>Reference Images</h4>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexWrap: 'wrap',
+                                                gap: '4px',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                            }}
+                                        >
+                                            {referenceImages.map((img) => (
+                                                <img
+                                                    key={img.id}
+                                                    src={img.url}
+                                                    alt={img.alt || ''}
+                                                    onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
                                                     style={{
-                                                        width: `${Math.round(w)}px`,
-                                                        height: `${Math.round(h)}px`,
-                                                        background: '#e9eef0',
-                                                        border: '1px solid #c3c4c7',
+                                                        width: '60px',
+                                                        height: '60px',
+                                                        objectFit: 'cover',
+                                                        cursor: 'pointer',
+                                                        border: selectedRef && selectedRef.id === img.id ? '3px solid #007cba' : '3px solid transparent',
+                                                        borderRadius: '4px',
                                                     }}
                                                 />
-                                            );
-                                        })()}
+                                            ))}
+                                        </div>
                                     </div>
-                                    <span style={{ fontSize: '12px', color: '#1e1e1e' }}>{opt.label}</span>
-                                </Button>
-                            ))}
+                                )}
+                            />
+                        )}
+                        
+                        {/* Center: Prompt Textarea */}
+                        <div className="kaigen-modal__textarea-container">
+                            <TextareaControl
+                                className="kaigen-modal__textarea"
+                                placeholder="Image prompt..."
+                                value={prompt}
+                                onChange={setPrompt}
+                                onKeyDown={handleKeyPress}
+                                rows={2}
+                            />
                         </div>
+                        
+                        {/* Submit button - only shown when there's a prompt */}
+                        {prompt.trim() && (
+                            <Button
+                                className="kaigen-modal__submit-button"
+                                variant="primary"
+                                onClick={handleGenerate}
+                                disabled={isLoading || !prompt.trim()}
+                                aria-label="Generate Image"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Spinner />
+                                    </>
+                                ) : (
+                                    <Dashicon icon="admin-appearance" />
+                                )}
+                            </Button>
+                        )}
+
+                        {/* Right: Settings Button */}
+                        <Dropdown
+                            popoverProps={{ placement: 'bottom-end' }}
+                            renderToggle={({ isOpen, onToggle }) => (
+                                <Button
+                                    className="kaigen-modal__settings-button"
+                                    onClick={onToggle}
+                                    aria-expanded={isOpen}
+                                    aria-label="Settings"
+                                >
+                                    <Dashicon icon="admin-generic" />
+                                </Button>
+                            )}
+                            renderContent={() => (
+                                <div style={{ padding: '12px', width: '280px' }}>
+                                    <h4 style={{ margin: '0 0 12px 0' }}>Aspect Ratio</h4>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        {[
+                                            { value: '1:1', label: '1:1', title: 'Square' },
+                                            { value: '16:9', label: '16:9', title: 'Landscape' },
+                                            { value: '9:16', label: '9:16', title: 'Portrait' },
+                                        ].map((opt) => (
+                                            <Button
+                                                key={opt.value}
+                                                onClick={() => setAspectRatio((prev) => (prev === opt.value ? null : opt.value))}
+                                                style={{
+                                                    border: aspectRatio === opt.value ? '2px solid #007cba' : '1px solid #ccd0d4',
+                                                    background: aspectRatio === opt.value ? '#f0f8ff' : '#fff',
+                                                    padding: '8px',
+                                                    width: '75px',
+                                                    height: '60px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    borderRadius: '4px',
+                                                }}
+                                                aria-pressed={aspectRatio === opt.value}
+                                                aria-label={`${opt.title} (${opt.label})`}
+                                            >
+                                                <div
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '30px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    {(() => {
+                                                        const containerW = 40;
+                                                        const containerH = 30;
+                                                        const margin = 6;
+                                                        const maxW = containerW - margin;
+                                                        const maxH = containerH - margin;
+                                                        const [wRatio, hRatio] = opt.value.split(':').map(Number);
+                                                        let w = maxW;
+                                                        let h = (maxW * hRatio) / wRatio;
+                                                        if (h > maxH) {
+                                                            h = maxH;
+                                                            w = (maxH * wRatio) / hRatio;
+                                                        }
+                                                        return (
+                                                            <div
+                                                                style={{
+                                                                    width: `${Math.round(w)}px`,
+                                                                    height: `${Math.round(h)}px`,
+                                                                    background: aspectRatio === opt.value ? '#007cba' : '#e9eef0',
+                                                                    border: '1px solid #c3c4c7',
+                                                                    borderRadius: '2px',
+                                                                }}
+                                                            />
+                                                        );
+                                                    })()}
+                                                </div>
+                                                <span style={{ fontSize: '11px', color: '#555' }}>{opt.label}</span>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        />
                     </div>
 
-                    {supportsImageToImage && referenceImages.length > 0 && (
-                        <>
-                            <div style={{ width: '250px', marginBottom: '8px' }}>
-                                <h4 style={{ margin: '0 0 4px 0' }}>Reference Images</h4>
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        overflowX: 'auto',
-                                        overflowY: 'hidden',
-                                        gap: '4px',
-                                        WebkitOverflowScrolling: 'touch',
-                                    }}
-                                >
-                                    {referenceImages.map((img) => (
-                                        <img
-                                            key={img.id}
-                                            src={img.url}
-                                            alt={img.alt || ''}
-                                            onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
-                                            style={{
-                                                width: '80px',
-                                                height: '80px',
-                                                objectFit: 'contain',
-                                                cursor: 'pointer',
-                                                flex: '0 0 auto',
-                                                border: selectedRef && selectedRef.id === img.id ? '4px solid #007cba' : '4px solid transparent',
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        </>
-                    )}
-                    
-                    {/* Button to trigger image generation. */}
-                    <Button
-                        variant="primary" // Uses primary styling.
-                        onClick={handleGenerate} // Initiates image generation.
-                        disabled={isLoading || !prompt.trim()} // Disables button if conditions are not met.
-                    >
-                        {isLoading ? (
-                            <>
-                                <Spinner /> {/* Display spinner during loading. */}
-                                KaiGen is generating...
-                            </>
-                        ) : (
-                            'KaiGen'
-                        )}
-                    </Button>
                 </Modal>
             )}
         </>

@@ -181,8 +181,21 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
 
         // Check for immediate errors in the response
         if (!empty($body['error'])) {
+            $error_message = $body['error'];
+            
+            // Check for content moderation errors and return them immediately
+            if (
+                strpos($error_message, "violate Google's Responsible AI practices") !== false ||
+                strpos($error_message, "sensitive words") !== false ||
+                strpos($error_message, "content moderation") !== false ||
+                strpos($error_message, "flagged as sensitive") !== false ||
+                strpos($error_message, "E005") !== false
+            ) {
+                return new WP_Error('content_moderation', 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.');
+            }
+            
             // Return API errors immediately without retry
-            return new WP_Error('replicate_api_error', $body['error']);
+            return new WP_Error('replicate_api_error', $error_message);
         }
 
         // If we got a completed prediction with output, return it immediately
@@ -241,6 +254,21 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         if (!empty($response['error'])) {
             $error_message = $response['error'];
             
+            // Check for content moderation failures first (highest priority)
+            if (
+                strpos($error_message, '400 Image generation failed') !== false ||
+                strpos($error_message, 'flagged as sensitive') !== false ||
+                strpos($error_message, 'E005') !== false ||
+                strpos($error_message, "violate Google's Responsible AI practices") !== false ||
+                strpos($error_message, 'sensitive words') !== false ||
+                strpos($error_message, 'content moderation') !== false
+            ) {
+                return new WP_Error(
+                    'content_moderation',
+                    'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
+                );
+            }
+            
             // Check for image-to-image specific errors
             if (strpos($error_message, 'image') !== false && strpos($error_message, 'parameter') !== false) {
                 return new WP_Error(
@@ -254,14 +282,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 return new WP_Error(
                     'model_error',
                     'Model error: ' . $error_message . '. The image-to-image model may be temporarily unavailable.'
-                );
-            }
-            
-            // Return a user-friendly error for content moderation failures
-            if (strpos($error_message, '400 Image generation failed') !== false) {
-                return new WP_Error(
-                    'content_moderation',
-                    'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
                 );
             }
             
@@ -293,7 +313,9 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             if (
                 strpos($error_details . $logs, "violate Google's Responsible AI practices") !== false ||
                 strpos($error_details . $logs, "sensitive words") !== false ||
-                strpos($error_details . $logs, "content moderation") !== false
+                strpos($error_details . $logs, "content moderation") !== false ||
+                strpos($error_details . $logs, "flagged as sensitive") !== false ||
+                strpos($error_details . $logs, "E005") !== false
             ) {
                 $error_message = 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.';
                 return new WP_Error('content_moderation', $error_message);

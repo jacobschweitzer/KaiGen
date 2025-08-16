@@ -393,6 +393,14 @@ class KaiGen_Admin {
 				}
 			}
 
+			// Enqueue admin CSS for block editor
+			wp_enqueue_style(
+				'kaigen-admin',
+				plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
+				[],
+				'1.0.0'
+			);
+
 			wp_enqueue_script(
 				'kaigen-editor',
 				plugin_dir_url(dirname(__FILE__)) . 'build/index.js',
