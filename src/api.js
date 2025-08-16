@@ -51,6 +51,11 @@ export const generateImage = async (prompt, callback, options = {}) => {
             data.style = options.style;
         }
         
+        // Add aspect ratio if provided
+        if (options.aspectRatio && ['1:1','16:9','9:16','4:3','3:4'].includes(options.aspectRatio)) {
+            data.aspect_ratio = options.aspectRatio;
+        }
+        
         const response = await wp.apiFetch({
             path: '/kaigen/v1/generate-image',
             method: 'POST',

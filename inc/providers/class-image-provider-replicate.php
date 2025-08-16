@@ -129,6 +129,18 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             }
             
             $additional_params = $filtered_params;
+        } else {
+            /**
+             * Remove unsupported generic params to avoid 422 validation errors.
+             */
+            $valid_general_params = ['seed', 'aspect_ratio', 'size', 'width', 'height', 'guidance_scale'];
+            $filtered_params = [];
+            foreach ($valid_general_params as $param) {
+                if (isset($additional_params[$param])) {
+                    $filtered_params[$param] = $additional_params[$param];
+                }
+            }
+            $additional_params = $filtered_params;
         }
 
         $body = [
@@ -331,9 +343,8 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
     public function get_available_models() {
         return [
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
-            'black-forest-labs/flux-1.1-pro' => 'Flux 1.1 Pro by Black Forest Labs (high quality)',
-            'recraft-ai/recraft-v3'          => 'Recraft V3 by Recraft AI (high quality)',
-            'google/imagen-4'                => 'Imagen 4 by Google (highest quality)',
+            'bytedance/seedream-3'           => 'Seedream 3.0 by Bytedance (high quality)',
+            'google/imagen-4-ultra'          => 'Imagen 4 Ultra by Google (highest quality)',
         ];
     }
 
@@ -367,13 +378,13 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'black-forest-labs/flux-schnell';
                 break;
             case 'medium':
-                $model = 'recraft-ai/recraft-v3';
+                $model = 'bytedance/seedream-3';
                 break;
             case 'high':
-                $model = 'google/imagen-4';
+                $model = 'google/imagen-4-ultra';
                 break;
             default:
-                $model = 'recraft-ai/recraft-v3'; // Default to medium quality
+                $model = 'bytedance/seedream-3'; // Default to medium quality
         }
         return $model;
     }

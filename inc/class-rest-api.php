@@ -175,25 +175,6 @@ final class KaiGen_REST_Controller {
         $provider_id = $request->get_param('provider');
         $provider_models = get_option('kaigen_provider_models', []);
         $model = $provider_models[$provider_id] ?? '';
-        
-        // Only include style for non-GPT Image-1 models
-        if ($model !== 'gpt-image-1') {
-            // Map styles based on the model
-            if ($model === 'recraft-ai/recraft-v3') {
-                // Recraft V3 style mapping
-                $style_map = [
-                    'natural' => 'realistic_image',
-                    'vivid' => 'digital_illustration'
-                ];
-            } else {
-                // Default style mapping for other models
-                $style_map = [
-                    'natural' => 'realistic_image/natural_light',
-                    'vivid' => 'digital_illustration'
-                ];
-            }
-            $defaults['style'] = $style_map[$style_value] ?? 'realistic_image';
-        }
 
         $params = [];
         foreach ($defaults as $key => $default) {
