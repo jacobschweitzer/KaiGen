@@ -534,24 +534,16 @@ const AITab = ({
       value: '9:16',
       label: '9:16',
       title: 'Portrait'
-    }].map(opt => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+    }].map(opt => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
       key: opt.value,
       onClick: () => setAspectRatio(prev => prev === opt.value ? null : opt.value),
       style: {
         border: aspectRatio === opt.value ? '2px solid #007cba' : '1px solid #ccd0d4',
-        background: aspectRatio === opt.value ? '#f0f8ff' : '#fff',
-        padding: '8px',
-        width: '75px',
-        height: '60px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '4px',
-        borderRadius: '4px'
+        background: aspectRatio === opt.value ? '#f0f8ff' : '#fff'
       },
       "aria-pressed": aspectRatio === opt.value,
-      "aria-label": `${opt.title} (${opt.label})`
+      "aria-label": `${opt.title} (${opt.label})`,
+      className: "kaigen-modal__aspect-ratio-button"
     }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
       style: {
         width: '40px',
