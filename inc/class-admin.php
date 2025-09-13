@@ -255,9 +255,58 @@ class KaiGen_Admin {
 	 */
 	public function sanitize_provider_api_keys($input) {
 		$sanitized_input = [];
+		$current_api_keys = get_option('kaigen_provider_api_keys', []);
+
 		foreach ($input as $provider_id => $api_key) {
-			$sanitized_input[$provider_id] = sanitize_text_field($api_key);
+			$sanitized_key = sanitize_text_field($api_key);
+
+			if ($provider_id === 'openai' && !empty($sanitized_key)) {
+				$current_key = isset($current_api_keys['openai']) ? $current_api_keys['openai'] : '';
+				
+				// Only validate if the key has changed
+				if ($sanitized_key !== $current_key) {
+					// Check if key is valid
+					$headers = ['Authorization' => 'Bearer ' . $sanitized_key];
+					$response = wp_remote_get('https://api.openai.com/v1/models', ['headers' => $headers]);
+					
+					if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+						add_settings_error('kaigen_provider_api_keys', 'kaigen_openai_invalid', 'The provided OpenAI API key is invalid.', 'error');
+						continue; // Skip saving this key
+					}
+					
+					// Check if has access to image model
+					$model_response = wp_remote_get('https://api.openai.com/v1/models/gpt-image-1', ['headers' => $headers]);
+					
+					if (is_wp_error($model_response) || wp_remote_retrieve_response_code($model_response) !== 200) {
+						$error_message = 'The provided OpenAI API key does not have access to image generation. This may require organization verification. Check in your OpenAI dashboard: <a target="_blank" href="https://platform.openai.com/settings/organization/general">Settings → Organization → General</a>. For more details: <a target="_blank" href="https://help.openai.com/en/articles/10910291-api-organization-verification">OpenAI Help Center</a>.';
+						
+						// Allow links in the message
+						$allowed_html = [
+							'a' => [
+								'href' => true,
+								'target' => true,
+								'rel' => true,
+							],
+						];
+						$sanitized_message = wp_kses($error_message, $allowed_html);
+						
+						add_settings_error(
+							'kaigen_provider_api_keys',
+							'kaigen_openai_no_access',
+							$sanitized_message,
+							'error'
+						);
+						continue; // Skip saving this key
+					}
+				}
+			}
+
+			$sanitized_input[$provider_id] = $sanitized_key;
 		}
+		
+		// Update active providers cache
+		$this->active_providers = array_keys(array_filter($sanitized_input));
+		
 		return $sanitized_input;
 	}
 
