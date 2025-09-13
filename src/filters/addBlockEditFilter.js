@@ -39,7 +39,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                     const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
 
                     if (!provider) {
-                        console.error('No provider configured in localized data');
                         return;
                     }
 

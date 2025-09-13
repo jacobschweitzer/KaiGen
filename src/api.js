@@ -21,6 +21,11 @@ export const generateImage = async (prompt, callback, options = {}) => {
             throw new Error('No provider configured. Please check your plugin settings.');
         }
         
+        const hasApiKey = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_has_api_key;
+        if (!hasApiKey) {
+            throw new Error('No API key configured for the selected provider. Please add one in the KaiGen settings.');
+        }
+        
         const data = { 
             prompt,
             provider: provider

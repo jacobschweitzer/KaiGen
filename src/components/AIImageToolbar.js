@@ -43,7 +43,7 @@ const AIImageToolbar = ({
             <>
                 <ToolbarGroup>
                     <ToolbarButton
-                        icon={isRegenerating ? <Spinner /> : <img src={kaiGenLogo} alt="KaiGen logo" style={{ height: '20px', width: '20px' }} />}
+                        icon={isRegenerating ? <Spinner /> : <img src={kaiGenLogo} alt="KaiGen logo" className="kaigen-toolbar-icon" />}
                         label={isRegenerating ? "KaiGen is generating..." : "KaiGen"}
                         onClick={() => setIsModalOpen(true)}
                         disabled={isRegenerating}
@@ -56,7 +56,7 @@ const AIImageToolbar = ({
                             <img
                                 src={kaiGenLogo}
                                 alt="KaiGen logo"
-                                style={{ height: '80px', width: 'auto', display: 'block' }}
+                                className="kaigen-modal-logo"
                             />
                         }
                         onRequestClose={() => {
@@ -65,7 +65,7 @@ const AIImageToolbar = ({
                             setError(null);
                         }}
                     >
-                        {error && <p style={{ color: 'red' }}>{error}</p>}
+                        {error && <p className="kaigen-error-text">{error}</p>}
                         
                         <TextareaControl
                             label="Editing Instructions (optional)"

@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allApiKeyInputs.forEach(function(input) {
             const row = input.closest('tr');
             if (row) {
-                row.style.display = 'none';
+                row.classList.add('kaigen-hidden');
             }
         });
 
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedApiKeyInput) {
                 const row = selectedApiKeyInput.closest('tr');
                 if (row) {
-                    row.style.display = '';
+                    row.classList.remove('kaigen-hidden');
                 }
             }
         }
@@ -78,8 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (apiKeyInput && !apiKeyInput.value.trim()) {
                 // Create warning message
                 const warning = document.createElement('div');
-                warning.className = 'notice notice-warning inline';
-                warning.style.margin = '10px 0';
+                warning.className = 'notice notice-warning inline kaigen-warning';
                 warning.innerHTML = '<p><strong>Warning:</strong> You have selected ' + getProviderName(selectedProvider) + ' but no API key is set. Please enter your API key below.</p>';
                 
                 // Insert warning after the provider select field row

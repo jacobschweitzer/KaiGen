@@ -30,8 +30,10 @@ addFilter('editor.MediaUpload', 'kaigen/add-ai-tab', (OriginalMediaUpload) => {
             return selectedBlock && selectedBlock.attributes && selectedBlock.attributes.url;
         };
 
+        const hasApiKey = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_has_api_key;
+
         // Only display AITab if this is a single image block without image data.
-        const shouldDisplay = isSingleImageBlock && isImageBlock && !hasImageData();
+        const shouldDisplay = isSingleImageBlock && isImageBlock && !hasImageData() && hasApiKey;
 
         return (
             <OriginalMediaUpload

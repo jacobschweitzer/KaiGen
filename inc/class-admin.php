@@ -67,12 +67,13 @@ class KaiGen_Admin {
 		// Add the provider setting to the editor settings
 		add_filter('block_editor_settings_all', function($settings) {
 			$provider = get_option('kaigen_provider', '');
-			
+			$api_keys = get_option('kaigen_provider_api_keys', []);
+
 			// If no provider is set but we have active providers, use OpenAI if available, otherwise use the first active provider
 			if (empty($provider)) {
 				$active_providers = $this->get_active_providers(); // Get fresh list
 				if (!empty($active_providers)) {
-					$api_keys = get_option('kaigen_provider_api_keys', []);
+					
 					if (isset($api_keys['openai']) && !empty($api_keys['openai'])) {
 						$provider = 'openai';
 					} else {
@@ -99,7 +100,8 @@ class KaiGen_Admin {
 				$settings['kaigen_settings'] = [];
 			}
 			$settings['kaigen_settings']['provider'] = $provider;
-			
+			$settings['kaigen_has_api_key'] = !empty($provider) && !empty($api_keys[$provider]);
+
 			return $settings;
 		}, 20); // Add a higher priority to ensure our settings are added after others
 	}
@@ -417,6 +419,12 @@ class KaiGen_Admin {
 				'supportsImageToImage' => $this->provider_supports_image_to_image($provider),
 			]);
 		} else if ( in_array( $hook, ['settings_page_kaigen-settings'] ) ) {
+			wp_enqueue_style(
+				'kaigen-admin',
+				plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
+				[],
+				'1.0.0'
+			);
 			wp_enqueue_script(
 				'kaigen-admin',
 				plugin_dir_url(dirname(__FILE__)) . 'build/admin.js',

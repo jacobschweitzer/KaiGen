@@ -57,9 +57,7 @@ registerFormatType('kaigen/custom-format', {
                 const placeholderBlock = wp.blocks.createBlock('core/heading', {
                     content: 'Generating AI image...',
                     level: 2,
-                    style: {
-                        textAlign: 'center',
-                    },
+                    className: 'kaigen-text-center',
                 });
                 // Replace the selected block with the placeholder.
                 replaceBlocks(selectedBlock.clientId, [placeholderBlock, selectedBlock]);

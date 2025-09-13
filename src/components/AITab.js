@@ -91,25 +91,14 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
             <Button
                 onClick={() => setIsModalOpen(true)}
                 className="kaigen-placeholder-button"
-                style={{
-                    order: 99,
-                    padding: 0,
-                    background: 'transparent',
-                    border: 'none',
-                    boxShadow: 'none',
-                    minWidth: 'auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
                 aria-label="KaiGen"
                 role="button"
                 title="KaiGen"
+                style={{ order: 10 }}
             >
                 <img
                     src={kaiGenLogo}
                     alt="KaiGen"
-                    style={{ height: '40px', width: '40px', objectFit: 'contain', border: 'none', background: 'transparent' }}
                     aria-label="KaiGen logo"
                     role="button"
                     title="KaiGen logo"
@@ -133,7 +122,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     onRequestClose={() => setIsModalOpen(false)}
                 >
                     {/* Display error message if present. */}
-                    {error && <p style={{ color: 'red' }}>{error}</p>}
+                    {error && <p className="kaigen-error-text">{error}</p>}
                     
                     {/* Horizontal layout container */}
                     <div className="kaigen-modal__input-container">
@@ -145,52 +134,34 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                 popoverProps={{ placement: 'bottom-start', focusOnMount: true }}
                                 renderToggle={({ isOpen, onToggle }) => (
                                     <Button
-                                        className="kaigen-modal__ref-button"
+                                        className={`kaigen-modal__ref-button ${selectedRef ? 'kaigen-ref-button-selected' : ''}`}
                                         onClick={onToggle}
                                         aria-expanded={isOpen}
-                                        style={{
-                                            background: selectedRef ? '#007cba' : '#f0f0f0',
-                                        }}
                                         aria-label="Reference Images"
                                     >
                                         <Dashicon 
                                             icon="format-image" 
-                                            style={{ 
-                                                color: selectedRef ? '#fff' : '#555'
-                                            }} 
+                                            className={selectedRef ? 'kaigen-ref-button-icon-selected' : ''}
                                         />
                                     </Button>
                                 )}
                                 renderContent={() => (
-                                    <div style={{ padding: '8px', width: '300px' }}>
-                                        <h4 style={{ margin: '0 0 8px 0' }}>Reference Images</h4>
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                flexWrap: 'wrap',
-                                                gap: '4px',
-                                                maxHeight: '200px',
-                                                overflowY: 'auto',
-                                            }}
-                                        >
-                                            {referenceImages.map((img) => (
-                                                <img
-                                                    key={img.id}
-                                                    src={img.url}
-                                                    alt={img.alt || ''}
-                                                    onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
-                                                    style={{
-                                                        width: '60px',
-                                                        height: '60px',
-                                                        objectFit: 'cover',
-                                                        cursor: 'pointer',
-                                                        border: selectedRef && selectedRef.id === img.id ? '3px solid #007cba' : '3px solid transparent',
-                                                        borderRadius: '4px',
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
+                                    <div className="kaigen-modal-dropdown-content-container">
+                                    <h4 className="kaigen-modal-dropdown-content-title">Reference Images</h4>
+                                    <div
+                                        className="kaigen-modal-reference-images-container"
+                                    >
+                                        {referenceImages.map((img) => (
+                                            <img
+                                                key={img.id}
+                                                src={img.url}
+                                                alt={img.alt || ''}
+                                                onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
+                                                className={`kaigen-modal-reference-image ${selectedRef && selectedRef.id === img.id ? 'kaigen-modal-reference-image-selected' : ''}`}
+                                            />
+                                        ))}
                                     </div>
+                                </div>
                                 )}
                             />
                         )}
@@ -241,9 +212,9 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                 </Button>
                             )}
                             renderContent={() => (
-                                <div style={{ padding: '12px', width: '280px' }}>
-                                    <h4 style={{ margin: '0 0 12px 0' }}>Aspect Ratio</h4>
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <div className="kaigen-modal-dropdown-content-container">
+                                    <h4 className="kaigen-modal-dropdown-content-title">Aspect Ratio</h4>
+                                    <div className="kaigen-modal-aspect-ratio-container">
                                         {[
                                             { value: '1:1', label: '1:1', title: 'Square' },
                                             { value: '16:9', label: '16:9', title: 'Landscape' },
@@ -252,50 +223,17 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                             <div
                                                 key={opt.value}
                                                 onClick={() => setAspectRatio((prev) => (prev === opt.value ? null : opt.value))}
-                                                style={{
-                                                    border: aspectRatio === opt.value ? '2px solid #007cba' : '1px solid #ccd0d4',
-                                                    background: aspectRatio === opt.value ? '#f0f8ff' : '#fff',
-                                                }}
                                                 aria-pressed={aspectRatio === opt.value}
                                                 aria-label={`${opt.title} (${opt.label})`}
-                                                className="kaigen-modal__aspect-ratio-button"
-                                            >
+                                                className={`kaigen-modal__aspect-ratio-button ${aspectRatio === opt.value ? 'kaigen-modal__aspect-ratio-button-selected' : ''}`}>
                                                 <div
-                                                    style={{
-                                                        width: '40px',
-                                                        height: '30px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                    }}
+                                                    className="kaigen-modal-aspect-ratio-icon-container"
                                                 >
-                                                    {(() => {
-                                                        const containerW = 40;
-                                                        const containerH = 30;
-                                                        const margin = 6;
-                                                        const maxW = containerW - margin;
-                                                        const maxH = containerH - margin;
-                                                        const [wRatio, hRatio] = opt.value.split(':').map(Number);
-                                                        let w = maxW;
-                                                        let h = (maxW * hRatio) / wRatio;
-                                                        if (h > maxH) {
-                                                            h = maxH;
-                                                            w = (maxH * wRatio) / hRatio;
-                                                        }
-                                                        return (
-                                                            <div
-                                                                style={{
-                                                                    width: `${Math.round(w)}px`,
-                                                                    height: `${Math.round(h)}px`,
-                                                                    background: aspectRatio === opt.value ? '#007cba' : '#e9eef0',
-                                                                    border: '1px solid #c3c4c7',
-                                                                    borderRadius: '2px',
-                                                                }}
-                                                            />
-                                                        );
-                                                    })()}
+                                                    <div
+                                                        className={`kaigen-modal-aspect-ratio-icon ${aspectRatio === opt.value ? 'kaigen-modal-aspect-ratio-icon-selected' : ''} kaigen-aspect-ratio-${opt.value.replace(':', '-')}`}>
+                                                    </div>
                                                 </div>
-                                                <span style={{ fontSize: '11px', color: '#555' }}>{opt.label}</span>
+                                                <span className="kaigen-modal-aspect-ratio-label">{opt.label}</span>
                                             </div>
                                         ))}
                                     </div>
