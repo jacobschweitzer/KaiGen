@@ -365,7 +365,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
     public function get_available_models() {
         return [
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
-            'bytedance/seedream-3'           => 'Seedream 3.0 by Bytedance (high quality)',
+            'bytedance/seedream-4'           => 'Seedream 3.0 by Bytedance (high quality)',
             'google/imagen-4-ultra'          => 'Imagen 4 Ultra by Google (highest quality)',
         ];
     }
@@ -376,7 +376,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string The image-to-image model.
      */
     private function get_image_to_image_model() {
-        return 'black-forest-labs/flux-kontext-pro';
+        return 'bytedance/seedream-4';
     }
 
     /**
