@@ -21,6 +21,11 @@ export const generateImage = async (prompt, callback, options = {}) => {
             throw new Error('No provider configured. Please check your plugin settings.');
         }
         
+        const hasApiKey = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_has_api_key;
+        if (!hasApiKey) {
+            throw new Error('No API key configured for the selected provider. Please add one in the KaiGen settings.');
+        }
+        
         const data = { 
             prompt,
             provider: provider
@@ -49,6 +54,11 @@ export const generateImage = async (prompt, callback, options = {}) => {
         // Add style if provided
         if (options.style && ['natural', 'vivid'].includes(options.style)) {
             data.style = options.style;
+        }
+        
+        // Add aspect ratio if provided
+        if (options.aspectRatio && ['1:1','16:9','9:16','4:3','3:4'].includes(options.aspectRatio)) {
+            data.aspect_ratio = options.aspectRatio;
         }
         
         const response = await wp.apiFetch({

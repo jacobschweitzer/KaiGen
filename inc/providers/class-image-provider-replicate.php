@@ -84,22 +84,22 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         // Determine which model to use
         $model_to_use = $this->model;
         
-        // Handle source_image_url parameter (convert to input_image for Replicate flux-kontext-pro)
+        // Handle source_image_url parameter (convert to image_input for Replicate seedream-4)
         $source_image_url = $additional_params['source_image_url'] ?? $additional_params['input_image'] ?? null;
         
         // If source image is provided, use the hardcoded image-to-image model
         if (!empty($source_image_url)) {
             $model_to_use = $this->get_image_to_image_model();
 
-            // Convert localhost URLs to base64 data URLs
+            // Process image URL (converts to base64 only if local)
             $processed_image = $this->process_image_url($source_image_url);
             if (is_wp_error($processed_image)) {
                 // Return image processing errors immediately without retry
                 return $processed_image;
             }
             
-            // Use 'input_image' parameter for flux-kontext-pro model (confirmed by official schema)
-            $input_data['input_image'] = $processed_image;
+            // Use 'image_input' parameter as array for seedream-4 model (confirmed by schema)
+            $input_data['image_input'] = [$processed_image];
         }
         
         // Remove these parameters to prevent duplication
@@ -108,26 +108,29 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
 
         // Filter parameters based on the model being used
         if (!empty($source_image_url)) {
-            // For flux-kontext-pro, only keep valid parameters according to schema
-            $valid_kontext_params = ['seed', 'aspect_ratio', 'output_format', 'safety_tolerance'];
+            // For seedream-4, only keep valid parameters according to schema
+            $valid_params = ['size', 'width', 'height', 'max_images', 'aspect_ratio', 'sequential_image_generation'];
             $filtered_params = [];
             
-            foreach ($valid_kontext_params as $param) {
+            foreach ($valid_params as $param) {
                 if (isset($additional_params[$param])) {
                     $value = $additional_params[$param];
-                    
-                    // Validate and fix output_format for flux-kontext-pro
-                    if ($param === 'output_format') {
-                        if (!in_array($value, ['jpg', 'png'])) {
-                            // Convert unsupported formats to png
-                            $value = 'png';
-                        }
-                    }
-                    
                     $filtered_params[$param] = $value;
                 }
             }
             
+            $additional_params = $filtered_params;
+        } else {
+            /**
+             * Remove unsupported generic params to avoid 422 validation errors.
+             */
+            $valid_general_params = ['seed', 'aspect_ratio', 'size', 'width', 'height', 'guidance_scale'];
+            $filtered_params = [];
+            foreach ($valid_general_params as $param) {
+                if (isset($additional_params[$param])) {
+                    $filtered_params[$param] = $additional_params[$param];
+                }
+            }
             $additional_params = $filtered_params;
         }
 
@@ -169,8 +172,21 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
 
         // Check for immediate errors in the response
         if (!empty($body['error'])) {
+            $error_message = $body['error'];
+            
+            // Check for content moderation errors and return them immediately
+            if (
+                strpos($error_message, "violate Google's Responsible AI practices") !== false ||
+                strpos($error_message, "sensitive words") !== false ||
+                strpos($error_message, "content moderation") !== false ||
+                strpos($error_message, "flagged as sensitive") !== false ||
+                strpos($error_message, "E005") !== false
+            ) {
+                return new WP_Error('content_moderation', 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.');
+            }
+            
             // Return API errors immediately without retry
-            return new WP_Error('replicate_api_error', $body['error']);
+            return new WP_Error('replicate_api_error', $error_message);
         }
 
         // If we got a completed prediction with output, return it immediately
@@ -229,6 +245,21 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         if (!empty($response['error'])) {
             $error_message = $response['error'];
             
+            // Check for content moderation failures first (highest priority)
+            if (
+                strpos($error_message, '400 Image generation failed') !== false ||
+                strpos($error_message, 'flagged as sensitive') !== false ||
+                strpos($error_message, 'E005') !== false ||
+                strpos($error_message, "violate Google's Responsible AI practices") !== false ||
+                strpos($error_message, 'sensitive words') !== false ||
+                strpos($error_message, 'content moderation') !== false
+            ) {
+                return new WP_Error(
+                    'content_moderation',
+                    'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
+                );
+            }
+            
             // Check for image-to-image specific errors
             if (strpos($error_message, 'image') !== false && strpos($error_message, 'parameter') !== false) {
                 return new WP_Error(
@@ -242,14 +273,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 return new WP_Error(
                     'model_error',
                     'Model error: ' . $error_message . '. The image-to-image model may be temporarily unavailable.'
-                );
-            }
-            
-            // Return a user-friendly error for content moderation failures
-            if (strpos($error_message, '400 Image generation failed') !== false) {
-                return new WP_Error(
-                    'content_moderation',
-                    'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
                 );
             }
             
@@ -281,7 +304,9 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             if (
                 strpos($error_details . $logs, "violate Google's Responsible AI practices") !== false ||
                 strpos($error_details . $logs, "sensitive words") !== false ||
-                strpos($error_details . $logs, "content moderation") !== false
+                strpos($error_details . $logs, "content moderation") !== false ||
+                strpos($error_details . $logs, "flagged as sensitive") !== false ||
+                strpos($error_details . $logs, "E005") !== false
             ) {
                 $error_message = 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.';
                 return new WP_Error('content_moderation', $error_message);
@@ -331,9 +356,8 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
     public function get_available_models() {
         return [
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
-            'black-forest-labs/flux-1.1-pro' => 'Flux 1.1 Pro by Black Forest Labs (high quality)',
-            'recraft-ai/recraft-v3'          => 'Recraft V3 by Recraft AI (high quality)',
-            'google/imagen-4'                => 'Imagen 4 by Google (highest quality)',
+            'bytedance/seedream-4'           => 'Seedream 4 by Bytedance (high quality)',
+            'google/imagen-4-ultra'          => 'Imagen 4 Ultra by Google (highest quality)',
         ];
     }
 
@@ -343,7 +367,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string The image-to-image model.
      */
     private function get_image_to_image_model() {
-        return 'black-forest-labs/flux-kontext-pro';
+        return 'bytedance/seedream-4';
     }
 
     /**
@@ -352,7 +376,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return bool True if image-to-image is supported, false otherwise.
      */
     public function supports_image_to_image() {
-        // Replicate supports image-to-image via flux-kontext-pro
+        // Replicate supports image-to-image via seedream-4
         return true;
     }
 
@@ -367,13 +391,13 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'black-forest-labs/flux-schnell';
                 break;
             case 'medium':
-                $model = 'recraft-ai/recraft-v3';
+                $model = 'bytedance/seedream-4';
                 break;
             case 'high':
-                $model = 'google/imagen-4';
+                $model = 'google/imagen-4-ultra';
                 break;
             default:
-                $model = 'recraft-ai/recraft-v3'; // Default to medium quality
+                $model = 'bytedance/seedream-4'; // Default to medium quality
         }
         return $model;
     }
@@ -394,7 +418,22 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             return new WP_Error('image_not_accessible', $error_message);
         }
         
-        // Download the image and convert to base64 with increased timeout
+        // Check if the URL is local
+        $parsed_url = parse_url($image_url);
+        $host = strtolower($parsed_url['host'] ?? '');
+        $is_local = false;
+        if ($host === 'localhost' || $host === '127.0.0.1' || $host === '::1') {
+            $is_local = true;
+        } elseif (preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/', $host)) {
+            $is_local = true;
+        }
+        
+        if (!$is_local) {
+            // Public URL - return directly since it's accessible
+            return $image_url;
+        }
+        
+        // Local URL - download and convert to base64 with increased timeout
         $response = wp_remote_get($image_url, [
             'timeout' => 30, // Increased from default 5 seconds to 30 seconds
         ]);

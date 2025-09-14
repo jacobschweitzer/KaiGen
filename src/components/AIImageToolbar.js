@@ -2,7 +2,7 @@
 
 import { useState } from '@wordpress/element';
 import { Spinner, ToolbarButton, ToolbarGroup, Modal, TextareaControl, Button } from '@wordpress/components';
-import kaiGenLogo from '../../assets/KaiGen-logo-128x128.png';
+import kaiGenLogo from '../../assets/KaiGen-logo-64x64.png';
 
 /**
  * AIImageToolbar component for adding AI image generation or regeneration buttons.
@@ -43,7 +43,7 @@ const AIImageToolbar = ({
             <>
                 <ToolbarGroup>
                     <ToolbarButton
-                        icon={isRegenerating ? <Spinner /> : <img src={kaiGenLogo} alt="KaiGen logo" style={{ height: '20px', width: '20px' }} />}
+                        icon={isRegenerating ? <Spinner /> : <img src={kaiGenLogo} alt="KaiGen logo" className="kaigen-toolbar-icon" />}
                         label={isRegenerating ? "KaiGen is generating..." : "KaiGen"}
                         onClick={() => setIsModalOpen(true)}
                         disabled={isRegenerating}
@@ -56,7 +56,7 @@ const AIImageToolbar = ({
                             <img
                                 src={kaiGenLogo}
                                 alt="KaiGen logo"
-                                style={{ height: '80px', width: 'auto', display: 'block' }}
+                                className="kaigen-modal-logo"
                             />
                         }
                         onRequestClose={() => {
@@ -65,7 +65,7 @@ const AIImageToolbar = ({
                             setError(null);
                         }}
                     >
-                        {error && <p style={{ color: 'red' }}>{error}</p>}
+                        {error && <p className="kaigen-error-text">{error}</p>}
                         
                         <TextareaControl
                             label="Editing Instructions (optional)"

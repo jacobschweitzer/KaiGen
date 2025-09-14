@@ -1,0 +1,268 @@
+/* KaiGen Plugin Admin Styles */
+
+/* ===== MODAL HEADER STYLING ===== */
+
+/* Center the logo in KaiGen modal header */
+.kaigen-modal .components-modal__header .components-modal__header-heading {
+    width: 100%;
+}
+
+.kaigen-modal__logo-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.kaigen-modal__logo {
+    height: 80px;
+    width: auto;
+}
+
+/* ===== INPUT CONTAINER ===== */
+
+.kaigen-modal__input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+/* ===== TEXTAREA ===== */
+
+.kaigen-modal__textarea-container {
+    flex: 1;
+}
+
+.kaigen-modal__textarea .components-textarea-control__input {
+    width: 100%;
+    resize: none;
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+/* ===== BUTTONS ===== */
+
+.kaigen-modal__ref-button,
+.kaigen-modal__settings-button,
+.kaigen-modal__submit-button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.kaigen-modal__settings-button {
+    background: #f0f0f0;
+}
+
+/* Reference button icon styling */
+.kaigen-modal__ref-button .dashicon {
+    font-size: 18px;
+}
+
+/* Settings button icon styling */
+.kaigen-modal__settings-button .dashicon {
+    color: #555;
+    font-size: 18px;
+}
+
+/* ===== SUBMIT BUTTON ===== */
+
+.kaigen-modal__submit-container {
+    display: none; /* Hide the separate container since button is now inline */
+}
+
+.kaigen-modal__submit-button {
+    background: #007cba;
+    color: white;
+    border: 1px solid #007cba;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+
+@media (max-width: 600px) {
+    .kaigen-modal__logo {
+        height: 60px;
+    }
+    
+    .kaigen-modal__input-container {
+        gap: 6px;
+    }
+    
+    .kaigen-modal__ref-button,
+    .kaigen-modal__settings-button,
+    .kaigen-modal__submit-button {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+}
+
+.kaigen-modal__aspect-ratio-button {
+    cursor: pointer;
+    padding: 8px;
+    width: 75px;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 4px;
+    border: 1px solid #ccd0d4;
+    background: #fff;
+}
+
+.kaigen-modal__aspect-ratio-button-selected {
+    border: 2px solid #007cba;
+    background: #f0f8ff;
+}
+
+/* ===== NEW STYLES ===== */
+
+.kaigen-hidden {
+    display: none;
+}
+
+.kaigen-warning {
+    margin: 10px 0;
+}
+
+.kaigen-toolbar-icon {
+    height: 20px;
+    width: 20px;
+}
+
+.kaigen-modal-logo {
+    height: 80px;
+    width: auto;
+    display: block;
+}
+
+.kaigen-error-text {
+    color: red;
+}
+
+.kaigen-placeholder-button {
+    order: 99;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    min-width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kaigen-placeholder-button img {
+    height: 40px;
+    width: 40px;
+    object-fit: contain;
+    border: none;
+    background: transparent;
+}
+
+.kaigen-ref-button-selected {
+    background: #007cba;
+}
+
+.kaigen-ref-button-icon-selected {
+    color: #fff;
+}
+
+.kaigen-text-center {
+    text-align: center;
+}
+
+.kaigen-modal-dropdown-content-container {
+    padding: 8px;
+    width: 300px;
+}
+
+.kaigen-modal-dropdown-content-title {
+    margin: 0 0 8px 0;
+}
+
+.kaigen-modal-reference-images-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.kaigen-modal-reference-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 3px solid transparent;
+    border-radius: 4px;
+}
+
+.kaigen-modal-reference-image-selected {
+    border: 3px solid #007cba;
+}
+
+.kaigen-modal-aspect-ratio-container {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.kaigen-modal-aspect-ratio-icon-container {
+    width: 40px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kaigen-modal-aspect-ratio-icon {
+    background: #e9eef0;
+    border: 1px solid #c3c4c7;
+    border-radius: 2px;
+}
+
+.kaigen-modal-aspect-ratio-icon-selected {
+    background: #007cba;
+}
+
+.kaigen-modal-aspect-ratio-label {
+    font-size: 11px;
+    color: #555;
+}
+
+.kaigen-aspect-ratio-1-1 {
+    width: 30px;
+    height: 30px;
+}
+
+.kaigen-aspect-ratio-16-9 {
+    width: 34px;
+    height: 19px;
+}
+
+.kaigen-aspect-ratio-9-16 {
+    width: 19px;
+    height: 34px;
+}
+
+.kaigen-aspect-ratio-4-3 {
+    width: 34px;
+    height: 25px;
+}
+
+.kaigen-aspect-ratio-3-4 {
+    width: 25px;
+    height: 34px;
+}
