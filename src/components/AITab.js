@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
 import { Button, TextareaControl, Modal, Spinner, Dropdown, Dashicon } from '@wordpress/components'; // Import necessary UI components.
-import kaiGenLogo from '../../assets/KaiGen-logo-64x64.png'; // Import KaiGen logo
 import kaiGenLogoBig from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
 
@@ -97,11 +96,12 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                 style={{ order: 10 }}
             >
                 <img
-                    src={kaiGenLogo}
+                    src={kaiGenLogoBig}
                     alt="KaiGen"
                     aria-label="KaiGen logo"
                     role="button"
                     title="KaiGen logo"
+                    style={{ width: '64px', height: '64px' }}
                 />
             </Button>
 
