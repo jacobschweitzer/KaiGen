@@ -181,7 +181,7 @@ test.describe('KaiGen Image Generation', () => {
         await promptInput.fill('A beautiful sunset over mountains');
         
         // Click generate button
-        const generateButton = page.locator('button:has-text("KaiGen"):not(:has-text("generating"))');
+        const generateButton = page.getByRole('button', { name: 'Generate Image' });
         await expect(generateButton).toBeVisible({ timeout: 5000 });
         
         // Add debugging to check if the REST API endpoint is accessible
@@ -212,8 +212,8 @@ test.describe('KaiGen Image Generation', () => {
         
         await generateButton.click();
         
-        // Wait for generation to start (button should show generating state)
-        await expect(page.locator('button:has-text("generating")')).toBeVisible({ timeout: 5000 });
+        // Wait for generation to start (button should show spinner)
+        await expect(page.locator('.kaigen-modal__submit-button .components-spinner')).toBeVisible({ timeout: 5000 });
         
         // Wait for generation to complete (mocked response should be quick)
         // Check for either success (modal closes) or error message
@@ -314,12 +314,12 @@ test.describe('KaiGen Image Generation', () => {
         await promptInput.fill('A futuristic cityscape at night');
         
         // Click generate button
-        const generateButton = page.locator('button:has-text("KaiGen"):not(:has-text("generating"))');
+        const generateButton = page.getByRole('button', { name: 'Generate Image' });
         await expect(generateButton).toBeVisible({ timeout: 5000 });
         await generateButton.click();
         
         // Wait for generation to start
-        await expect(page.locator('button:has-text("generating")')).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('.kaigen-modal__submit-button .components-spinner')).toBeVisible({ timeout: 5000 });
         
         // Wait for generation to complete
         try {
@@ -397,7 +397,7 @@ test.describe('KaiGen Image Generation', () => {
         await promptInput.fill('TRIGGER_ERROR_RESPONSE');
         
         // Click generate button
-        const generateButton = page.locator('button:has-text("KaiGen"):not(:has-text("generating"))');
+        const generateButton = page.getByRole('button', { name: 'Generate Image' });
         await expect(generateButton).toBeVisible({ timeout: 5000 });
         await generateButton.click();
         
