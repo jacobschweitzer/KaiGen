@@ -53,7 +53,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
     public function get_current_model() {
         // Get all quality-related options to debug
         $quality_settings = get_option('kaigen_quality_settings');
-        $quality_setting = get_option('kaigen_quality_setting');
 
         // Use the correct option name
         $quality = 'medium'; // Default
@@ -106,6 +105,14 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
             if (!empty($image_inputs)) {
                 $model_to_use = $this->get_image_to_image_model();
                 $input_data['image_input'] = $image_inputs;
+
+                // Set size to 1k for low quality image edits, assumes we are using seedream-4 model so if that changes, this will need to be updated.
+                $quality_settings = get_option('kaigen_quality_settings');
+                $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+
+                if ($quality === 'low') {
+                    $additional_params['size'] = '1K';
+                }
             }
         }
         
@@ -365,17 +372,25 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         return [
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
             'bytedance/seedream-4'           => 'Seedream 4 by Bytedance (high quality)',
-            'google/imagen-4-ultra'          => 'Imagen 4 Ultra by Google (highest quality)',
+            'google/nano-banana-pro'         => 'Nano Banana Pro by Google (highest quality)',
         ];
     }
 
     /**
-     * Gets the hardcoded image-to-image model for Replicate.
+     * Gets the image-to-image model for Replicate based on quality setting.
      *
      * @return string The image-to-image model.
      */
     private function get_image_to_image_model() {
-        return 'bytedance/seedream-4';
+        $model = 'bytedance/seedream-4';
+        $quality_settings = get_option('kaigen_quality_settings');
+        $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+
+        if ($quality === 'high') {
+            $model = 'google/nano-banana-pro';
+        }
+
+        return $model;
     }
 
     /**

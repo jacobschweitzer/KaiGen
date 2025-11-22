@@ -199,7 +199,7 @@ class KaiGen_Admin {
 
 		// Add quality field
 		add_settings_field(
-			'kaigen_quality_setting',
+			'kaigen_quality_settings',
 			'Image Quality',
 			[$this, 'render_quality_field'],
 			'kaigen-settings',
