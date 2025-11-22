@@ -278,7 +278,11 @@ final class KaiGen_REST_Controller {
                     'image_download_failed',
                     'empty_image_data',
                     'replicate_validation_error',
-                    'content_moderation'
+                    'content_moderation',
+                    'api_error',
+                    'openai_error',
+                    'max_retries_exceeded',
+                    'invalid_api_key_format'
                 ])) {
                     return $result;
                 }
