@@ -170,4 +170,35 @@ abstract class KaiGen_Image_Provider implements KaiGen_Image_Provider_Interface 
      * @return string|WP_Error The image URL/data or error.
      */
     abstract public function process_api_response($response);
+
+    /**
+     * Gets the quality setting from the options.
+     *
+     * @return string The quality setting.
+     */
+    public static function get_quality_setting() {
+        $quality_settings = get_option('kaigen_quality_settings', []);
+
+        // Ensure we have an array to work with.
+        if ( ! is_array( $quality_settings ) ) {
+            $quality_settings = [];
+        }
+
+        // If the quality setting is not set, check for the old option and migrate it.
+        if ( ! isset( $quality_settings['quality'] ) ) {
+            $legacy_quality_setting = get_option('kaigen_quality_setting');
+            
+            if ( ! empty( $legacy_quality_setting ) && in_array( $legacy_quality_setting, ['low', 'medium', 'high'], true ) ) {
+                $quality_settings['quality'] = $legacy_quality_setting;
+                update_option('kaigen_quality_settings', $quality_settings);
+                delete_option('kaigen_quality_setting');
+            } else {
+                // Default to medium quality if neither exists.
+                $quality_settings['quality'] = 'medium';  
+                update_option('kaigen_quality_settings', $quality_settings);
+            }
+        }
+
+        return $quality_settings['quality'];
+    }
 }

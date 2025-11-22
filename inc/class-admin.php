@@ -199,7 +199,7 @@ class KaiGen_Admin {
 
 		// Add quality field
 		add_settings_field(
-			'kaigen_quality_setting',
+			'kaigen_quality_settings',
 			'Image Quality',
 			[$this, 'render_quality_field'],
 			'kaigen-settings',
@@ -351,8 +351,7 @@ class KaiGen_Admin {
 	 * Renders the quality field.
 	 */
 	public function render_quality_field() {
-		$quality_settings = get_option('kaigen_quality_settings', []);
-		$quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+		$quality = KaiGen_Image_Provider::get_quality_setting();
 		?>
 		<select name="kaigen_quality_settings[quality]">
 			<option value="low" <?php selected($quality, 'low'); ?>>Low</option>

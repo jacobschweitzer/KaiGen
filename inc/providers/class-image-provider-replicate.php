@@ -51,16 +51,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string The current model.
      */
     public function get_current_model() {
-        // Get all quality-related options to debug
-        $quality_settings = get_option('kaigen_quality_settings');
-        $quality_setting = get_option('kaigen_quality_setting');
-
-        // Use the correct option name
-        $quality = 'medium'; // Default
-        if (is_array($quality_settings) && isset($quality_settings['quality'])) {
-            $quality = $quality_settings['quality'];
-        }
-        
+        $quality = self::get_quality_setting();
         $model = $this->get_model_from_quality_setting($quality);
         return $model;
     }
@@ -84,30 +75,45 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         // Determine which model to use
         $model_to_use = $this->model;
         
-        // Handle source_image_url parameter (convert to image_input for Replicate seedream-4)
-        $source_image_url = $additional_params['source_image_url'] ?? $additional_params['input_image'] ?? null;
-        
-        // If source image is provided, use the hardcoded image-to-image model
-        if (!empty($source_image_url)) {
-            $model_to_use = $this->get_image_to_image_model();
-
-            // Process image URL (converts to base64 only if local)
-            $processed_image = $this->process_image_url($source_image_url);
-            if (is_wp_error($processed_image)) {
-                // Return image processing errors immediately without retry
-                return $processed_image;
+        // Handle source image URLs (can be single string or array)
+        $source_image_urls = $additional_params['source_image_urls'] ?? $additional_params['source_image_url'] ?? null;
+        if (!empty($source_image_urls)) {
+            if (!is_array($source_image_urls)) {
+                $source_image_urls = [$source_image_urls];
             }
             
-            // Use 'image_input' parameter as array for seedream-4 model (confirmed by schema)
-            $input_data['image_input'] = [$processed_image];
+            $image_inputs = [];
+            foreach ($source_image_urls as $url) {
+                if (count($image_inputs) >= 10) break;
+                $processed = $this->process_image_url($url);
+                if (!is_wp_error($processed)) {
+                    $image_inputs[] = $processed;
+                } else {
+                    // Log error but continue with other images
+                    error_log('Failed to process image: ' . $processed->get_error_message());
+                }
+            }
+            
+            if (!empty($image_inputs)) {
+                $model_to_use = $this->get_image_to_image_model();
+                $input_data['image_input'] = $image_inputs;
+
+                // Set size to 1k for low quality image edits, assumes we are using seedream-4 model so if that changes, this will need to be updated.
+                $quality = self::get_quality_setting();
+
+                if ($quality === 'low') {
+                    $additional_params['size'] = '1K';
+                }
+            }
         }
         
-        // Remove these parameters to prevent duplication
+        // Remove source image parameters to prevent duplication
+        unset($additional_params['source_image_urls']);
         unset($additional_params['source_image_url']);
         unset($additional_params['input_image']);
 
         // Filter parameters based on the model being used
-        if (!empty($source_image_url)) {
+        if (!empty($source_image_urls)) {
             // For seedream-4, only keep valid parameters according to schema
             $valid_params = ['size', 'width', 'height', 'max_images', 'aspect_ratio', 'sequential_image_generation'];
             $filtered_params = [];
@@ -357,17 +363,24 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         return [
             'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
             'bytedance/seedream-4'           => 'Seedream 4 by Bytedance (high quality)',
-            'google/imagen-4-ultra'          => 'Imagen 4 Ultra by Google (highest quality)',
+            'google/nano-banana-pro'         => 'Nano Banana Pro by Google (highest quality)',
         ];
     }
 
     /**
-     * Gets the hardcoded image-to-image model for Replicate.
+     * Gets the image-to-image model for Replicate based on quality setting.
      *
      * @return string The image-to-image model.
      */
     private function get_image_to_image_model() {
-        return 'bytedance/seedream-4';
+        $model = 'bytedance/seedream-4';
+        $quality = self::get_quality_setting();
+
+        if ($quality === 'high') {
+            $model = 'google/nano-banana-pro';
+        }
+
+        return $model;
     }
 
     /**
@@ -394,7 +407,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'bytedance/seedream-4';
                 break;
             case 'high':
-                $model = 'google/imagen-4-ultra';
+                $model = 'google/nano-banana-pro';
                 break;
             default:
                 $model = 'bytedance/seedream-4'; // Default to medium quality

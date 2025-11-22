@@ -123,8 +123,7 @@ final class KaiGen_REST_Controller {
     private function get_provider_model($provider_id) {
         // For Replicate, get the model based on quality setting
         if ($provider_id === 'replicate') {
-            $quality_settings = get_option('kaigen_quality_settings', []);
-            $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+            $quality = KaiGen_Image_Provider::get_quality_setting();
             
             $provider = kaigen_provider_manager()->get_provider($provider_id);
             if ($provider) {
@@ -160,8 +159,9 @@ final class KaiGen_REST_Controller {
      */
     private function get_additional_params($request) {
         // Get saved quality settings
+        $quality = KaiGen_Image_Provider::get_quality_setting();
+        $quality_value = $quality === 'hd' ? 100 : 80;
         $quality_settings = get_option('kaigen_quality_settings', []);
-        $quality_value = isset($quality_settings['quality']) && $quality_settings['quality'] === 'hd' ? 100 : 80;
         $style_value = isset($quality_settings['style']) ? $quality_settings['style'] : 'natural';
         
         $defaults = [
@@ -182,9 +182,14 @@ final class KaiGen_REST_Controller {
         }
 
         // Add source image URL if provided (single or array)
-        $source_image_url = $request->get_param('source_image_url');
-        if (!empty($source_image_url)) {
-            $params['source_image_url'] = $source_image_url;
+        $source_image_urls = $request->get_param('source_image_urls');
+        if (!empty($source_image_urls)) {
+            $params['source_image_urls'] = $source_image_urls;
+        } else {
+            $source_image_url = $request->get_param('source_image_url');
+            if (!empty($source_image_url)) {
+                $params['source_image_url'] = $source_image_url;
+            }
         }
         
         // Add additional image URLs if provided (for multiple source images)
@@ -273,7 +278,11 @@ final class KaiGen_REST_Controller {
                     'image_download_failed',
                     'empty_image_data',
                     'replicate_validation_error',
-                    'content_moderation'
+                    'content_moderation',
+                    'api_error',
+                    'openai_error',
+                    'max_retries_exceeded',
+                    'invalid_api_key_format'
                 ])) {
                     return $result;
                 }

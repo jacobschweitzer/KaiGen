@@ -20,10 +20,12 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
     const [isLoading, setIsLoading] = useState(false); // Indicates if image generation is in progress.
     const [error, setError] = useState(null); // Holds any error messages.
     const [referenceImages, setReferenceImages] = useState([]);
-    const [selectedRef, setSelectedRef] = useState(null);
+    const [selectedRefs, setSelectedRefs] = useState([]);
     const [aspectRatio, setAspectRatio] = useState('1:1');
 
     const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
+    const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider || 'replicate';
+    const maxRefs = provider === 'replicate' ? 10 : 16;
 
     useEffect(() => {
         if (isModalOpen && supportsImageToImage) {
@@ -59,8 +61,8 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
         setError(null); // Clear any previous errors.
 
         const options = {};
-        if (selectedRef) {
-            options.sourceImageUrl = selectedRef.url;
+        if (selectedRefs.length > 0) {
+            options.sourceImageUrls = selectedRefs.map(ref => ref.url);
         }
         if (aspectRatio) {
             options.aspectRatio = aspectRatio;
@@ -134,30 +136,37 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                 popoverProps={{ placement: 'bottom-start', focusOnMount: true }}
                                 renderToggle={({ isOpen, onToggle }) => (
                                     <Button
-                                        className={`kaigen-modal__ref-button ${selectedRef ? 'kaigen-ref-button-selected' : ''}`}
+                                        className={`kaigen-modal__ref-button ${selectedRefs.length > 0 ? 'kaigen-ref-button-selected' : ''}`}
                                         onClick={onToggle}
                                         aria-expanded={isOpen}
                                         aria-label="Reference Images"
                                     >
                                         <Dashicon 
                                             icon="format-image" 
-                                            className={selectedRef ? 'kaigen-ref-button-icon-selected' : ''}
+                                            className={selectedRefs.length > 0 ? 'kaigen-ref-button-icon-selected' : ''}
                                         />
                                     </Button>
                                 )}
                                 renderContent={() => (
                                     <div className="kaigen-modal-dropdown-content-container">
-                                    <h4 className="kaigen-modal-dropdown-content-title">Reference Images</h4>
-                                    <div
-                                        className="kaigen-modal-reference-images-container"
-                                    >
+                                    <h4 className="kaigen-modal-dropdown-content-title">Reference Images (up to {maxRefs})</h4>
+                                    <div className="kaigen-modal-reference-images-container">
                                         {referenceImages.map((img) => (
                                             <img
                                                 key={img.id}
                                                 src={img.url}
                                                 alt={img.alt || ''}
-                                                onClick={() => (selectedRef && selectedRef.id === img.id) ? setSelectedRef(null) : setSelectedRef(img)}
-                                                className={`kaigen-modal-reference-image ${selectedRef && selectedRef.id === img.id ? 'kaigen-modal-reference-image-selected' : ''}`}
+                                                onClick={() => {
+                                                    setSelectedRefs(prev => {
+                                                        if (prev.some(s => s.id === img.id)) {
+                                                            return prev.filter(s => s.id !== img.id);
+                                                        } else if (prev.length < maxRefs) {
+                                                            return [...prev, img];
+                                                        }
+                                                        return prev;
+                                                    });
+                                                }}
+                                                className={`kaigen-modal-reference-image ${selectedRefs.some(s => s.id === img.id) ? 'kaigen-modal-reference-image-selected' : ''}`}
                                             />
                                         ))}
                                     </div>

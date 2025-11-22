@@ -92,8 +92,8 @@ This plugin connects to third-party AI image generation services to create image
 
 ## Models Supported
 - [Flux Schnell by Black Forest Labs](https://replicate.com/black-forest-labs/flux-schnell)
-- [Seedream 4.0 by bytedance](https://replicate.com/bytedance/seedream-3)
-- [Imagen 4 Ultra by Google](https://replicate.com/google/imagen-4-ultra)
+- [Seedream 4.0 by ByteDance](https://replicate.com/bytedance/seedream-3)
+- [Nano Banana Pro by Google](https://replicate.com/google/nano-banana-pro)
 - [GPT Image 1 by OpenAI](https://openai.com/index/image-generation-api)
 
 ## Source Code

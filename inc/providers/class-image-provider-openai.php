@@ -47,9 +47,18 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             return new WP_Error('invalid_api_key_format', 'API key format is invalid. OpenAI API keys should start with sk-proj-, sk-None-, sk-svcacct-, or sk-');
         }
 
+        // Handle source image URLs
+        $source_image_urls = $additional_params['source_image_urls'] ?? [];
         $source_image_url = $additional_params['source_image_url'] ?? null;
-        $max_retries = 3; // Reduce max retries to fail faster
-        $timeout = 60; // Set request timeout to 60 seconds
+        if ($source_image_url) {
+            array_unshift($source_image_urls, $source_image_url);
+        }
+
+        // Limit the number of source image URLs to 16.
+        $source_image_urls = array_slice(array_unique($source_image_urls), 0, 16);
+
+        $max_retries = 3;
+        $timeout = 150; // Increased timeout for image generation (docs say up to 2 mins)
         $retry_delay = 2; // Seconds to wait between retries
 
         // Add filter to ensure WordPress respects our timeout settings
@@ -60,7 +69,6 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         // Add filter to set cURL options
         add_filter('http_request_args', function($args) use ($timeout) {
             $args['timeout'] = $timeout;
-            $args['httpversion'] = '1.1';
             $args['sslverify'] = true;
             $args['blocking'] = true;
             
@@ -69,9 +77,12 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
                 $args['curl'] = [];
             }
             $args['curl'][CURLOPT_TIMEOUT] = $timeout;
-            $args['curl'][CURLOPT_CONNECTTIMEOUT] = 10;
-            $args['curl'][CURLOPT_LOW_SPEED_TIME] = 30; // Increased low speed time
-            $args['curl'][CURLOPT_LOW_SPEED_LIMIT] = 1024; // 1KB/s minimum speed
+            $args['curl'][CURLOPT_CONNECTTIMEOUT] = 30; // Increased connect timeout
+            $args['curl'][CURLOPT_TCP_KEEPALIVE] = 1; // Enable TCP keepalive
+
+            // Adjust low speed settings to prevent timeouts on slow generation
+            $args['curl'][CURLOPT_LOW_SPEED_TIME] = 600; // Wait 10 minutes before timing out due to low speed
+            $args['curl'][CURLOPT_LOW_SPEED_LIMIT] = 1; // Only timeout if speed is effectively 0
             
             return $args;
         });
@@ -80,13 +91,12 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         $endpoint = self::API_BASE_URL;
 
         // Log if we're using image-to-image
-        if ( ! empty( $source_image_url ) ) {
+        if (!empty($source_image_urls)) {
             $endpoint = self::IMAGE_EDIT_API_BASE_URL;
         }
         
         // Get quality setting from admin options
-        $quality_settings = get_option('kaigen_quality_settings', []);
-        $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+        $quality = self::get_quality_setting();
         
         // Map quality settings to supported values
         $quality_map = [
@@ -99,7 +109,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         $quality = isset($quality_map[$quality]) ? $quality_map[$quality] : 'medium';
         
         // Prepare the request based on the type of request
-        if ( ! empty( $source_image_url ) ) {
+        if (!empty($source_image_urls)) {
             // For image edit requests, we need to use multipart/form-data
             $boundary = wp_generate_password(24, false);
             $headers = array_merge(
@@ -124,29 +134,22 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             $body .= "--{$boundary}\r\n";
             $body .= 'Content-Disposition: form-data; name="quality"' . "\r\n\r\n";
             $body .= $quality . "\r\n";
+
+            // Add format parameter (jpeg is faster than png)
+            $body .= "--{$boundary}\r\n";
+            $body .= 'Content-Disposition: form-data; name="output_format"' . "\r\n\r\n";
+            $body .= "jpeg\r\n";
             
             // Add image files
-            if (is_array($source_image_url)) {
-                foreach ($source_image_url as $index => $image_url) {
-                    $image_data = $this->get_image_data($image_url);
-                    if (is_wp_error($image_data)) {
-                        return $image_data;
-                    }
-                    
-                    $body .= "--{$boundary}\r\n";
-                    $body .= 'Content-Disposition: form-data; name="image[]"; filename="' . basename($image_url) . '"' . "\r\n";
-                    $body .= 'Content-Type: ' . $this->get_image_mime_type($image_url) . "\r\n\r\n";
-                    $body .= $image_data . "\r\n";
-                }
-            } else {
-                $image_data = $this->get_image_data($source_image_url);
+            foreach ($source_image_urls as $index => $image_url) {
+                $image_data = $this->get_image_data($image_url);
                 if (is_wp_error($image_data)) {
                     return $image_data;
                 }
                 
                 $body .= "--{$boundary}\r\n";
-                $body .= 'Content-Disposition: form-data; name="image"; filename="' . basename($source_image_url) . '"' . "\r\n";
-                $body .= 'Content-Type: ' . $this->get_image_mime_type($source_image_url) . "\r\n\r\n";
+                $body .= 'Content-Disposition: form-data; name="image[]"; filename="' . basename($image_url) . '"' . "\r\n";
+                $body .= 'Content-Type: ' . $this->get_image_mime_type($image_url) . "\r\n\r\n";
                 $body .= $image_data . "\r\n";
             }
             
@@ -157,17 +160,18 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             // For regular image generation requests, use JSON
             $headers = $this->get_request_headers();
             $body = [
-                'model'   => 'gpt-image-1',
-                'prompt'  => $prompt,
-                'quality' => $quality,
+                'model'          => 'gpt-image-1',
+                'prompt'         => $prompt,
+                'quality'        => $quality,
+                'output_format'  => 'jpeg',
             ];
-            
+
             // Add size parameter if aspect ratio is specified
             if (isset($additional_params['aspect_ratio'])) {
                 list($width, $height) = $this->map_aspect_ratio_to_dimensions($additional_params['aspect_ratio'] ?? '1:1');
                 $body['size'] = "{$width}x{$height}";
             }
-            
+
             $body = wp_json_encode($body);
         }
         
