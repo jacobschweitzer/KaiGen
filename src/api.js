@@ -31,8 +31,9 @@ export const generateImage = async (prompt, callback, options = {}) => {
             provider: provider
         };
         
-        // Add source image URL if provided
-        if (options.sourceImageUrl) {
+        if (options.sourceImageUrls && Array.isArray(options.sourceImageUrls)) {
+            data.source_image_urls = options.sourceImageUrls;
+        } else if (options.sourceImageUrl) {
             data.source_image_url = options.sourceImageUrl;
         }
         

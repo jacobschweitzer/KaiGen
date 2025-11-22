@@ -84,30 +84,38 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         // Determine which model to use
         $model_to_use = $this->model;
         
-        // Handle source_image_url parameter (convert to image_input for Replicate seedream-4)
-        $source_image_url = $additional_params['source_image_url'] ?? $additional_params['input_image'] ?? null;
-        
-        // If source image is provided, use the hardcoded image-to-image model
-        if (!empty($source_image_url)) {
-            $model_to_use = $this->get_image_to_image_model();
-
-            // Process image URL (converts to base64 only if local)
-            $processed_image = $this->process_image_url($source_image_url);
-            if (is_wp_error($processed_image)) {
-                // Return image processing errors immediately without retry
-                return $processed_image;
+        // Handle source image URLs (can be single string or array)
+        $source_image_urls = $additional_params['source_image_urls'] ?? $additional_params['source_image_url'] ?? null;
+        if (!empty($source_image_urls)) {
+            if (!is_array($source_image_urls)) {
+                $source_image_urls = [$source_image_urls];
             }
             
-            // Use 'image_input' parameter as array for seedream-4 model (confirmed by schema)
-            $input_data['image_input'] = [$processed_image];
+            $image_inputs = [];
+            foreach ($source_image_urls as $url) {
+                if (count($image_inputs) >= 10) break;
+                $processed = $this->process_image_url($url);
+                if (!is_wp_error($processed)) {
+                    $image_inputs[] = $processed;
+                } else {
+                    // Log error but continue with other images
+                    error_log('Failed to process image: ' . $processed->get_error_message());
+                }
+            }
+            
+            if (!empty($image_inputs)) {
+                $model_to_use = $this->get_image_to_image_model();
+                $input_data['image_input'] = $image_inputs;
+            }
         }
         
-        // Remove these parameters to prevent duplication
+        // Remove source image parameters to prevent duplication
+        unset($additional_params['source_image_urls']);
         unset($additional_params['source_image_url']);
         unset($additional_params['input_image']);
 
         // Filter parameters based on the model being used
-        if (!empty($source_image_url)) {
+        if (!empty($source_image_urls)) {
             // For seedream-4, only keep valid parameters according to schema
             $valid_params = ['size', 'width', 'height', 'max_images', 'aspect_ratio', 'sequential_image_generation'];
             $filtered_params = [];

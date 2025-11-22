@@ -182,9 +182,14 @@ final class KaiGen_REST_Controller {
         }
 
         // Add source image URL if provided (single or array)
-        $source_image_url = $request->get_param('source_image_url');
-        if (!empty($source_image_url)) {
-            $params['source_image_url'] = $source_image_url;
+        $source_image_urls = $request->get_param('source_image_urls');
+        if (!empty($source_image_urls)) {
+            $params['source_image_urls'] = $source_image_urls;
+        } else {
+            $source_image_url = $request->get_param('source_image_url');
+            if (!empty($source_image_url)) {
+                $params['source_image_url'] = $source_image_url;
+            }
         }
         
         // Add additional image URLs if provided (for multiple source images)

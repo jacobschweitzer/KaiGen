@@ -47,7 +47,16 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             return new WP_Error('invalid_api_key_format', 'API key format is invalid. OpenAI API keys should start with sk-proj-, sk-None-, sk-svcacct-, or sk-');
         }
 
+        // Handle source image URLs
+        $source_image_urls = $additional_params['source_image_urls'] ?? [];
         $source_image_url = $additional_params['source_image_url'] ?? null;
+        if ($source_image_url) {
+            array_unshift($source_image_urls, $source_image_url);
+        }
+
+        // Limit the number of source image URLs to 16.
+        $source_image_urls = array_slice(array_unique($source_image_urls), 0, 16);
+
         $max_retries = 3; // Reduce max retries to fail faster
         $timeout = 60; // Set request timeout to 60 seconds
         $retry_delay = 2; // Seconds to wait between retries
@@ -80,7 +89,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         $endpoint = self::API_BASE_URL;
 
         // Log if we're using image-to-image
-        if ( ! empty( $source_image_url ) ) {
+        if (!empty($source_image_urls)) {
             $endpoint = self::IMAGE_EDIT_API_BASE_URL;
         }
         
@@ -99,7 +108,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         $quality = isset($quality_map[$quality]) ? $quality_map[$quality] : 'medium';
         
         // Prepare the request based on the type of request
-        if ( ! empty( $source_image_url ) ) {
+        if (!empty($source_image_urls)) {
             // For image edit requests, we need to use multipart/form-data
             $boundary = wp_generate_password(24, false);
             $headers = array_merge(
@@ -126,27 +135,15 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             $body .= $quality . "\r\n";
             
             // Add image files
-            if (is_array($source_image_url)) {
-                foreach ($source_image_url as $index => $image_url) {
-                    $image_data = $this->get_image_data($image_url);
-                    if (is_wp_error($image_data)) {
-                        return $image_data;
-                    }
-                    
-                    $body .= "--{$boundary}\r\n";
-                    $body .= 'Content-Disposition: form-data; name="image[]"; filename="' . basename($image_url) . '"' . "\r\n";
-                    $body .= 'Content-Type: ' . $this->get_image_mime_type($image_url) . "\r\n\r\n";
-                    $body .= $image_data . "\r\n";
-                }
-            } else {
-                $image_data = $this->get_image_data($source_image_url);
+            foreach ($source_image_urls as $index => $image_url) {
+                $image_data = $this->get_image_data($image_url);
                 if (is_wp_error($image_data)) {
                     return $image_data;
                 }
                 
                 $body .= "--{$boundary}\r\n";
-                $body .= 'Content-Disposition: form-data; name="image"; filename="' . basename($source_image_url) . '"' . "\r\n";
-                $body .= 'Content-Type: ' . $this->get_image_mime_type($source_image_url) . "\r\n\r\n";
+                $body .= 'Content-Disposition: form-data; name="image[]"; filename="' . basename($image_url) . '"' . "\r\n";
+                $body .= 'Content-Type: ' . $this->get_image_mime_type($image_url) . "\r\n\r\n";
                 $body .= $image_data . "\r\n";
             }
             
