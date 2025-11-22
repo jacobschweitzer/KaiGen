@@ -38,6 +38,7 @@ This plugin connects to third-party AI image generation services to create image
 * API Endpoint: https://api.openai.com/v1/images/generations and https://api.openai.com/v1/images/edits
 * Terms of Service: https://openai.com/terms/
 * Privacy Policy: https://openai.com/privacy/
+* Models supported: GPT Image 1 
 
 = Replicate API =
 * What it is: Replicate's machine learning model hosting service for various AI image generation models
@@ -46,6 +47,7 @@ This plugin connects to third-party AI image generation services to create image
 * API Endpoint: https://api.replicate.com/v1/models/ and https://api.replicate.com/v1/predictions/
 * Terms of Service: https://replicate.com/terms
 * Privacy Policy: https://replicate.com/privacy
+* Models supported: low quality (Flux Schnell by Black Forest Labs), medium quality (Seedream 4.0 by ByteDance), and high quality (Nano Banana Pro by Google).
 
 Important: You must obtain your own API keys from these services and are responsible for complying with their respective terms of service and privacy policies. The plugin does not collect, store, or transmit any of your data to any other parties.
 
