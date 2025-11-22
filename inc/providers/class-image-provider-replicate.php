@@ -417,7 +417,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model = 'bytedance/seedream-4';
                 break;
             case 'high':
-                $model = 'google/imagen-4-ultra';
+                $model = 'google/nano-banana-pro';
                 break;
             default:
                 $model = 'bytedance/seedream-4'; // Default to medium quality
