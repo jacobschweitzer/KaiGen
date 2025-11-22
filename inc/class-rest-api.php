@@ -123,8 +123,7 @@ final class KaiGen_REST_Controller {
     private function get_provider_model($provider_id) {
         // For Replicate, get the model based on quality setting
         if ($provider_id === 'replicate') {
-            $quality_settings = get_option('kaigen_quality_settings', []);
-            $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+            $quality = KaiGen_Image_Provider::get_quality_setting();
             
             $provider = kaigen_provider_manager()->get_provider($provider_id);
             if ($provider) {
@@ -160,8 +159,9 @@ final class KaiGen_REST_Controller {
      */
     private function get_additional_params($request) {
         // Get saved quality settings
+        $quality = KaiGen_Image_Provider::get_quality_setting();
+        $quality_value = $quality === 'hd' ? 100 : 80;
         $quality_settings = get_option('kaigen_quality_settings', []);
-        $quality_value = isset($quality_settings['quality']) && $quality_settings['quality'] === 'hd' ? 100 : 80;
         $style_value = isset($quality_settings['style']) ? $quality_settings['style'] : 'natural';
         
         $defaults = [

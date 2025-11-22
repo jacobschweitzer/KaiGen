@@ -51,15 +51,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string The current model.
      */
     public function get_current_model() {
-        // Get all quality-related options to debug
-        $quality_settings = get_option('kaigen_quality_settings');
-
-        // Use the correct option name
-        $quality = 'medium'; // Default
-        if (is_array($quality_settings) && isset($quality_settings['quality'])) {
-            $quality = $quality_settings['quality'];
-        }
-        
+        $quality = self::get_quality_setting();
         $model = $this->get_model_from_quality_setting($quality);
         return $model;
     }
@@ -107,8 +99,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $input_data['image_input'] = $image_inputs;
 
                 // Set size to 1k for low quality image edits, assumes we are using seedream-4 model so if that changes, this will need to be updated.
-                $quality_settings = get_option('kaigen_quality_settings');
-                $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+                $quality = self::get_quality_setting();
 
                 if ($quality === 'low') {
                     $additional_params['size'] = '1K';
@@ -383,8 +374,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      */
     private function get_image_to_image_model() {
         $model = 'bytedance/seedream-4';
-        $quality_settings = get_option('kaigen_quality_settings');
-        $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+        $quality = self::get_quality_setting();
 
         if ($quality === 'high') {
             $model = 'google/nano-banana-pro';

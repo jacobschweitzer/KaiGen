@@ -96,8 +96,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
         }
         
         // Get quality setting from admin options
-        $quality_settings = get_option('kaigen_quality_settings', []);
-        $quality = isset($quality_settings['quality']) ? $quality_settings['quality'] : 'medium';
+        $quality = self::get_quality_setting();
         
         // Map quality settings to supported values
         $quality_map = [
