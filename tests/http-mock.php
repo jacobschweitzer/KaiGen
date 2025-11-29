@@ -3,7 +3,7 @@
  * HTTP Mock for E2E testing
  * 
  * This mu-plugin intercepts external HTTP requests during E2E tests
- * and returns mocked responses for OpenAI and Replicate APIs.
+ * and returns mocked responses for OpenAI, Replicate, and fal.ai APIs.
  *
  * @package KaiGen
  */
@@ -67,6 +67,21 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
                     'logs' => 'Content moderation: prompt contains sensitive words',
                     'created_at' => date('c'),
                     'completed_at' => date('c')
+                ]),
+                'response' => [
+                    'code' => 200,
+                    'message' => 'OK'
+                ],
+                'cookies' => [],
+                'filename' => ''
+            ];
+        } elseif (str_contains($url, 'queue.fal.run/')) {
+            return [
+                'headers'  => ['content-type' => 'application/json'],
+                'body'     => wp_json_encode([
+                    'request_id' => 'test-error-' . uniqid(),
+                    'status' => 'FAILED',
+                    'error' => 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
                 ]),
                 'response' => [
                     'code' => 200,
@@ -176,6 +191,66 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
                 'completed_at' => date('c'),
                 'metrics' => [
                     'predict_time' => 2.5
+                ]
+            ]),
+            'response' => [
+                'code' => 200,
+                'message' => 'OK'
+            ],
+            'cookies' => [],
+            'filename' => ''
+        ];
+    }
+
+    // Mock fal.ai queue endpoint
+    if (str_contains($url, 'queue.fal.run/fal-ai/')) {
+        error_log('KaiGen E2E Mock: Returning mocked fal.ai generation response');
+        
+        $request_id = 'test-fal-' . uniqid();
+        
+        return [
+            'headers'  => ['content-type' => 'application/json'],
+            'body'     => wp_json_encode([
+                'request_id' => $request_id,
+                'status' => 'COMPLETED',
+                'data' => [
+                    'images' => [
+                        [
+                            'url' => 'https://via.placeholder.com/1024x1024.png?text=fal.ai+Generated+Image',
+                            'width' => 1024,
+                            'height' => 1024
+                        ]
+                    ]
+                ]
+            ]),
+            'response' => [
+                'code' => 200,
+                'message' => 'OK'
+            ],
+            'cookies' => [],
+            'filename' => ''
+        ];
+    }
+
+    // Mock fal.ai status check endpoint
+    if (str_contains($url, 'queue.fal.run/requests/') && str_contains($url, '/status')) {
+        error_log('KaiGen E2E Mock: Returning mocked fal.ai status response');
+        
+        $request_id = basename(dirname($url));
+        
+        return [
+            'headers'  => ['content-type' => 'application/json'],
+            'body'     => wp_json_encode([
+                'request_id' => $request_id,
+                'status' => 'COMPLETED',
+                'data' => [
+                    'images' => [
+                        [
+                            'url' => 'https://via.placeholder.com/1024x1024.png?text=fal.ai+Generated+Image',
+                            'width' => 1024,
+                            'height' => 1024
+                        ]
+                    ]
                 ]
             ]),
             'response' => [
