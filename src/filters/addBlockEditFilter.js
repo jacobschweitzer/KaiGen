@@ -69,7 +69,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
             const provider = window.kaiGen?.provider;
 
             if (!provider) {
-                console.error('No provider configured');
                 wp.data.dispatch('core/notices').createErrorNotice(
                     'No AI provider configured. Please check your plugin settings.',
                     { type: 'snackbar' }
@@ -88,7 +87,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                 if (supportsImageToImage && sourceImageUrl) {
                     options.sourceImageUrl = sourceImageUrl;
                 } else if (supportsImageToImage && !sourceImageUrl) {
-                    console.warn('Image-to-image requested but no source image URL available');
                     wp.data.dispatch('core/notices').createWarningNotice(
                         'Image-to-image generation requires a source image. Please ensure the image is properly loaded.',
                         { type: 'snackbar' }
@@ -124,8 +122,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                     { type: 'snackbar' }
                 );
             } catch (err) {
-                console.error('Image regeneration failed:', err);
-                
                 let errorMessage = err.message || 'Unknown error';
                 let actionGuidance = '';
                 
@@ -178,7 +174,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                                             },
                                         });
                                     } catch (err) {
-                                        console.error('Failed to update reference image meta:', err);
                                         wp.data.dispatch('core/notices').createErrorNotice(
                                             'Failed to update reference image meta',
                                             { type: 'snackbar' }

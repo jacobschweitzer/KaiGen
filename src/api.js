@@ -108,12 +108,7 @@ export const generateImage = async (prompt, callback, options = {}) => {
             throw new Error('Invalid response from server: ' + JSON.stringify(response));
         }
     } catch (error) {
-        // Log detailed error information
-        console.error('Image generation failed:', error);
-        if (error.message) console.error('Error message:', error.message);
-        if (error.stack) console.error('Error stack:', error.stack);
-        
-        // Pass the error back to the callback
+        // Pass the error back to the callback - UI will display it to users
         callback({ 
             error: error.message || 'An unknown error occurred while generating the image'
         });

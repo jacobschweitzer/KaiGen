@@ -69,7 +69,6 @@ registerFormatType('kaigen/custom-format', {
                     setIsGenerating(false); // Reset generating state.
                     
                     if (result.error) {
-                        console.error('Image generation failed:', result.error);
                         wp.data.dispatch('core/notices').createErrorNotice(
                             'Failed to generate image: ' + result.error,
                             { type: 'snackbar' }
