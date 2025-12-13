@@ -23,7 +23,7 @@
     {
       "name": "wordpress_test_cookie",
       "value": "WP%20Cookie%20check",
-      "domain": "localhost",
+      "domain": "127.0.0.1",
       "path": "/",
       "expires": -1,
       "httpOnly": true,

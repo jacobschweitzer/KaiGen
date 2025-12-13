@@ -16,20 +16,20 @@ export default defineConfig({
   /* Individual test timeout */
   timeout: 30_000,
   
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Run tests in files in parallel - disabled to prevent DB connection issues */
+  fullyParallel: false,
   
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   
-  /* Retry on CI only - fail fast with minimal retries */
-  retries: process.env.CI ? 1 : 0,
+  /* Retry failed tests once - helps with transient Playground issues */
+  retries: 1,
   
-  /* Optimized workers for CI performance */
-  workers: process.env.CI ? 2 : undefined,
+  /* Single worker to prevent database connection issues with Playground's SQLite */
+  workers: 1,
   
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI ? 'github' : 'html',
+  reporter: process.env.CI ? 'github' : [['list'], ['html']],
   
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -50,13 +50,15 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         browserName: 'chromium',
         headless: true,
-        // CI-optimized settings
-        video: process.env.CI ? 'off' : 'on-first-retry',
-        trace: process.env.CI ? 'off' : 'on-first-retry',
-        screenshot: process.env.CI ? 'only-on-failure' : 'on',
       },
     },
   ],
 
-  /* No webServer config - WordPress Playground is managed externally */
+  /* Start WordPress Playground automatically */
+  webServer: {
+    command: 'npm run playground:start',
+    url: 'http://127.0.0.1:9400',
+    reuseExistingServer: true,
+    timeout: 60_000,
+  },
 });

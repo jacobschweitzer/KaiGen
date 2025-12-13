@@ -43,24 +43,9 @@ jobs:
       - name: Install Chromium only
         run: npx playwright install chromium --with-deps
 
-      # Install WordPress Playground CLI
-      - name: Install WordPress Playground CLI
-        run: npm install -g @wp-playground/cli
-
-      # Start WordPress Playground server in background
-      - name: Start WordPress Playground
-        run: |
-          npx @wp-playground/cli server \
-            --mount=.:/wordpress/wp-content/plugins/kaigen \
-            --blueprint=.github/blueprints/e2e-test.json \
-            --port=9400 &
-          
-          # Wait for the server to be ready
-          npx wait-on -t 60000 http://localhost:9400
-
-      # Run tests using the playground setup (same as local)
+      # Run E2E tests (Playwright starts WordPress Playground automatically via webServer config)
       - name: Run E2E tests
-        run: npm run test:playground
+        run: npm run test:e2e
 
       - uses: actions/upload-artifact@v4
         if: always()

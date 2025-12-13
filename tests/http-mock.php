@@ -9,7 +9,8 @@
  */
 
 // Only run in test environment
-if (!defined('E2E_TESTING') && !str_contains($_SERVER['HTTP_HOST'] ?? '', 'localhost:9400')) {
+$host = $_SERVER['HTTP_HOST'] ?? '';
+if (!defined('E2E_TESTING') && !str_contains($host, '127.0.0.1:9400') && !str_contains($host, 'localhost:9400')) {
     return;
 }
 
@@ -281,7 +282,8 @@ add_action('template_redirect', function() {
 
 // Also add a filter to mock successful uploads
 add_filter('wp_handle_sideload_prefilter', function($file) {
-    if (defined('E2E_TESTING') || str_contains($_SERVER['HTTP_HOST'] ?? '', 'localhost:9400')) {
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if (defined('E2E_TESTING') || str_contains($host, '127.0.0.1:9400') || str_contains($host, 'localhost:9400')) {
         error_log('KaiGen E2E Mock: Intercepting file upload for ' . $file['name']);
     }
     return $file;

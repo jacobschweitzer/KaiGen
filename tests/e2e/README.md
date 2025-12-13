@@ -36,42 +36,35 @@ The e2e tests use Playwright to test the complete image generation flow without 
 
 ## Running Tests
 
-### With WordPress Playground (Recommended)
+### Quick Start
 
 ```bash
-# Start Playground with e2e test blueprint (includes HTTP mock)
+# Run tests - Playwright starts WordPress Playground automatically
+npm run test:e2e
+```
+
+Playwright's `webServer` config handles starting WordPress Playground and waiting for it to be ready.
+
+### Manual Server Start (Optional)
+
+If you prefer to start the server yourself (e.g., for debugging in the browser):
+
+```bash
+# Start Playground manually
 npm run playground:start
 
-# In another terminal, run tests
+# In another terminal, run tests (reuses existing server)
 npm run test:e2e
 ```
 
-Or manually:
+If you see `EADDRINUSE` (port already in use), kill the existing process:
 
 ```bash
-# Start Playground with e2e test blueprint
-npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400
-
-# In another terminal, run tests
-npm run test:e2e
-```
-
-### With wp-env
-
-```bash
-# Start wp-env
-npm run test:env:start
-
-# Copy mock file to mu-plugins
-docker cp tests/http-mock.php $(docker ps -qf "name=wordpress-env"):/var/www/html/wp-content/mu-plugins/
-
-# Run tests
-npm run test:e2e
+lsof -ti:9400 | xargs kill -9
 ```
 
 ## Test Files
 
-- **`image-block.spec.ts`**: Basic tests for image block functionality
 - **`image-generation.spec.ts`**: Full image generation flow tests with mocked APIs
 
 ## Writing New Tests
