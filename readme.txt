@@ -47,7 +47,7 @@ This plugin connects to third-party AI image generation services to create image
 * API Endpoint: https://api.replicate.com/v1/models/ and https://api.replicate.com/v1/predictions/
 * Terms of Service: https://replicate.com/terms
 * Privacy Policy: https://replicate.com/privacy
-* Models supported: low quality (Flux Schnell by Black Forest Labs), medium quality (Seedream 4.0 by ByteDance), and high quality (Nano Banana Pro by Google).
+* Models supported: low quality (HiDream-I1 by Pruna AI), medium quality (Seedream 4.5 by ByteDance), and high quality (Nano Banana Pro by Google).
 
 Important: You must obtain your own API keys from these services and are responsible for complying with their respective terms of service and privacy policies. The plugin does not collect, store, or transmit any of your data to any other parties.
 
