@@ -212,6 +212,13 @@
     border: 3px solid #007cba;
 }
 
+.kaigen-modal-no-references {
+    color: #757575;
+    font-size: 13px;
+    margin: 0;
+    padding: 8px 0;
+}
+
 .kaigen-modal-aspect-ratio-container {
     display: flex;
     gap: 8px;

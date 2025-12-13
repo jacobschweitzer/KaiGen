@@ -131,7 +131,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     <div className="kaigen-modal__input-container">
                         
                         {/* Left: Reference Images Button */}
-                        {supportsImageToImage && referenceImages.length > 0 && (
+                        {supportsImageToImage && (
                             <Dropdown
                                 onFocusOutside={() => setIsOpen(false)}
                                 popoverProps={{ placement: 'bottom-start', focusOnMount: true }}
@@ -150,28 +150,32 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                 )}
                                 renderContent={() => (
                                     <div className="kaigen-modal-dropdown-content-container">
-                                    <h4 className="kaigen-modal-dropdown-content-title">Reference Images (up to {maxRefs})</h4>
-                                    <div className="kaigen-modal-reference-images-container">
-                                        {referenceImages.map((img) => (
-                                            <img
-                                                key={img.id}
-                                                src={img.url}
-                                                alt={img.alt || ''}
-                                                onClick={() => {
-                                                    setSelectedRefs(prev => {
-                                                        if (prev.some(s => s.id === img.id)) {
-                                                            return prev.filter(s => s.id !== img.id);
-                                                        } else if (prev.length < maxRefs) {
-                                                            return [...prev, img];
-                                                        }
-                                                        return prev;
-                                                    });
-                                                }}
-                                                className={`kaigen-modal-reference-image ${selectedRefs.some(s => s.id === img.id) ? 'kaigen-modal-reference-image-selected' : ''}`}
-                                            />
-                                        ))}
+                                        <h4 className="kaigen-modal-dropdown-content-title">Reference Images (up to {maxRefs})</h4>
+                                        {referenceImages.length > 0 ? (
+                                            <div className="kaigen-modal-reference-images-container">
+                                                {referenceImages.map((img) => (
+                                                    <img
+                                                        key={img.id}
+                                                        src={img.url}
+                                                        alt={img.alt || ''}
+                                                        onClick={() => {
+                                                            setSelectedRefs(prev => {
+                                                                if (prev.some(s => s.id === img.id)) {
+                                                                    return prev.filter(s => s.id !== img.id);
+                                                                } else if (prev.length < maxRefs) {
+                                                                    return [...prev, img];
+                                                                }
+                                                                return prev;
+                                                            });
+                                                        }}
+                                                        className={`kaigen-modal-reference-image ${selectedRefs.some(s => s.id === img.id) ? 'kaigen-modal-reference-image-selected' : ''}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="kaigen-modal-no-references">No reference images. Mark images in the Media Library to use them here.</p>
+                                        )}
                                     </div>
-                                </div>
                                 )}
                             />
                         )}
