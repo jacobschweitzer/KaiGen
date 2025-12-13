@@ -1,12 +1,11 @@
 // This file modifies the block editor for core/image blocks to include an AI image regeneration button.
 
-import { addFilter } from '@wordpress/hooks'; // Import the addFilter function.
-import { useState } from '@wordpress/element'; // Import necessary React hooks.
-import { BlockControls, InspectorControls } from '@wordpress/block-editor'; // Import Block & Inspector controls.
-import { PanelBody, CheckboxControl } from '@wordpress/components'; // Import components for sidebar UI.
-import apiFetch from '@wordpress/api-fetch'; // Import apiFetch for REST requests.
-import AIImageToolbar from '../components/AIImageToolbar'; // Import the AIImageToolbar component.
-import { generateImage } from '../api'; // Import API functions for image generation.
+import { addFilter } from '@wordpress/hooks';
+import { useState, useEffect, useCallback } from '@wordpress/element';
+import { BlockControls, InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, CheckboxControl } from '@wordpress/components';
+import apiFetch from '@wordpress/api-fetch';
+import AIImageToolbar from '../components/AIImageToolbar';
 
 /**
  * Enhances the core/image block with an AI image regeneration button.
@@ -15,173 +14,143 @@ import { generateImage } from '../api'; // Import API functions for image genera
  * @returns {function} A new BlockEdit component with additional regeneration functionality.
  */
 addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
-    // Return a new functional component that wraps the original BlockEdit.
-    return (props) => {
-        // Only modify core/image blocks.
-        if (props.name !== 'core/image') {
-            return <BlockEdit {...props} />;
-        }
+	return (props) => {
+		if (props.name !== 'core/image') {
+			return <BlockEdit {...props} />;
+		}
 
-        // Determine if the image has a valid WordPress attachment ID
-        const hasValidId = props.attributes.id && typeof props.attributes.id === 'number' && props.attributes.id > 0;
+		const hasValidId = props.attributes.id && typeof props.attributes.id === 'number' && props.attributes.id > 0;
+		const [isRegenerating, setIsRegenerating] = useState(false);
 
-        // State to manage regeneration progress and errors.
-        const [isRegenerating, setIsRegenerating] = useState(false); // Indicates if regeneration is in progress.
-        const [error, setError] = useState(null); // Holds error messages if any.
+		/**
+		 * Marks the current image as a reference image if it has a valid ID.
+		 */
+		const markAsReferenceImage = useCallback(async () => {
+			if (!hasValidId || props.attributes.kaigen_reference_image) {
+				return;
+			}
 
-        /**
-         * Handles the AI image regeneration process for the current image block.
-         *
-         * @param {string} prompt - The prompt for image modification.
-         * @returns {Promise<void>} A promise that resolves when regeneration is complete.
-         */
-        const handleRegenerateImage = async (prompt) => {
-            setError(null); // Clear any previous errors.
+			props.setAttributes({ kaigen_reference_image: true });
 
-            // Use alt text as fallback if no prompt is provided
-            const finalPrompt = prompt || props.attributes.alt || "no alt text or prompt, please just enhance";
+			try {
+				await apiFetch({
+					path: `/wp/v2/media/${props.attributes.id}`,
+					method: 'POST',
+					data: {
+						meta: { kaigen_reference_image: 1 },
+					},
+				});
+			} catch (err) {
+				// Silently fail - the image can still be used as reference via URL
+				console.warn('Failed to mark image as reference:', err);
+			}
+		}, [hasValidId, props.attributes.id, props.attributes.kaigen_reference_image]);
 
-            // Get the provider from localized data
-            const provider = window.kaiGen?.provider;
+		// Mark image as reference when it has a valid ID and URL
+		useEffect(() => {
+			if (hasValidId && props.attributes.url && !props.attributes.kaigen_reference_image) {
+				markAsReferenceImage();
+			}
+		}, [hasValidId, props.attributes.url, props.attributes.kaigen_reference_image, markAsReferenceImage]);
 
-            if (!provider) {
-                wp.data.dispatch('core/notices').createErrorNotice(
-                    'No AI provider configured. Please check your plugin settings.',
-                    { type: 'snackbar' }
-                );
-                return;
-            }
+		/**
+		 * Build current image object for the modal
+		 */
+		const currentImage = props.attributes.url ? {
+			url: props.attributes.url,
+			id: props.attributes.id,
+			alt: props.attributes.alt || '',
+		} : null;
 
-            setIsRegenerating(true); // Indicate that regeneration is starting.
+		/**
+		 * Handles the generated image result from the modal.
+		 *
+		 * @param {Object} result - The generated image data.
+		 */
+		const handleImageGenerated = (result) => {
+			if (result.id && typeof result.id === 'number' && result.id > 0) {
+				props.setAttributes({
+					url: result.url,
+					id: result.id,
+				});
+			} else {
+				props.setAttributes({
+					url: result.url,
+					id: undefined,
+				});
+			}
 
-            try {
-                // Get the source image URL if available for image-to-image generation
-                const sourceImageUrl = props.attributes.url;
-                
-                // Set up options for image generation
-                const options = {};
-                if (sourceImageUrl) {
-                    options.sourceImageUrl = sourceImageUrl;
-                }
-                
-                // Wrap the generateImage call in a promise.
-                const result = await new Promise((resolve, reject) => {
-                    generateImage(finalPrompt, (result) => {
-                        if (result.error) {
-                            reject(new Error(result.error));
-                        } else {
-                            resolve(result);
-                        }
-                    }, options);
-                });
+			wp.data.dispatch('core/notices').createSuccessNotice(
+				'Image generated successfully!',
+				{ type: 'snackbar' }
+			);
+		};
 
-                // Update the block attributes with the new image data.
-                if (result.id && typeof result.id === 'number' && result.id > 0) {
-                    props.setAttributes({
-                        url: result.url,
-                        id: result.id,
-                    });
-                } else {
-                    props.setAttributes({
-                        url: result.url,
-                        id: undefined,
-                    });
-                }
+		return (
+			<>
+				<BlockEdit {...props} />
+				{props.attributes.url && (
+					<BlockControls>
+						<AIImageToolbar
+							isRegenerating={isRegenerating}
+							onImageGenerated={handleImageGenerated}
+							isImageBlock={true}
+							currentImage={currentImage}
+						/>
+					</BlockControls>
+				)}
+				{hasValidId && (
+					<InspectorControls>
+						<PanelBody title="KaiGen Settings" initialOpen={false}>
+							<CheckboxControl
+								label="Reference image"
+								checked={props.attributes.kaigen_reference_image || false}
+								onChange={async (newValue) => {
+									props.setAttributes({ kaigen_reference_image: newValue });
 
-                wp.data.dispatch('core/notices').createSuccessNotice(
-                    'Image regenerated successfully!',
-                    { type: 'snackbar' }
-                );
-            } catch (err) {
-                let errorMessage = err.message || 'Unknown error';
-                let actionGuidance = '';
-                
-                if (errorMessage.includes('organization verification')) {
-                    actionGuidance = ' Please verify your organization in the OpenAI dashboard.';
-                } else if (errorMessage.includes('parameter')) {
-                    errorMessage = 'API configuration error. Please contact the plugin developer.';
-                } else if (errorMessage.includes('content policy')) {
-                    actionGuidance = ' Try a different prompt.';
-                }
-                
-                wp.data.dispatch('core/notices').createErrorNotice(
-                    'Failed to regenerate image: ' + errorMessage + actionGuidance,
-                    { type: 'snackbar' }
-                );
-            } finally {
-                setIsRegenerating(false);
-            }
-        };
-
-        return (
-            <>
-                <BlockEdit {...props} />
-                {/* Only show toolbar when image block has an actual image */}
-                {props.attributes.url && (
-                    <BlockControls>
-                        <AIImageToolbar
-                            isRegenerating={isRegenerating}
-                            onRegenerateImage={handleRegenerateImage}
-                            isImageBlock={true}
-                        />
-                    </BlockControls>
-                )}
-                {/* Sidebar controls, only show when attachment has a valid ID */}
-                {hasValidId && (
-                    <InspectorControls>
-                        <PanelBody title="KaiGen Settings" initialOpen={false}>
-                            <CheckboxControl
-                                label="Reference image"
-                                checked={props.attributes.kaigen_reference_image || false}
-                                onChange={async (newValue) => {
-                                    // Update block attribute for UI state
-                                    props.setAttributes({ kaigen_reference_image: newValue });
-
-                                    // Update attachment meta via REST API
-                                    try {
-                                        await apiFetch({
-                                            path: `/wp/v2/media/${props.attributes.id}`,
-                                            method: 'POST',
-                                            data: {
-                                                meta: { kaigen_reference_image: newValue ? 1 : 0 },
-                                            },
-                                        });
-                                    } catch (err) {
-                                        wp.data.dispatch('core/notices').createErrorNotice(
-                                            'Failed to update reference image meta',
-                                            { type: 'snackbar' }
-                                        );
-                                    }
-                                }}
-                                help="Add to the list of reference images."
-                            />
-                        </PanelBody>
-                    </InspectorControls>
-                )}
-            </>
-        );
-    };
+									try {
+										await apiFetch({
+											path: `/wp/v2/media/${props.attributes.id}`,
+											method: 'POST',
+											data: {
+												meta: { kaigen_reference_image: newValue ? 1 : 0 },
+											},
+										});
+									} catch (err) {
+										wp.data.dispatch('core/notices').createErrorNotice(
+											'Failed to update reference image meta',
+											{ type: 'snackbar' }
+										);
+									}
+								}}
+								help="Add to the list of reference images."
+							/>
+						</PanelBody>
+					</InspectorControls>
+				)}
+			</>
+		);
+	};
 });
 
 // Extend the core/image block to include the new attribute.
 addFilter(
-    'blocks.registerBlockType',
-    'kaigen/add-reference-image-attribute',
-    (settings, name) => {
-        if (name !== 'core/image') {
-            return settings;
-        }
+	'blocks.registerBlockType',
+	'kaigen/add-reference-image-attribute',
+	(settings, name) => {
+		if (name !== 'core/image') {
+			return settings;
+		}
 
-        // Inject the attribute if it doesn't already exist.
-        return {
-            ...settings,
-            attributes: {
-                ...settings.attributes,
-                kaigen_reference_image: {
-                    type: 'boolean',
-                    default: false,
-                },
-            },
-        };
-    }
+		return {
+			...settings,
+			attributes: {
+				...settings.attributes,
+				kaigen_reference_image: {
+					type: 'boolean',
+					default: false,
+				},
+			},
+		};
+	}
 );
