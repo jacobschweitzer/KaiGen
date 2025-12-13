@@ -59,7 +59,10 @@ class KaiGen_Admin {
 		add_action('admin_menu', [$this, 'add_settings_page']);
 		add_action('admin_init', [$this, 'register_settings']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
+		add_action('admin_head', [$this, 'preload_logo']);
 		add_action('init', [$this, 'register_reference_image_meta']);
+		// Enqueue styles inside block editor iframe (WP 5.8+)
+		add_action('enqueue_block_assets', [$this, 'enqueue_block_editor_styles']);
 			
 		// Add settings link to plugin page
 		add_filter('plugin_action_links_' . plugin_basename(KAIGEN_PLUGIN_FILE), [$this, 'add_plugin_action_links']);
@@ -420,6 +423,17 @@ class KaiGen_Admin {
 	}
 
 	/**
+	 * Preloads the KaiGen logo for faster display in the block editor.
+	 */
+	public function preload_logo() {
+		$screen = get_current_screen();
+		if ($screen && $screen->is_block_editor()) {
+			$logo_url = plugin_dir_url(dirname(__FILE__)) . 'assets/KaiGen-logo-128x128.png';
+			echo '<link rel="preload" href="' . esc_url($logo_url) . '" as="image" type="image/png">' . "\n";
+		}
+	}
+
+	/**
 	 * Enqueues the necessary scripts and styles for the admin interface.
 	 * 
 	 * @param string $hook The current admin page hook.
@@ -448,7 +462,7 @@ class KaiGen_Admin {
 				'kaigen-admin',
 				plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
 				[],
-				'1.0.0'
+				'1.0.1'
 			);
 
 			wp_enqueue_script(
@@ -464,14 +478,14 @@ class KaiGen_Admin {
 				'ajaxUrl' => admin_url('admin-ajax.php'),
 				'nonce' => wp_create_nonce('kaigen_nonce'),
 				'provider' => $provider,
-				'supportsImageToImage' => $this->provider_supports_image_to_image($provider),
+				'logoUrl' => plugin_dir_url(dirname(__FILE__)) . 'assets/KaiGen-logo-128x128.png',
 			]);
 		} else if ( in_array( $hook, ['settings_page_kaigen-settings'] ) ) {
 			wp_enqueue_style(
 				'kaigen-admin',
 				plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
 				[],
-				'1.0.0'
+				'1.0.1'
 			);
 			wp_enqueue_script(
 				'kaigen-admin',
@@ -481,6 +495,24 @@ class KaiGen_Admin {
 				true
 			);
 		}
+	}
+
+	/**
+	 * Enqueues styles inside the block editor iframe (WP 5.8+).
+	 * This is needed because the block editor canvas is inside an iframe.
+	 */
+	public function enqueue_block_editor_styles() {
+		// Only load in admin/editor context
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'kaigen-editor-iframe',
+			plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
+			[],
+			'1.0.2'
+		);
 	}
 
 	/**
@@ -511,21 +543,6 @@ class KaiGen_Admin {
 		$settings_link = '<a href="' . admin_url('options-general.php?page=kaigen-settings') . '">' . __('Settings', 'kaigen') . '</a>';
 		array_unshift($links, $settings_link);
 		return $links;
-	}
-
-	/**
-	 * Checks if a provider supports image-to-image generation.
-	 * 
-	 * @param string $provider The provider ID.
-	 * @return bool True if the provider supports image-to-image generation, false otherwise.
-	 */
-	private function provider_supports_image_to_image($provider) {
-		if (empty($provider)) {
-		return false;
-		}
-		
-		$provider_manager = kaigen_provider_manager();
-		return $provider_manager->provider_supports_image_to_image($provider);
 	}
 
 	/**

@@ -85,7 +85,7 @@ test.describe('KaiGen Image Generation', () => {
 
     test.beforeEach(async ({ admin, page }) => {
         test.setTimeout(60000);
-        await admin.createNewPost();
+        await admin.createNewPost({ showWelcomeGuide: false });
     });
 
     /**

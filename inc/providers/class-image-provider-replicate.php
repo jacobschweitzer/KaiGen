@@ -98,11 +98,11 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
                 $model_to_use = $this->get_image_to_image_model();
                 $input_data['image_input'] = $image_inputs;
 
-                // Set size to 1k for low quality image edits, assumes we are using seedream-4 model so if that changes, this will need to be updated.
+                // Set size to 2K for low quality image edits (seedream-4.5 only supports "2K", "4K", or "custom")
                 $quality = self::get_quality_setting();
 
                 if ($quality === 'low') {
-                    $additional_params['size'] = '1K';
+                    $additional_params['size'] = '2K';
                 }
             }
         }
@@ -114,7 +114,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
 
         // Filter parameters based on the model being used
         if (!empty($source_image_urls)) {
-            // For seedream-4, only keep valid parameters according to schema
+            // For seedream-4.5, only keep valid parameters according to schema
             $valid_params = ['size', 'width', 'height', 'max_images', 'aspect_ratio', 'sequential_image_generation'];
             $filtered_params = [];
             
@@ -354,18 +354,18 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         return !empty($this->api_key) && strlen($this->api_key) === 40;
     }
 
-    /**
-     * Gets the available models for Replicate.
-     *
-     * @return array List of available models with their display names.
-     */
-    public function get_available_models() {
-        return [
-            'black-forest-labs/flux-schnell' => 'Flux Schnell by Black Forest Labs (low quality)',
-            'bytedance/seedream-4'           => 'Seedream 4 by Bytedance (high quality)',
-            'google/nano-banana-pro'         => 'Nano Banana Pro by Google (highest quality)',
-        ];
-    }
+	/**
+	 * Gets the available models for Replicate.
+	 *
+	 * @return array List of available models with their display names.
+	 */
+	public function get_available_models() {
+		return [
+			'prunaai/hidream-l1-fast'        => 'HiDream-I1 Fast by PrunaAI (low quality)',
+			'bytedance/seedream-4.5'           => 'Seedream 4.5 by Bytedance (high quality)',
+			'google/nano-banana-pro'         => 'Nano Banana Pro by Google (highest quality)',
+		];
+	}
 
     /**
      * Gets the image-to-image model for Replicate based on quality setting.
@@ -373,7 +373,7 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
      * @return string The image-to-image model.
      */
     private function get_image_to_image_model() {
-        $model = 'bytedance/seedream-4';
+        $model = 'bytedance/seedream-4.5';
         $quality = self::get_quality_setting();
 
         if ($quality === 'high') {
@@ -383,37 +383,27 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
         return $model;
     }
 
-    /**
-     * Checks if this provider supports image-to-image generation.
-     *
-     * @return bool True if image-to-image is supported, false otherwise.
-     */
-    public function supports_image_to_image() {
-        // Replicate supports image-to-image via seedream-4
-        return true;
-    }
-
-    /**
-     * Gets the model from the quality setting.
-     * @param string $quality_setting The quality setting.
-     * @return string The model.
-     */
-    public function get_model_from_quality_setting($quality_setting) {
-        switch ($quality_setting) {
-            case 'low':
-                $model = 'black-forest-labs/flux-schnell';
-                break;
-            case 'medium':
-                $model = 'bytedance/seedream-4';
-                break;
-            case 'high':
-                $model = 'google/nano-banana-pro';
-                break;
-            default:
-                $model = 'bytedance/seedream-4'; // Default to medium quality
-        }
-        return $model;
-    }
+	/**
+	 * Gets the model from the quality setting.
+	 * @param string $quality_setting The quality setting.
+	 * @return string The model.
+	 */
+	public function get_model_from_quality_setting($quality_setting) {
+		switch ($quality_setting) {
+			case 'low':
+				$model = 'prunaai/hidream-l1-fast';
+				break;
+			case 'medium':
+				$model = 'bytedance/seedream-4.5';
+				break;
+			case 'high':
+				$model = 'google/nano-banana-pro';
+				break;
+			default:
+				$model = 'bytedance/seedream-4.5'; // Default to medium quality
+		}
+		return $model;
+	}
 
     /**
      * Processes image URL for Replicate API.

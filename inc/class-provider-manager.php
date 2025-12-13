@@ -107,43 +107,6 @@ class KaiGen_Provider_Manager {
     public function get_provider($provider_id) {
         return isset(self::$providers[$provider_id]) ? self::$providers[$provider_id] : null;
     }
-    
-    /**
-     * Checks if a provider supports image-to-image generation.
-     * @param string $provider_id The ID of the provider to check.
-     * @return bool True if the provider supports image-to-image, false otherwise.
-     */
-    public function provider_supports_image_to_image($provider_id) {
-        $provider = $this->get_provider($provider_id);
-        if (!$provider) {
-            return false;
-        }
-        
-        // Check if we have a valid API key
-        $api_keys = get_option('kaigen_provider_api_keys', []);
-        if (!isset($api_keys[$provider_id]) || empty($api_keys[$provider_id])) {
-            return false;
-        }
-        
-        // Simply check if the provider supports image-to-image
-        return $provider->supports_image_to_image();
-    }
-    
-    /**
-     * Gets a list of all providers that support image-to-image generation.
-     * @return array Array of provider IDs that support image-to-image.
-     */
-    public function get_image_to_image_providers() {
-        $image_to_image_providers = [];
-        
-        foreach (self::$providers as $provider_id => $provider) {
-            if ($this->provider_supports_image_to_image($provider_id)) {
-                $image_to_image_providers[] = $provider_id;
-            }
-        }
-        
-        return $image_to_image_providers;
-    }
 }
 
 function kaigen_provider_manager() {

@@ -7,10 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Lint JavaScript: `npm run lint:js`
 - Lint CSS: `npm run lint:css`
 - Format code: `npm run format`
-- Run all e2e tests: `npm run test:e2e`
+- Run all e2e tests: `npm run test:e2e` (automatically starts WordPress Playground)
 - Run single test: `npx playwright test tests/e2e/[test-file].spec.ts`
 - Debug tests: `npm run test:e2e:debug`
 - Run tests with UI: `npm run test:e2e:ui`
+- Start Playground manually (optional): `npm run playground:start`
 
 ## Code Style Guidelines
 - Follow WordPress Coding Standards
