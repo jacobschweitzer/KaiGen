@@ -145,14 +145,17 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
         return (
             <>
                 <BlockEdit {...props} />
-                <BlockControls>
-                    <AIImageToolbar
-                        isRegenerating={isRegenerating}
-                        onRegenerateImage={handleRegenerateImage}
-                        isImageBlock={true}
-                        supportsImageToImage={supportsImageToImage}
-                    />
-                </BlockControls>
+                {/* Only show toolbar when image block has an actual image */}
+                {props.attributes.url && (
+                    <BlockControls>
+                        <AIImageToolbar
+                            isRegenerating={isRegenerating}
+                            onRegenerateImage={handleRegenerateImage}
+                            isImageBlock={true}
+                            supportsImageToImage={supportsImageToImage}
+                        />
+                    </BlockControls>
+                )}
                 {/* Sidebar controls, only show when attachment has a valid ID */}
                 {hasValidId && (
                     <InspectorControls>

@@ -150,8 +150,11 @@
     color: red;
 }
 
+
+/* ===== KAIGEN BUTTON CONTEXT STYLES ===== */
+
+/* Placeholder button (for editor canvas) - shown by default */
 .kaigen-placeholder-button {
-    order: 99;
     padding: 0;
     background: transparent;
     border: none;
@@ -160,14 +163,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    order: 99;
 }
 
-.kaigen-placeholder-button img {
-    height: 40px;
-    width: 40px;
-    object-fit: contain;
-    border: none;
-    background: transparent;
+/* Menu item button (for dropdown) - hidden by default, must be specific to override WP styles */
+button.components-button.components-menu-item__button.is-next-40px-default-size.kaigen-menu-item-button {
+    display: none ;
+}
+
+/* In popover context: hide placeholder button, show menu item button */
+.components-popover .kaigen-placeholder-button {
+    display: none;
+}
+
+.components-popover button.components-button.components-menu-item__button.is-next-40px-default-size.kaigen-menu-item-button {
+    display: flex;
 }
 
 .kaigen-ref-button-selected {

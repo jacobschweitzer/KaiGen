@@ -61,6 +61,8 @@ class KaiGen_Admin {
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
 		add_action('admin_head', [$this, 'preload_logo']);
 		add_action('init', [$this, 'register_reference_image_meta']);
+		// Enqueue styles inside block editor iframe (WP 5.8+)
+		add_action('enqueue_block_assets', [$this, 'enqueue_block_editor_styles']);
 			
 		// Add settings link to plugin page
 		add_filter('plugin_action_links_' . plugin_basename(KAIGEN_PLUGIN_FILE), [$this, 'add_plugin_action_links']);
@@ -460,7 +462,7 @@ class KaiGen_Admin {
 				'kaigen-admin',
 				plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
 				[],
-				'1.0.0'
+				'1.0.1'
 			);
 
 			wp_enqueue_script(
@@ -484,7 +486,7 @@ class KaiGen_Admin {
 				'kaigen-admin',
 				plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
 				[],
-				'1.0.0'
+				'1.0.1'
 			);
 			wp_enqueue_script(
 				'kaigen-admin',
@@ -494,6 +496,24 @@ class KaiGen_Admin {
 				true
 			);
 		}
+	}
+
+	/**
+	 * Enqueues styles inside the block editor iframe (WP 5.8+).
+	 * This is needed because the block editor canvas is inside an iframe.
+	 */
+	public function enqueue_block_editor_styles() {
+		// Only load in admin/editor context
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'kaigen-editor-iframe',
+			plugin_dir_url(dirname(__FILE__)) . 'assets/kaigen-admin.css',
+			[],
+			'1.0.2'
+		);
 	}
 
 	/**

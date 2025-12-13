@@ -89,24 +89,35 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
 
     return (
         <>
-            {/* KaiGen button – rendered inside the main placeholder buttons container */}
+            {/* KaiGen button for placeholder context (shown in editor canvas) */}
             <Button
                 onClick={() => setIsModalOpen(true)}
                 className="kaigen-placeholder-button"
                 aria-label="KaiGen"
-                role="button"
-                title="KaiGen"
-                style={{ order: 10 }}
             >
                 <img
                     src={kaiGenLogoBig}
                     alt="KaiGen"
-                    aria-label="KaiGen logo"
-                    role="button"
-                    title="KaiGen logo"
-                    style={{ width: '64px', height: '64px' }}
+                    style={{ width: '48px', height: '48px' }}
                 />
             </Button>
+
+            {/* KaiGen button for dropdown/popover context (styled as menu item) */}
+            <button
+                type="button"
+                role="menuitem"
+                onClick={() => setIsModalOpen(true)}
+                className="components-button components-menu-item__button is-next-40px-default-size kaigen-menu-item-button"
+            >
+                <span className="components-menu-item__item">KaiGen</span>
+                <img
+                    src={kaiGenLogoBig}
+                    alt=""
+                    aria-hidden="true"
+                    className="components-menu-items__item-icon has-icon-right"
+                    style={{ width: '24px', height: '24px' }}
+                />
+            </button>
 
             {/* Modal for entering the prompt and generating the image. */}
             {isModalOpen && (
