@@ -1,7 +1,7 @@
 // This file modifies the block editor for core/image blocks to include an AI image regeneration button.
 
 import { addFilter } from '@wordpress/hooks'; // Import the addFilter function.
-import { useState, useEffect } from '@wordpress/element'; // Import necessary React hooks.
+import { useState } from '@wordpress/element'; // Import necessary React hooks.
 import { BlockControls, InspectorControls } from '@wordpress/block-editor'; // Import Block & Inspector controls.
 import { PanelBody, CheckboxControl } from '@wordpress/components'; // Import components for sidebar UI.
 import apiFetch from '@wordpress/api-fetch'; // Import apiFetch for REST requests.
@@ -28,30 +28,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
         // State to manage regeneration progress and errors.
         const [isRegenerating, setIsRegenerating] = useState(false); // Indicates if regeneration is in progress.
         const [error, setError] = useState(null); // Holds error messages if any.
-        const [supportsImageToImage, setSupportsImageToImage] = useState(false); // Whether provider supports image-to-image
-
-        // Initialize the provider from settings on component mount.
-        useEffect(() => {
-            const initializeProvider = async () => {
-                try {
-                    // Get the provider and image-to-image support from localized data
-                    const provider = window.kaiGen?.provider;
-                    const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
-
-                    if (!provider) {
-                        return;
-                    }
-
-                    // Set image-to-image support based on localized data
-                    setSupportsImageToImage(supportsImageToImage);
-                } catch (err) {
-                    console.error('Failed to initialize provider:', err);
-                }
-            };
-
-            // Start initialization immediately
-            initializeProvider();
-        }, []);
 
         /**
          * Handles the AI image regeneration process for the current image block.
@@ -79,18 +55,13 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
             setIsRegenerating(true); // Indicate that regeneration is starting.
 
             try {
-                // Get the source image URL if available
+                // Get the source image URL if available for image-to-image generation
                 const sourceImageUrl = props.attributes.url;
                 
                 // Set up options for image generation
                 const options = {};
-                if (supportsImageToImage && sourceImageUrl) {
+                if (sourceImageUrl) {
                     options.sourceImageUrl = sourceImageUrl;
-                } else if (supportsImageToImage && !sourceImageUrl) {
-                    wp.data.dispatch('core/notices').createWarningNotice(
-                        'Image-to-image generation requires a source image. Please ensure the image is properly loaded.',
-                        { type: 'snackbar' }
-                    );
                 }
                 
                 // Wrap the generateImage call in a promise.
@@ -152,7 +123,6 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
                             isRegenerating={isRegenerating}
                             onRegenerateImage={handleRegenerateImage}
                             isImageBlock={true}
-                            supportsImageToImage={supportsImageToImage}
                         />
                     </BlockControls>
                 )}

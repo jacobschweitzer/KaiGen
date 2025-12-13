@@ -24,12 +24,11 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [aspectRatio, setAspectRatio] = useState('1:1');
 
-    const supportsImageToImage = window.kaiGen?.supportsImageToImage || false;
     const provider = wp.data.select('core/editor')?.getEditorSettings()?.kaigen_provider || 'replicate';
     const maxRefs = provider === 'replicate' ? 10 : 16;
 
     useEffect(() => {
-        if (isModalOpen && supportsImageToImage) {
+        if (isModalOpen) {
             fetchReferenceImages().then(setReferenceImages);
         }
     }, [isModalOpen]);
@@ -142,8 +141,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                     <div className="kaigen-modal__input-container">
                         
                         {/* Left: Reference Images Button */}
-                        {supportsImageToImage && (
-                            <Dropdown
+                        <Dropdown
                                 onFocusOutside={() => setIsOpen(false)}
                                 popoverProps={{ placement: 'bottom-start', focusOnMount: true }}
                                 renderToggle={({ isOpen, onToggle }) => (
@@ -189,7 +187,6 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                     </div>
                                 )}
                             />
-                        )}
                         
                         {/* Center: Prompt Textarea */}
                         <div className="kaigen-modal__textarea-container">

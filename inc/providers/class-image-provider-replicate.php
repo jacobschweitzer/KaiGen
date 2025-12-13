@@ -384,18 +384,6 @@ class KaiGen_Image_Provider_Replicate extends KaiGen_Image_Provider {
     }
 
 	/**
-	 * Checks if this provider supports image-to-image generation.
-	 *
-	 * @return bool True if image-to-image is supported, false otherwise.
-	 */
-	public function supports_image_to_image() {
-		// Replicate supports image-to-image via seedream-4.5 or nano-banana-pro.
-		// When quality is set to low, image-to-image will automatically use
-		// the next highest quality model (medium/seedream-4.5) that supports it.
-		return true;
-	}
-
-	/**
 	 * Gets the model from the quality setting.
 	 * @param string $quality_setting The quality setting.
 	 * @return string The model.

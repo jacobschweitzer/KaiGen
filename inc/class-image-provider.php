@@ -51,16 +51,6 @@ abstract class KaiGen_Image_Provider implements KaiGen_Image_Provider_Interface 
         }
         return false;
     }
-    
-    /**
-     * Checks if this provider supports image-to-image generation with the current model.
-     * By default, providers don't support image-to-image. Override in child classes if supported.
-     *
-     * @return bool True if image-to-image is supported, false otherwise.
-     */
-    public function supports_image_to_image() {
-        return false;
-    }
 
     /**
      * Prepares the headers for API requests.

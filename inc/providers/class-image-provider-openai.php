@@ -344,16 +344,6 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
     }
     
     /**
-     * Checks if this provider supports image-to-image generation.
-     *
-     * @return bool True if image-to-image is supported, false otherwise.
-     */
-    public function supports_image_to_image() {
-        // OpenAI's GPT Image-1 supports image-to-image generation via the edits endpoint
-        return true;
-    }
-
-    /**
      * Maps aspect ratio to OpenAI's supported size formats.
      *
      * @param string $aspect_ratio The desired aspect ratio.

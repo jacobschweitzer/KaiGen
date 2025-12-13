@@ -15,7 +15,6 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
  * @param {Function} [props.onRegenerateImage] - Callback to handle image regeneration.
  * @param {boolean} [props.isImageBlock] - Determines if the current block is an image block.
  * @param {boolean} [props.isTextSelected] - Determines if text is selected to trigger generation.
- * @param {boolean} [props.supportsImageToImage] - Indicates if the current provider supports image-to-image generation.
  * @returns {JSX.Element|null} Returns the toolbar with the appropriate button or null if conditions are unmet.
  */
 const AIImageToolbar = ({
@@ -25,7 +24,6 @@ const AIImageToolbar = ({
     onRegenerateImage,
     isImageBlock,
     isTextSelected,
-    supportsImageToImage,
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [prompt, setPrompt] = useState('');
@@ -38,8 +36,8 @@ const AIImageToolbar = ({
         setError(null);
     };
 
-    // Render a regenerate button if the current block is an image block and provider supports image-to-image.
-    if (isImageBlock && supportsImageToImage) {
+    // Render a regenerate button if the current block is an image block.
+    if (isImageBlock) {
         return (
             <>
                 <ToolbarGroup>

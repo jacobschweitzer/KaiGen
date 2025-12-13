@@ -78,11 +78,4 @@ interface KaiGen_Image_Provider_Interface {
      * @return bool True if the model was successfully set, false otherwise.
      */
     public function set_model($model);
-    
-    /**
-     * Checks if this provider supports image-to-image generation with the current model.
-     *
-     * @return bool True if image-to-image is supported, false otherwise.
-     */
-    public function supports_image_to_image();
 }
