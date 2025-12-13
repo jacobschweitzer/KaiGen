@@ -73,6 +73,7 @@ const AIImageToolbar = ({
                             value={prompt}
                             onChange={setPrompt}
                             rows={4}
+                            autoFocus
                         />
                         
                         <Button

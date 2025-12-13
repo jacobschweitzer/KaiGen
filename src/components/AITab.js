@@ -200,6 +200,7 @@ const AITab = ({ onSelect, shouldDisplay }) => { // This is the AITab functional
                                 onChange={setPrompt}
                                 onKeyDown={handleKeyPress}
                                 rows={2}
+                                autoFocus
                             />
                         </div>
                         
