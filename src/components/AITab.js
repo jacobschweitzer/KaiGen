@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from '@wordpress/element'; // Import WordPress hooks.
 import { Button, TextareaControl, Modal, Spinner, Dropdown, Dashicon } from '@wordpress/components'; // Import necessary UI components.
-import kaiGenLogoBig from '../../assets/KaiGen-logo-128x128.png'; // Import KaiGen logo
 import { generateImage, fetchReferenceImages } from '../api'; // Import API functions.
+
+const kaiGenLogoBig = window.kaiGen?.logoUrl;
 
 /**
  * AITab component for generating AI images.

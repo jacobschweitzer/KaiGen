@@ -59,6 +59,7 @@ class KaiGen_Admin {
 		add_action('admin_menu', [$this, 'add_settings_page']);
 		add_action('admin_init', [$this, 'register_settings']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
+		add_action('admin_head', [$this, 'preload_logo']);
 		add_action('init', [$this, 'register_reference_image_meta']);
 			
 		// Add settings link to plugin page
@@ -420,6 +421,17 @@ class KaiGen_Admin {
 	}
 
 	/**
+	 * Preloads the KaiGen logo for faster display in the block editor.
+	 */
+	public function preload_logo() {
+		$screen = get_current_screen();
+		if ($screen && $screen->is_block_editor()) {
+			$logo_url = plugin_dir_url(dirname(__FILE__)) . 'assets/KaiGen-logo-128x128.png';
+			echo '<link rel="preload" href="' . esc_url($logo_url) . '" as="image" type="image/png">' . "\n";
+		}
+	}
+
+	/**
 	 * Enqueues the necessary scripts and styles for the admin interface.
 	 * 
 	 * @param string $hook The current admin page hook.
@@ -465,6 +477,7 @@ class KaiGen_Admin {
 				'nonce' => wp_create_nonce('kaigen_nonce'),
 				'provider' => $provider,
 				'supportsImageToImage' => $this->provider_supports_image_to_image($provider),
+				'logoUrl' => plugin_dir_url(dirname(__FILE__)) . 'assets/KaiGen-logo-128x128.png',
 			]);
 		} else if ( in_array( $hook, ['settings_page_kaigen-settings'] ) ) {
 			wp_enqueue_style(

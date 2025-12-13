@@ -70,6 +70,3 @@ This plugin uses @wordpress/scripts build system. To build from source:
 
 For development: npm run start
 For more details see the README.md file.
-
-== Screenshots ==
-![Screenshot](https://github.com/jacobschweitzer/kaigen/edit/main/assets/image.jpg?raw=true)
