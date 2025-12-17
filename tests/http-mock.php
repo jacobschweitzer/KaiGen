@@ -211,7 +211,7 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     }
 
     // Mock OpenAI models list endpoint (for API key validation)
-    if (str_contains($url, 'api.openai.com/v1/models') && !str_contains($url, '/gpt-image-1')) {
+    if (str_contains($url, 'api.openai.com/v1/models') && !str_contains($url, '/gpt-image-1.5')) {
         error_log('KaiGen E2E Mock: Returning mocked OpenAI models list response');
         
         return [
@@ -220,7 +220,7 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
                 'object' => 'list',
                 'data' => [
                     [
-                        'id' => 'gpt-image-1',
+                        'id' => 'gpt-image-1.5',
                         'object' => 'model',
                         'created' => time(),
                         'owned_by' => 'openai'
@@ -237,13 +237,13 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     }
 
     // Mock OpenAI single model endpoint (for image model access check)
-    if (str_contains($url, 'api.openai.com/v1/models/gpt-image-1')) {
+    if (str_contains($url, 'api.openai.com/v1/models/gpt-image-1.5')) {
         error_log('KaiGen E2E Mock: Returning mocked OpenAI single model response');
         
         return [
             'headers'  => ['content-type' => 'application/json'],
             'body'     => wp_json_encode([
-                'id' => 'gpt-image-1',
+                'id' => 'gpt-image-1.5',
                 'object' => 'model',
                 'created' => time(),
                 'owned_by' => 'openai'

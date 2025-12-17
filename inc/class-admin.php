@@ -278,7 +278,7 @@ class KaiGen_Admin {
 					}
 					
 					// Check if has access to image model
-					$model_response = wp_remote_get('https://api.openai.com/v1/models/gpt-image-1', ['headers' => $headers]);
+                                        $model_response = wp_remote_get('https://api.openai.com/v1/models/gpt-image-1.5', ['headers' => $headers]);
 					
 					if (is_wp_error($model_response) || wp_remote_retrieve_response_code($model_response) !== 200) {
 						$error_message = 'The provided OpenAI API key does not have access to image generation. This may require organization verification. Check in your OpenAI dashboard: <a target="_blank" href="https://platform.openai.com/settings/organization/general">Settings → Organization → General</a>. For more details: <a target="_blank" href="https://help.openai.com/en/articles/10910291-api-organization-verification">OpenAI Help Center</a>.';

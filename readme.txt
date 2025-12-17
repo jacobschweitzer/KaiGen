@@ -38,7 +38,7 @@ This plugin connects to third-party AI image generation services to create image
 * API Endpoint: https://api.openai.com/v1/images/generations and https://api.openai.com/v1/images/edits
 * Terms of Service: https://openai.com/terms/
 * Privacy Policy: https://openai.com/privacy/
-* Models supported: GPT Image 1 
+* Models supported: GPT Image 1.5
 
 = Replicate API =
 * What it is: Replicate's machine learning model hosting service for various AI image generation models

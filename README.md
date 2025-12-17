@@ -94,7 +94,7 @@ This plugin connects to third-party AI image generation services to create image
 - [HiDream-I1 by Pruna AI](https://replicate.com/prunaai/hidream-l1-fast)
 - [Seedream 4.5 by ByteDance](https://replicate.com/bytedance/seedream-4.5)
 - [Nano Banana Pro by Google](https://replicate.com/google/nano-banana-pro)
-- [GPT Image 1 by OpenAI](https://openai.com/index/image-generation-api)
+- [GPT Image 1.5 by OpenAI](https://platform.openai.com/docs/guides/images)
 
 ## Source Code
 

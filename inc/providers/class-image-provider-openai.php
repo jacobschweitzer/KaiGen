@@ -17,6 +17,11 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
     private const IMAGE_EDIT_API_BASE_URL = 'https://api.openai.com/v1/images/edits';
 
     /**
+     * Default OpenAI image model.
+     */
+    private const DEFAULT_MODEL = 'gpt-image-1.5';
+
+    /**
      * Gets the unique identifier for this provider.
      *
      * @return string The unique identifier for this provider.
@@ -123,7 +128,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             // Add model parameter
             $body .= "--{$boundary}\r\n";
             $body .= 'Content-Disposition: form-data; name="model"' . "\r\n\r\n";
-            $body .= "gpt-image-1\r\n";
+            $body .= self::DEFAULT_MODEL . "\r\n";
             
             // Add prompt parameter
             $body .= "--{$boundary}\r\n";
@@ -160,7 +165,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
             // For regular image generation requests, use JSON
             $headers = $this->get_request_headers();
             $body = [
-                'model'          => 'gpt-image-1',
+                'model'          => self::DEFAULT_MODEL,
                 'prompt'         => $prompt,
                 'quality'        => $quality,
                 'output_format'  => 'jpeg',
@@ -339,7 +344,7 @@ class KaiGen_Image_Provider_OpenAI extends KaiGen_Image_Provider {
      */
     public function get_available_models() {
         return [
-            'gpt-image-1' => 'GPT Image-1 (latest model)',
+            self::DEFAULT_MODEL => 'GPT Image 1.5 (latest model)',
         ];
     }
     
