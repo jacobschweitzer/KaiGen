@@ -248,6 +248,30 @@ final class Rest_API {
 				$result = $this->make_provider_request( $provider_id, $prompt, $model, $additional_params );
 
 				if ( ! is_wp_error( $result ) ) {
+					// Handle completed status - this means the image was successfully generated and uploaded.
+					if ( isset( $result['status'] ) && 'completed' === $result['status'] ) {
+						// Check if we have a WordPress attachment ID.
+						if ( isset( $result['url'] ) && isset( $result['id'] ) && is_numeric( $result['id'] ) && $result['id'] > 0 ) {
+							// Format response for WordPress media.
+							$response_data = [
+								'url'    => $result['url'],
+								'id'     => intval( $result['id'] ),
+								'status' => 'completed',
+							];
+							return new \WP_REST_Response( $response_data, 200 );
+						}
+
+						// Handle direct URL response without WordPress attachment.
+						if ( isset( $result['url'] ) ) {
+							// Return the result without an ID.
+							$response_data = [
+								'url'    => $result['url'],
+								'status' => 'completed',
+							];
+							return new \WP_REST_Response( $response_data, 200 );
+						}
+					}
+
 					// Handle failed status with content filtering error.
 					if ( isset( $result['status'] ) && 'failed' === $result['status'] ) {
 						if ( isset( $result['error'] ) && strpos( $result['error'], 'flagged by safety filters' ) !== false ) {
@@ -302,6 +326,7 @@ final class Rest_API {
 						'image_download_failed',
 						'empty_image_data',
 						'replicate_validation_error',
+						'replicate_api_error',
 						'content_moderation',
 						'api_error',
 						'openai_error',
