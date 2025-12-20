@@ -1,0 +1,59 @@
+name: Lint PHP
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-php:
+    name: Lint PHP
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for PHP changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            php:
+              - '**.php'
+          list-files: shell
+
+      - name: Set up PHP
+        if: steps.changes.outputs.php == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          tools: composer
+          coverage: none
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.php == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install npm dependencies
+        if: steps.changes.outputs.php == 'true'
+        run: npm ci
+
+      - name: Install Composer dependencies
+        if: steps.changes.outputs.php == 'true'
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHP linter
+        if: steps.changes.outputs.php == 'true'
+        run: npm run lint:php
+
