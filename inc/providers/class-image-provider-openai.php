@@ -484,7 +484,7 @@ class Image_Provider_OpenAI extends Image_Provider {
  */
 add_filter(
 	'kaigen_format_provider_name',
-	function( $formatted_name, $name, $name_lower ) {
+	function ( $formatted_name, $name, $name_lower ) {
 		if ( $name_lower === 'openai' ) {
 			return 'OpenAI';
 		}

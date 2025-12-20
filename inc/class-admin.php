@@ -594,7 +594,7 @@ class Admin {
 	public function add_reference_field( $form_fields, $post ) {
 		$meta_value = get_post_meta( $post->ID, 'kaigen_reference_image', true );
 		// Explicitly check for 1 or true, not just truthy values
-		$value = ( $meta_value === 1 || $meta_value === true || $meta_value === '1' );
+		$value                                 = ( $meta_value === 1 || $meta_value === true || $meta_value === '1' );
 		$form_fields['kaigen_reference_image'] = [
 			'label' => __( 'Reference Image', 'kaigen' ),
 			'input' => 'html',
