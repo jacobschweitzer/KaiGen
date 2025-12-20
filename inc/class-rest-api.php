@@ -235,7 +235,7 @@ final class Rest_API {
 	 * @param string $model The model to use.
 	 * @param array  $additional_params Additional parameters.
 	 * @return WP_REST_Response|WP_Error The response or error.
-	 * @throws Exception When generation fails or times out.
+	 * @throws \Exception When generation fails or times out.
 	 */
 	private function handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params ) {
 		$max_retries = 15;
