@@ -1,0 +1,48 @@
+name: Lint CSS
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-css:
+    name: Lint CSS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for CSS/SCSS changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            css:
+              - '**.css'
+              - '**.scss'
+          list-files: shell
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.css == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.changes.outputs.css == 'true'
+        run: npm ci
+
+      - name: Run CSS linter
+        if: steps.changes.outputs.css == 'true'
+        run: npm run lint:css
+
