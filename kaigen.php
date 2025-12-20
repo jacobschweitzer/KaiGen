@@ -17,22 +17,24 @@
  * @link     https://jacobschweitzer.com/kaigen
  */
 
+namespace KaiGen;
+
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Define plugin constants
+// Define plugin constants.
 define( 'KAIGEN_PLUGIN_FILE', __FILE__ );
 
-// Load base classes and interfaces
+// Load base classes and interfaces.
 require_once __DIR__ . '/inc/class-image-handler.php';
 require_once __DIR__ . '/inc/interface-image-provider.php';
 require_once __DIR__ . '/inc/class-image-provider.php';
 
-// Load provider manager and admin classes
+// Load provider manager and admin classes.
 require_once __DIR__ . '/inc/class-provider-manager.php';
 require_once __DIR__ . '/inc/class-admin.php';
 
-// Load REST API functionality
+// Load REST API functionality.
 require_once __DIR__ . '/inc/class-rest-api.php';
