@@ -213,10 +213,23 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 .kaigen-modal-reference-image {
 	width: 60px;
 	height: 60px;
-	object-fit: cover;
-	cursor: pointer;
+	padding: 0;
+	margin: 0;
 	border: 3px solid transparent;
 	border-radius: 4px;
+	background: transparent;
+	cursor: pointer;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.kaigen-modal-reference-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
 .kaigen-modal-reference-image-selected {
