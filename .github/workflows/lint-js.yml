@@ -1,0 +1,50 @@
+name: Lint JS
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-js:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for JS/TS changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            js:
+              - '**.js'
+              - '**.jsx'
+              - '**.ts'
+              - '**.tsx'
+          list-files: shell
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.js == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.changes.outputs.js == 'true'
+        run: npm ci
+
+      - name: Run JS linter
+        if: steps.changes.outputs.js == 'true'
+        run: npm run lint:js
+
