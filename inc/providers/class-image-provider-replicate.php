@@ -258,7 +258,7 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		// Validate JSON response - if json_decode failed, body will be null.
 		if ( null === $body && json_last_error() !== JSON_ERROR_NONE ) {
-			$raw_body = wp_remote_retrieve_body( $response );
+			$raw_body      = wp_remote_retrieve_body( $response );
 			$response_code = wp_remote_retrieve_response_code( $response );
 			return new \WP_Error(
 				'replicate_api_error',
@@ -268,7 +268,7 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		// Ensure body is an array for safe access.
 		if ( ! is_array( $body ) ) {
-			$raw_body = wp_remote_retrieve_body( $response );
+			$raw_body      = wp_remote_retrieve_body( $response );
 			$response_code = wp_remote_retrieve_response_code( $response );
 			return new \WP_Error(
 				'replicate_api_error',
