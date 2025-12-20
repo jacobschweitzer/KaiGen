@@ -1,7 +1,7 @@
 // This file modifies the block editor for core/image blocks to include an AI image regeneration button.
 
 import { addFilter } from '@wordpress/hooks';
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect } from '@wordpress/element';
 import { BlockControls, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, CheckboxControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
@@ -21,37 +21,32 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
 
 		const hasValidId = props.attributes.id && typeof props.attributes.id === 'number' && props.attributes.id > 0;
 		const [isRegenerating, setIsRegenerating] = useState(false);
+		const [hasInitialized, setHasInitialized] = useState(false);
 
-		/**
-		 * Marks the current image as a reference image if it has a valid ID.
-		 */
-		const markAsReferenceImage = useCallback(async () => {
-			if (!hasValidId || props.attributes.kaigen_reference_image) {
+		// Initialize block attribute from post meta on first load, but only if block attribute is not already set
+		useEffect(() => {
+			if (!hasValidId || hasInitialized) {
 				return;
 			}
 
-			props.setAttributes({ kaigen_reference_image: true });
-
-			try {
-				await apiFetch({
+			// Only initialize if the block attribute is not explicitly set (undefined or null)
+			if (props.attributes.kaigen_reference_image === undefined || props.attributes.kaigen_reference_image === null) {
+				apiFetch({
 					path: `/wp/v2/media/${props.attributes.id}`,
-					method: 'POST',
-					data: {
-						meta: { kaigen_reference_image: 1 },
-					},
+				}).then((media) => {
+					if (media && media.meta && typeof media.meta.kaigen_reference_image !== 'undefined') {
+						const metaValue = media.meta.kaigen_reference_image === true || media.meta.kaigen_reference_image === 1;
+						props.setAttributes({ kaigen_reference_image: metaValue });
+					}
+					setHasInitialized(true);
+				}).catch(() => {
+					// Silently fail - default to false
+					setHasInitialized(true);
 				});
-			} catch (err) {
-				// Silently fail - the image can still be used as reference via URL
-				console.warn('Failed to mark image as reference:', err);
+			} else {
+				setHasInitialized(true);
 			}
-		}, [hasValidId, props.attributes.id, props.attributes.kaigen_reference_image]);
-
-		// Mark image as reference when it has a valid ID and URL
-		useEffect(() => {
-			if (hasValidId && props.attributes.url && !props.attributes.kaigen_reference_image) {
-				markAsReferenceImage();
-			}
-		}, [hasValidId, props.attributes.url, props.attributes.kaigen_reference_image, markAsReferenceImage]);
+		}, [hasValidId, props.attributes.id, props.attributes.kaigen_reference_image, hasInitialized]);
 
 		/**
 		 * Build current image object for the modal
@@ -104,16 +99,19 @@ addFilter('editor.BlockEdit', 'kaigen/add-regenerate-button', (BlockEdit) => {
 						<PanelBody title="KaiGen Settings" initialOpen={false}>
 							<CheckboxControl
 								label="Reference image"
-								checked={props.attributes.kaigen_reference_image || false}
+								checked={props.attributes.kaigen_reference_image === true}
 								onChange={async (newValue) => {
-									props.setAttributes({ kaigen_reference_image: newValue });
+									// Explicitly set to boolean true or false (not undefined)
+									const boolValue = newValue === true;
+									props.setAttributes({ kaigen_reference_image: boolValue });
+									setHasInitialized(true); // Mark as initialized so we don't sync from meta again
 
 									try {
 										await apiFetch({
 											path: `/wp/v2/media/${props.attributes.id}`,
 											method: 'POST',
 											data: {
-												meta: { kaigen_reference_image: newValue ? 1 : 0 },
+												meta: { kaigen_reference_image: boolValue ? 1 : 0 },
 											},
 										});
 									} catch (err) {
