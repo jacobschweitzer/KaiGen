@@ -153,6 +153,9 @@ npm run start
 # Lint JavaScript
 npm run lint:js
 
+# Fix JavaScript (auto-fixes issues where possible)
+npm run lint:js:fix
+
 # Format code
 npm run format
 ```

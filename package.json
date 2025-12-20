@@ -12,6 +12,7 @@
     "format": "wp-scripts format",
     "lint:css": "wp-scripts lint-style",
     "lint:js": "wp-scripts lint-js",
+    "lint:js:fix": "wp-scripts lint-js --fix",
     "lint:php": "composer exec phpcs",
     "lint:php:fix": "composer exec phpcbf",
     "packages-update": "wp-scripts packages-update",

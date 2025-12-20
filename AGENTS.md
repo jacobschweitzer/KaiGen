@@ -5,6 +5,7 @@ KaiGen is an AI image generation tool. This is a WordPress plugin using KaiGen t
 ## Build/Test Commands
 - Build: `npm run build`
 - Lint JavaScript: `npm run lint:js`
+- Fix JavaScript: `npm run lint:js:fix` (auto-fixes issues where possible)
 - Lint CSS: `npm run lint:css`
 - Lint PHP: `npm run lint:php` (requires `composer install` first)
 - Fix PHP: `npm run lint:php:fix` (auto-fixes issues where possible)
