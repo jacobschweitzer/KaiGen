@@ -26,8 +26,16 @@ addFilter(
 				props.attributes.id &&
 				typeof props.attributes.id === 'number' &&
 				props.attributes.id > 0;
-			const [ isRegenerating, setIsRegenerating ] = useState( false );
 			const [ hasInitialized, setHasInitialized ] = useState( false );
+
+			// Destructure props for useEffect dependencies
+			const {
+				attributes: {
+					id: blockId,
+					kaigen_reference_image: referenceImage,
+				},
+				setAttributes,
+			} = props;
 
 			// Initialize block attribute from post meta on first load, but only if block attribute is not already set
 			useEffect( () => {
@@ -36,12 +44,9 @@ addFilter(
 				}
 
 				// Only initialize if the block attribute is not explicitly set (undefined or null)
-				if (
-					props.attributes.kaigen_reference_image === undefined ||
-					props.attributes.kaigen_reference_image === null
-				) {
+				if ( referenceImage === undefined || referenceImage === null ) {
 					apiFetch( {
-						path: `/wp/v2/media/${ props.attributes.id }`,
+						path: `/wp/v2/media/${ blockId }`,
 					} )
 						.then( ( media ) => {
 							if (
@@ -54,7 +59,7 @@ addFilter(
 									media.meta.kaigen_reference_image ===
 										true ||
 									media.meta.kaigen_reference_image === 1;
-								props.setAttributes( {
+								setAttributes( {
 									kaigen_reference_image: metaValue,
 								} );
 							}
@@ -69,9 +74,10 @@ addFilter(
 				}
 			}, [
 				hasValidId,
-				props.attributes.id,
-				props.attributes.kaigen_reference_image,
+				blockId,
+				referenceImage,
 				hasInitialized,
+				setAttributes,
 			] );
 
 			/**
@@ -120,7 +126,6 @@ addFilter(
 					{ props.attributes.url && (
 						<BlockControls>
 							<AIImageToolbar
-								isRegenerating={ isRegenerating }
 								onImageGenerated={ handleImageGenerated }
 								isImageBlock={ true }
 								currentImage={ currentImage }

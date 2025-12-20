@@ -184,52 +184,61 @@ const GenerateImageModal = ( {
 								</h4>
 								{ allImages.length > 0 ? (
 									<div className="kaigen-modal-reference-images-container">
-										{ allImages.map( ( img, index ) => (
-											<img
-												key={
-													img.id ||
-													`initial-${ index }`
-												}
-												src={ img.url }
-												alt={ img.alt || '' }
-												onClick={ () => {
-													setSelectedRefs(
-														( prev ) => {
-															const isSelected =
-																prev.some(
-																	( s ) =>
-																		s.url ===
-																		img.url
-																);
-															if ( isSelected ) {
-																return prev.filter(
-																	( s ) =>
-																		s.url !==
-																		img.url
-																);
-															} else if (
-																prev.length <
-																maxRefs
-															) {
-																return [
-																	...prev,
-																	img,
-																];
-															}
-															return prev;
-														}
-													);
-												} }
-												className={ `kaigen-modal-reference-image ${
-													selectedRefs.some(
-														( s ) =>
-															s.url === img.url
-													)
-														? 'kaigen-modal-reference-image-selected'
-														: ''
-												}` }
-											/>
-										) ) }
+										{ allImages.map( ( img, index ) => {
+											const handleImageToggle = () => {
+												setSelectedRefs( ( prev ) => {
+													const isSelected =
+														prev.some(
+															( s ) =>
+																s.url ===
+																img.url
+														);
+													if ( isSelected ) {
+														return prev.filter(
+															( s ) =>
+																s.url !==
+																img.url
+														);
+													} else if (
+														prev.length < maxRefs
+													) {
+														return [ ...prev, img ];
+													}
+													return prev;
+												} );
+											};
+
+											return (
+												<button
+													type="button"
+													key={
+														img.id ||
+														`initial-${ index }`
+													}
+													onClick={
+														handleImageToggle
+													}
+													className={ `kaigen-modal-reference-image ${
+														selectedRefs.some(
+															( s ) =>
+																s.url ===
+																img.url
+														)
+															? 'kaigen-modal-reference-image-selected'
+															: ''
+													}` }
+													aria-label={
+														img.alt ||
+														'Select reference image'
+													}
+												>
+													<img
+														src={ img.url }
+														alt={ img.alt || '' }
+													/>
+												</button>
+											);
+										} ) }
 									</div>
 								) : (
 									<p className="kaigen-modal-no-references">
@@ -251,7 +260,6 @@ const GenerateImageModal = ( {
 						onChange={ setPrompt }
 						onKeyDown={ handleKeyPress }
 						rows={ 2 }
-						autoFocus
 					/>
 				</div>
 
@@ -311,7 +319,8 @@ const GenerateImageModal = ( {
 										title: 'Portrait',
 									},
 								].map( ( opt ) => (
-									<div
+									<button
+										type="button"
 										key={ opt.value }
 										onClick={ () =>
 											setAspectRatio( ( prev ) =>
@@ -345,7 +354,7 @@ const GenerateImageModal = ( {
 										<span className="kaigen-modal-aspect-ratio-label">
 											{ opt.label }
 										</span>
-									</div>
+									</button>
 								) ) }
 							</div>
 						</div>

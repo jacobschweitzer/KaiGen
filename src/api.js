@@ -163,7 +163,7 @@ export const fetchReferenceImages = async () => {
 		} );
 		return Array.isArray( response ) ? response : [];
 	} catch ( error ) {
-		console.error( 'Failed to fetch reference images:', error );
+		// Silently fail and return empty array
 		return [];
 	}
 };

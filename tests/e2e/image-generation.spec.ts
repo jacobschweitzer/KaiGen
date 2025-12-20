@@ -430,7 +430,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			// If modal didn't close, check for error messages
 			if ( await modal.isVisible() ) {
 				const errorText = await modal.textContent();
-				console.log( 'Modal content when test failed:', errorText );
+				// Error text available for debugging if needed
 			}
 
 			// Check if it's the offline error
