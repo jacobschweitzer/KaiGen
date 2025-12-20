@@ -233,7 +233,10 @@ const GenerateImageModal = ( {
 													}
 												>
 													<img
-														src={ img.url }
+														src={
+															img.thumbnail_url ||
+															img.url
+														}
 														alt={ img.alt || '' }
 													/>
 												</button>

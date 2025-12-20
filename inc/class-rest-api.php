@@ -421,10 +421,15 @@ final class Rest_API {
 
 		$images = [];
 		foreach ( $query->posts as $post ) {
+			// Get thumbnail URL (150x150) for display.
+			$thumbnail     = wp_get_attachment_image_src( $post->ID, 'thumbnail' );
+			$thumbnail_url = $thumbnail ? $thumbnail[0] : wp_get_attachment_url( $post->ID );
+
 			$images[] = [
-				'id'  => $post->ID,
-				'url' => wp_get_attachment_url( $post->ID ),
-				'alt' => get_post_meta( $post->ID, '_wp_attachment_image_alt', true ),
+				'id'            => $post->ID,
+				'url'           => wp_get_attachment_url( $post->ID ), // Full size for generation.
+				'thumbnail_url' => $thumbnail_url, // Thumbnail for display.
+				'alt'           => get_post_meta( $post->ID, '_wp_attachment_image_alt', true ),
 			];
 		}
 
