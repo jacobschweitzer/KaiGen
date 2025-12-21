@@ -423,17 +423,29 @@ class Image_Provider_Replicate extends Image_Provider {
 	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
 		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
 		$model   = $this->get_effective_model( $quality, $additional_params );
+		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
+			! empty( $additional_params['source_image_url'] );
 
 		switch ( $model ) {
 			case 'prunaai/hidream-l1-fast':
-				return 4;
+				$base_time = 3;
+				break;
 			case 'bytedance/seedream-4.5':
-				return 20;
+				$base_time = 20;
+				break;
 			case 'google/nano-banana-pro':
-				return 40;
+				$base_time = 40;
+				break;
 			default:
-				return 30;
+				$base_time = 30;
+				break;
 		}
+
+		if ( $has_source_images ) {
+			return (int) ceil( $base_time * 1.25 );
+		}
+
+		return $base_time;
 	}
 
 	/**

@@ -374,16 +374,28 @@ class Image_Provider_OpenAI extends Image_Provider {
 	 */
 	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
 		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
+		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
+			! empty( $additional_params['source_image_url'] ) ||
+			! empty( $additional_params['additional_image_urls'] );
 
 		switch ( $quality ) {
 			case 'low':
-				return 10;
+				$base_time = 10;
+				break;
 			case 'high':
-				return 360;
+				$base_time = 60;
+				break;
 			case 'medium':
 			default:
-				return 20;
+				$base_time = 30;
+				break;
 		}
+
+		if ( $has_source_images ) {
+			return (int) ceil( $base_time * 1.25 );
+		}
+
+		return $base_time;
 	}
 
 	/**
