@@ -433,13 +433,13 @@ class Admin {
 	}
 
 	/**
-	 * Preloads the KaiGen logo for faster display in the block editor.
+	 * Prefetches the KaiGen logo for faster display in the block editor.
 	 */
 	public function preload_logo() {
 		$screen = get_current_screen();
 		if ( $screen && $screen->is_block_editor() ) {
 			$logo_url = plugin_dir_url( __DIR__ ) . 'assets/KaiGen-logo-128x128.png';
-			echo '<link rel="preload" href="' . esc_url( $logo_url ) . '" as="image" type="image/png">' . "\n";
+			echo '<link rel="prefetch" href="' . esc_url( $logo_url ) . '" as="image" type="image/png">' . "\n";
 		}
 	}
 
