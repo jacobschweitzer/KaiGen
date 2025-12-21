@@ -386,7 +386,7 @@ class Image_Provider_Replicate extends Image_Provider {
 			);
 		}
 
-				return new \WP_Error( 'replicate_error', 'No image data in response' );
+		return new \WP_Error( 'replicate_error', 'No image data in response' );
 	}
 
 	/**
