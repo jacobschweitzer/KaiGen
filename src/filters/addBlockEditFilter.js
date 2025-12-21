@@ -29,6 +29,7 @@ addFilter(
 			const [ hasInitialized, setHasInitialized ] = useState( false );
 			const [ generationMeta, setGenerationMeta ] = useState( null );
 			const [ isMetaLoading, setIsMetaLoading ] = useState( false );
+			const [ referenceImages, setReferenceImages ] = useState( [] );
 			const [ isPanelOpen, setIsPanelOpen ] = useState( false );
 			const [ fetchedAttachmentId, setFetchedAttachmentId ] =
 				useState( null );
@@ -91,6 +92,7 @@ addFilter(
 				}
 
 				setGenerationMeta( null );
+				setReferenceImages( [] );
 				setFetchedAttachmentId( null );
 			}, [ blockId ] );
 
@@ -120,6 +122,40 @@ addFilter(
 						setFetchedAttachmentId( blockId );
 					} );
 			}, [ isPanelOpen, blockId, fetchedAttachmentId ] );
+
+			useEffect( () => {
+				if (
+					! isPanelOpen ||
+					! generationMeta ||
+					! Array.isArray( generationMeta.reference_image_ids ) ||
+					! generationMeta.reference_image_ids.length
+				) {
+					setReferenceImages( [] );
+					return;
+				}
+
+				const ids = generationMeta.reference_image_ids.join( ',' );
+				apiFetch( {
+					path: `/wp/v2/media?include=${ ids }&per_page=${ generationMeta.reference_image_ids.length }`,
+				} )
+					.then( ( media ) => {
+						const images = Array.isArray( media )
+							? media
+									.map( ( item ) => ( {
+										id: item.id,
+										url:
+											item.media_details?.sizes?.thumbnail
+												?.source_url ||
+											item.source_url,
+									} ) )
+									.filter( ( item ) => item.url )
+							: [];
+						setReferenceImages( images );
+					} )
+					.catch( () => {
+						setReferenceImages( [] );
+					} );
+			}, [ isPanelOpen, generationMeta ] );
 
 			/**
 			 * Build current image object for the modal
@@ -248,21 +284,29 @@ addFilter(
 												<th>Model</th>
 												<td>{ generationMeta.model }</td>
 											</tr>
-											{ Array.isArray(
-												generationMeta.reference_image_ids
-											) &&
-												generationMeta
-													.reference_image_ids
-													.length > 0 && (
-													<tr>
-														<th>References</th>
-														<td>
-															{ generationMeta.reference_image_ids.join(
-																', '
+											{ referenceImages.length > 0 && (
+												<tr>
+													<th>References</th>
+													<td>
+														<div className="kaigen-generation-meta-images">
+															{ referenceImages.map(
+																( image ) => (
+																	<img
+																		key={
+																			image.id
+																		}
+																		src={
+																			image.url
+																		}
+																		alt=""
+																		className="kaigen-generation-meta-image"
+																	/>
+																)
 															) }
-														</td>
-													</tr>
-												) }
+														</div>
+													</td>
+												</tr>
+											) }
 										</tbody>
 									</table>
 								) }

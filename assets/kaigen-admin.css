@@ -139,6 +139,20 @@
 	font-weight: 600;
 }
 
+.kaigen-generation-meta-images {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.kaigen-generation-meta-image {
+	width: 40px;
+	height: 40px;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid #ccd0d4;
+}
+
 .kaigen-progress-icon {
 	display: inline-flex;
 	align-items: center;
