@@ -8,6 +8,7 @@
 namespace KaiGen\Providers;
 
 use KaiGen\Image_Provider;
+use WP_Error;
 
 /**
  * OpenAI API provider implementation for KaiGen.
@@ -362,6 +363,38 @@ class Image_Provider_OpenAI extends Image_Provider {
 		return [
 			self::DEFAULT_MODEL => 'GPT Image 1.5 (latest model)',
 		];
+	}
+
+	/**
+	 * Gets the estimated image generation time in seconds.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for estimation.
+	 * @return int Estimated time in seconds.
+	 */
+	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
+		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
+
+		switch ( $quality ) {
+			case 'low':
+				return 10;
+			case 'high':
+				return 360;
+			case 'medium':
+			default:
+				return 20;
+		}
+	}
+
+	/**
+	 * Gets the effective model used for a generation request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return string The effective model identifier.
+	 */
+	public function get_effective_model( $quality_setting = '', $additional_params = [] ) {
+		return self::DEFAULT_MODEL;
 	}
 
 	/**

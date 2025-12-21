@@ -8,9 +8,11 @@
  * @param {Object}   [options]                     - Optional parameters for image generation.
  * @param {string}   [options.sourceImageUrl]      - URL of the source image for image-to-image generation.
  * @param {string[]} [options.additionalImageUrls] - Array of additional source image URLs (for GPT Image-1 only).
+ * @param {number[]} [options.sourceImageIds]      - Array of reference image IDs.
  * @param {string}   [options.maskUrl]             - URL of mask image for inpainting (for GPT Image-1 only).
  * @param {string}   [options.moderation]          - Moderation level: 'auto' or 'low' (for GPT Image-1 only).
  * @param {string}   [options.style]               - Style parameter: 'natural' or 'vivid' (for GPT Image-1 only).
+ * @param {Function} [options.onEstimatedTime]     - Callback to receive estimated time in seconds.
  * @return {Promise<void>} A promise that resolves when the image generation is complete.
  */
 export const generateImage = async ( prompt, callback, options = {} ) => {
@@ -46,6 +48,10 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 			data.source_image_urls = options.sourceImageUrls;
 		} else if ( options.sourceImageUrl ) {
 			data.source_image_url = options.sourceImageUrl;
+		}
+
+		if ( options.sourceImageIds && Array.isArray( options.sourceImageIds ) ) {
+			data.source_image_ids = options.sourceImageIds;
 		}
 
 		// Add array of additional image URLs if provided
@@ -85,6 +91,28 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 			)
 		) {
 			data.aspect_ratio = options.aspectRatio;
+		}
+
+		const estimatePromise = wp.apiFetch( {
+			path: '/kaigen/v1/estimated-generation-time',
+			method: 'POST',
+			data,
+		} );
+
+		if ( typeof options.onEstimatedTime === 'function' ) {
+			estimatePromise
+				.then( ( estimateResponse ) => {
+					if (
+						estimateResponse &&
+						typeof estimateResponse.estimated_time_seconds ===
+							'number'
+					) {
+						options.onEstimatedTime(
+							estimateResponse.estimated_time_seconds
+						);
+					}
+				} )
+				.catch( () => {} );
 		}
 
 		const response = await wp.apiFetch( {

@@ -8,6 +8,7 @@
 namespace KaiGen\Providers;
 
 use KaiGen\Image_Provider;
+use WP_Error;
 
 /**
  * This class handles image generation using the Replicate API service.
@@ -175,7 +176,7 @@ class Image_Provider_Replicate extends Image_Provider {
 		// Validate JSON response - if json_decode failed, body will be null.
 		if ( null === $body && json_last_error() !== JSON_ERROR_NONE ) {
 			$raw_body = wp_remote_retrieve_body( $response );
-			return new \WP_Error(
+			return new WP_Error(
 				'replicate_api_error',
 				'Invalid JSON response from Replicate API. Response code: ' . $response_code . '. Body: ' . substr( $raw_body, 0, 200 )
 			);
@@ -184,7 +185,7 @@ class Image_Provider_Replicate extends Image_Provider {
 		// Ensure body is an array for safe access.
 		if ( ! is_array( $body ) ) {
 			$raw_body = wp_remote_retrieve_body( $response );
-			return new \WP_Error(
+			return new WP_Error(
 				'replicate_api_error',
 				'Unexpected response format from Replicate API. Response code: ' . $response_code . '. Body: ' . substr( $raw_body, 0, 200 )
 			);
@@ -196,7 +197,7 @@ class Image_Provider_Replicate extends Image_Provider {
 			if ( isset( $body['detail'] ) ) {
 				$error_message = 'Validation error: ' . ( is_array( $body['detail'] ) ? wp_json_encode( $body['detail'] ) : $body['detail'] );
 			}
-			return new \WP_Error( 'replicate_validation_error', $error_message );
+			return new WP_Error( 'replicate_validation_error', $error_message );
 		}
 
 		// Check for immediate errors in the response.
@@ -211,11 +212,11 @@ class Image_Provider_Replicate extends Image_Provider {
 				strpos( $error_message, 'flagged as sensitive' ) !== false ||
 				strpos( $error_message, 'E005' ) !== false
 			) {
-				return new \WP_Error( 'content_moderation', 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.' );
+				return new WP_Error( 'content_moderation', 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.' );
 			}
 
 			// Return API errors immediately without retry.
-			return new \WP_Error( 'replicate_api_error', $error_message );
+			return new WP_Error( 'replicate_api_error', $error_message );
 		}
 
 		// If we got a completed prediction with output, return it immediately.
@@ -260,7 +261,7 @@ class Image_Provider_Replicate extends Image_Provider {
 		if ( null === $body && json_last_error() !== JSON_ERROR_NONE ) {
 			$raw_body      = wp_remote_retrieve_body( $response );
 			$response_code = wp_remote_retrieve_response_code( $response );
-			return new \WP_Error(
+			return new WP_Error(
 				'replicate_api_error',
 				'Invalid JSON response from Replicate API when checking prediction status. Response code: ' . $response_code . '. Body: ' . substr( $raw_body, 0, 200 )
 			);
@@ -270,7 +271,7 @@ class Image_Provider_Replicate extends Image_Provider {
 		if ( ! is_array( $body ) ) {
 			$raw_body      = wp_remote_retrieve_body( $response );
 			$response_code = wp_remote_retrieve_response_code( $response );
-			return new \WP_Error(
+			return new WP_Error(
 				'replicate_api_error',
 				'Unexpected response format from Replicate API when checking prediction status. Response code: ' . $response_code . '. Body: ' . substr( $raw_body, 0, 200 )
 			);
@@ -289,7 +290,7 @@ class Image_Provider_Replicate extends Image_Provider {
 	public function process_api_response( $response ) {
 
 		if ( ! is_array( $response ) ) {
-			return new \WP_Error( 'replicate_error', 'Invalid response format from Replicate' );
+			return new WP_Error( 'replicate_error', 'Invalid response format from Replicate' );
 		}
 
 		// Check for error in response.
@@ -305,7 +306,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				strpos( $error_message, 'sensitive words' ) !== false ||
 				strpos( $error_message, 'content moderation' ) !== false
 			) {
-				return new \WP_Error(
+				return new WP_Error(
 					'content_moderation',
 					'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.'
 				);
@@ -313,7 +314,7 @@ class Image_Provider_Replicate extends Image_Provider {
 
 			// Check for image-to-image specific errors.
 			if ( strpos( $error_message, 'image' ) !== false && strpos( $error_message, 'parameter' ) !== false ) {
-				return new \WP_Error(
+				return new WP_Error(
 					'image_to_image_error',
 					'Image-to-image generation failed: ' . $error_message . '. Please check that your source image is valid and accessible.'
 				);
@@ -321,14 +322,14 @@ class Image_Provider_Replicate extends Image_Provider {
 
 			// Check for model-specific errors.
 			if ( strpos( $error_message, 'flux-kontext-pro' ) !== false || strpos( $error_message, 'model' ) !== false ) {
-				return new \WP_Error(
+				return new WP_Error(
 					'model_error',
 					'Model error: ' . $error_message . '. The image-to-image model may be temporarily unavailable.'
 				);
 			}
 
 			// Return the raw error for other cases.
-			return new \WP_Error( 'replicate_error', $error_message );
+			return new WP_Error( 'replicate_error', $error_message );
 		}
 
 		// Check the prediction status.
@@ -348,7 +349,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				strpos( $error_details . $logs, 'parameter' ) !== false
 			) {
 				$error_message = 'Image-to-image generation failed. Please check that your source image is valid and accessible.';
-				return new \WP_Error( 'image_to_image_failed', $error_message );
+				return new WP_Error( 'image_to_image_failed', $error_message );
 			}
 
 			// Look for content moderation failures in both error and logs.
@@ -360,7 +361,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				strpos( $error_details . $logs, 'E005' ) !== false
 			) {
 				$error_message = 'Your prompt contains content that violates AI safety guidelines. Please try rephrasing it.';
-				return new \WP_Error( 'content_moderation', $error_message );
+				return new WP_Error( 'content_moderation', $error_message );
 			}
 
 			// Use the specific error message if available.
@@ -368,7 +369,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				$error_message = $error_details;
 			}
 
-			return new \WP_Error( 'generation_failed', $error_message );
+			return new WP_Error( 'generation_failed', $error_message );
 		}
 
 		// Handle succeeded status with direct output URL.
@@ -379,14 +380,14 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		// Return pending error with prediction ID for polling.
 		if ( isset( $response['id'] ) ) {
-			return new \WP_Error(
+			return new WP_Error(
 				'replicate_pending',
 				'Image generation is still processing',
 				[ 'prediction_id' => $response['id'] ]
 			);
 		}
 
-		return new \WP_Error( 'replicate_error', 'No image data in response' );
+		return new WP_Error( 'replicate_error', 'No image data in response' );
 	}
 
 	/**
@@ -410,6 +411,50 @@ class Image_Provider_Replicate extends Image_Provider {
 			'bytedance/seedream-4.5'  => 'Seedream 4.5 by Bytedance (high quality)',
 			'google/nano-banana-pro'  => 'Nano Banana Pro by Google (highest quality)',
 		];
+	}
+
+	/**
+	 * Gets the estimated image generation time in seconds.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for estimation.
+	 * @return int Estimated time in seconds.
+	 */
+	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
+		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
+		$model   = $this->get_effective_model( $quality, $additional_params );
+
+		switch ( $model ) {
+			case 'prunaai/hidream-l1-fast':
+				return 4;
+			case 'bytedance/seedream-4.5':
+				return 20;
+			case 'google/nano-banana-pro':
+				return 40;
+			default:
+				return 30;
+		}
+	}
+
+	/**
+	 * Gets the effective model used for a generation request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return string The effective model identifier.
+	 */
+	public function get_effective_model( $quality_setting = '', $additional_params = [] ) {
+		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
+		$model   = $this->model ? $this->model : $this->get_model_from_quality_setting( $quality );
+
+		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
+			! empty( $additional_params['source_image_url'] );
+
+		if ( $has_source_images ) {
+			$model = $this->get_image_to_image_model();
+		}
+
+		return $model;
 	}
 
 	/**
@@ -464,7 +509,7 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		if ( is_wp_error( $head_response ) ) {
 			$error_message = 'Image URL not accessible: ' . $head_response->get_error_message();
-			return new \WP_Error( 'image_not_accessible', $error_message );
+			return new WP_Error( 'image_not_accessible', $error_message );
 		}
 
 		// Check if the URL is local.
@@ -492,18 +537,18 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		if ( is_wp_error( $response ) ) {
 			$error_message = 'Failed to download image: ' . $response->get_error_message();
-			return new \WP_Error( 'image_download_failed', $error_message );
+			return new WP_Error( 'image_download_failed', $error_message );
 		}
 
 		$response_code = wp_remote_retrieve_response_code( $response );
 		if ( 200 !== $response_code ) {
 			$error_message = "Failed to download image: HTTP {$response_code}";
-			return new \WP_Error( 'image_download_failed', $error_message );
+			return new WP_Error( 'image_download_failed', $error_message );
 		}
 
 		$image_data = wp_remote_retrieve_body( $response );
 		if ( empty( $image_data ) ) {
-			return new \WP_Error( 'empty_image_data', 'Downloaded image data is empty' );
+			return new WP_Error( 'empty_image_data', 'Downloaded image data is empty' );
 		}
 
 		// Get the content type.

@@ -5,11 +5,11 @@ import {
 	Button,
 	TextareaControl,
 	Modal,
-	Spinner,
 	Dropdown,
 	Dashicon,
 } from '@wordpress/components';
 import { generateImage, fetchReferenceImages } from '../api';
+import useGenerationProgress from '../hooks/useGenerationProgress';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
 
@@ -35,11 +35,13 @@ const GenerateImageModal = ( {
 	const [ referenceImages, setReferenceImages ] = useState( [] );
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
 	const [ aspectRatio, setAspectRatio ] = useState( '1:1' );
+	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
-	const provider =
-		wp.data.select( 'core/editor' )?.getEditorSettings()?.kaigen_provider ||
-		'replicate';
+	const editorSettings =
+		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
+	const provider = editorSettings.kaigen_provider || 'replicate';
 	const maxRefs = provider === 'replicate' ? 10 : 16;
+	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
 
 	useEffect( () => {
 		if ( isOpen ) {
@@ -78,15 +80,24 @@ const GenerateImageModal = ( {
 			return;
 		}
 		setIsLoading( true );
+		setEstimatedDurationMs( null );
 		setError( null );
 
 		const options = {};
 		if ( selectedRefs.length > 0 ) {
 			options.sourceImageUrls = selectedRefs.map( ( ref ) => ref.url );
+			options.sourceImageIds = selectedRefs
+				.map( ( ref ) => ref.id )
+				.filter( ( id ) => Number.isInteger( id ) && id > 0 );
 		}
 		if ( aspectRatio ) {
 			options.aspectRatio = aspectRatio;
 		}
+		options.onEstimatedTime = ( estimatedSecondsValue ) => {
+			if ( typeof estimatedSecondsValue === 'number' ) {
+				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
+			}
+		};
 
 		generateImage(
 			prompt.trim(),
@@ -111,6 +122,7 @@ const GenerateImageModal = ( {
 		setPrompt( '' );
 		setError( null );
 		setSelectedRefs( [] );
+		setEstimatedDurationMs( null );
 		onClose();
 	};
 
@@ -275,11 +287,7 @@ const GenerateImageModal = ( {
 						disabled={ isLoading || ! prompt.trim() }
 						aria-label="Generate Image"
 					>
-						{ isLoading ? (
-							<Spinner />
-						) : (
-							<Dashicon icon="admin-appearance" />
-						) }
+						<Dashicon icon="admin-appearance" />
 					</Button>
 				) }
 
@@ -364,6 +372,26 @@ const GenerateImageModal = ( {
 					) }
 				/>
 			</div>
+			{ isLoading && (
+				<div className="kaigen-modal__progress">
+					<div className="kaigen-modal__progress-label">
+						Generating... { progress }%
+					</div>
+					<div
+						className="kaigen-modal__progress-track"
+						role="progressbar"
+						aria-valuenow={ progress }
+						aria-valuemin={ 0 }
+						aria-valuemax={ 100 }
+						aria-label="Image generation progress"
+					>
+						<div
+							className="kaigen-modal__progress-fill"
+							style={ { width: `${ progress }%` } }
+						/>
+					</div>
+				</div>
+			) }
 		</Modal>
 	);
 };
