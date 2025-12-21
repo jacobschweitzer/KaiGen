@@ -31,9 +31,7 @@ const useGenerationProgress = ( isActive, expectedDurationMs ) => {
 		const interval = setInterval( () => {
 			const elapsed = Date.now() - startTimeRef.current;
 			const nextProgress = Math.min(
-				Math.round(
-					( elapsed / durationRef.current ) * 100
-				),
+				Math.round( ( elapsed / durationRef.current ) * 100 ),
 				100
 			);
 			setProgress( nextProgress );

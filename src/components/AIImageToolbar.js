@@ -10,14 +10,14 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
 /**
  * AIImageToolbar component for adding AI image generation or regeneration buttons.
  *
- * @param {Object}   props                    - Component properties.
- * @param {boolean}  props.isGenerating       - Indicates if an image is currently being generated.
- * @param {Function} props.onGenerateImage    - Callback to handle image generation.
- * @param {boolean}  [props.isRegenerating]   - Indicates if an image is being regenerated.
- * @param {Function} [props.onImageGenerated] - Callback when image is generated (for regenerate).
- * @param {boolean}  [props.isImageBlock]     - Determines if the current block is an image block.
- * @param {boolean}  [props.isTextSelected]   - Determines if text is selected to trigger generation.
- * @param {Object}   [props.currentImage]     - The current image data for regeneration (url, id, alt).
+ * @param {Object}   props                       - Component properties.
+ * @param {boolean}  props.isGenerating          - Indicates if an image is currently being generated.
+ * @param {Function} props.onGenerateImage       - Callback to handle image generation.
+ * @param {boolean}  [props.isRegenerating]      - Indicates if an image is being regenerated.
+ * @param {Function} [props.onImageGenerated]    - Callback when image is generated (for regenerate).
+ * @param {boolean}  [props.isImageBlock]        - Determines if the current block is an image block.
+ * @param {boolean}  [props.isTextSelected]      - Determines if text is selected to trigger generation.
+ * @param {Object}   [props.currentImage]        - The current image data for regeneration (url, id, alt).
  * @param {number}   [props.estimatedDurationMs] - Estimated time in milliseconds for progress tracking.
  * @return {JSX.Element|null} Returns the toolbar with the appropriate button or null if conditions are unmet.
  */

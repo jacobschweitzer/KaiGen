@@ -125,9 +125,7 @@ const FormatEditComponent = ( { value } ) => {
 				{
 					onEstimatedTime: ( estimatedSeconds ) => {
 						if ( typeof estimatedSeconds === 'number' ) {
-							setEstimatedDurationMs(
-								estimatedSeconds * 1000
-							);
+							setEstimatedDurationMs( estimatedSeconds * 1000 );
 						}
 					},
 				}

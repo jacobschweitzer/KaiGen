@@ -145,8 +145,7 @@ addFilter(
 										id: item.id,
 										url:
 											item.media_details?.sizes?.thumbnail
-												?.source_url ||
-											item.source_url,
+												?.source_url || item.source_url,
 									} ) )
 									.filter( ( item ) => item.url )
 							: [];
@@ -282,7 +281,9 @@ addFilter(
 											</tr>
 											<tr>
 												<th>Model</th>
-												<td>{ generationMeta.model }</td>
+												<td>
+													{ generationMeta.model }
+												</td>
 											</tr>
 											{ referenceImages.length > 0 && (
 												<tr>

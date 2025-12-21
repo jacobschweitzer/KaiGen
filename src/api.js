@@ -50,7 +50,10 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 			data.source_image_url = options.sourceImageUrl;
 		}
 
-		if ( options.sourceImageIds && Array.isArray( options.sourceImageIds ) ) {
+		if (
+			options.sourceImageIds &&
+			Array.isArray( options.sourceImageIds )
+		) {
 			data.source_image_ids = options.sourceImageIds;
 		}
 
