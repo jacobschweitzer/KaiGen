@@ -2,7 +2,7 @@
 Contributors:      Jacob Schweitzer
 Tags:              block
 Tested up to:      6.9
-Stable tag:        0.2.5
+Stable tag:        0.2.6
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,7 +38,7 @@ This plugin connects to third-party AI image generation services to create image
 * API Endpoint: https://api.openai.com/v1/images/generations and https://api.openai.com/v1/images/edits
 * Terms of Service: https://openai.com/terms/
 * Privacy Policy: https://openai.com/privacy/
-* Models supported: GPT Image 1 
+* Models supported: GPT Image 1.5
 
 = Replicate API =
 * What it is: Replicate's machine learning model hosting service for various AI image generation models

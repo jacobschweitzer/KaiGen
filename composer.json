@@ -1,0 +1,30 @@
+{
+	"name": "jacobschweitzer/kaigen",
+	"description": "A plugin to generate images using AI.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"authors": [
+		{
+			"name": "Jacob Schweitzer",
+			"email": "jacoballanschweitzer@gmail.com"
+		}
+	],
+	"require-dev": {
+		"php": ">=7.0",
+		"squizlabs/php_codesniffer": "^3.7",
+		"wp-coding-standards/wpcs": "^3.0",
+		"phpcompatibility/phpcompatibility-wp": "^2.1"
+	},
+	"scripts": {
+		"phpcs": "phpcs",
+		"phpcbf": "phpcbf"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"require": {
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+	}
+}
