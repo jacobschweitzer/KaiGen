@@ -156,6 +156,11 @@ class Image_Provider_OpenAI extends Image_Provider {
 			$body .= 'Content-Disposition: form-data; name="quality"' . "\r\n\r\n";
 			$body .= $quality . "\r\n";
 
+			// Add moderation parameter.
+			$body .= "--{$boundary}\r\n";
+			$body .= 'Content-Disposition: form-data; name="moderation"' . "\r\n\r\n";
+			$body .= "low\r\n";
+
 			// Add format parameter (jpeg is faster than png).
 			$body .= "--{$boundary}\r\n";
 			$body .= 'Content-Disposition: form-data; name="output_format"' . "\r\n\r\n";
@@ -184,6 +189,7 @@ class Image_Provider_OpenAI extends Image_Provider {
 				'model'         => self::DEFAULT_MODEL,
 				'prompt'        => $prompt,
 				'quality'       => $quality,
+				'moderation'    => 'low',
 				'output_format' => 'jpeg',
 			];
 
