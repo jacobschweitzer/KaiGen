@@ -107,28 +107,28 @@ class Admin {
 				}
 
 				// Add the provider setting in all possible locations to ensure it's available.
-				$settings['kaigen_provider']                         = $provider;
-				$settings['kaigen_quality']                          = $quality;
-				$settings['kaigen_provider_model']                   = $provider_model;
+				$settings['kaigen_provider']                          = $provider;
+				$settings['kaigen_quality']                           = $quality;
+				$settings['kaigen_provider_model']                    = $provider_model;
 				$settings['kaigen_estimated_generation_time_seconds'] = $estimated_time;
 
 				if ( ! isset( $settings['kaigen'] ) ) {
 					$settings['kaigen'] = [];
 				}
-				$settings['kaigen']['provider']                         = $provider;
-				$settings['kaigen']['quality']                          = $quality;
-				$settings['kaigen']['provider_model']                   = $provider_model;
+				$settings['kaigen']['provider']                          = $provider;
+				$settings['kaigen']['quality']                           = $quality;
+				$settings['kaigen']['provider_model']                    = $provider_model;
 				$settings['kaigen']['estimated_generation_time_seconds'] = $estimated_time;
 
 				// Add to editor settings directly.
 				if ( ! isset( $settings['kaigen_settings'] ) ) {
 					$settings['kaigen_settings'] = [];
 				}
-				$settings['kaigen_settings']['provider']                         = $provider;
-				$settings['kaigen_settings']['quality']                          = $quality;
-				$settings['kaigen_settings']['provider_model']                   = $provider_model;
+				$settings['kaigen_settings']['provider']                          = $provider;
+				$settings['kaigen_settings']['quality']                           = $quality;
+				$settings['kaigen_settings']['provider_model']                    = $provider_model;
 				$settings['kaigen_settings']['estimated_generation_time_seconds'] = $estimated_time;
-				$settings['kaigen_has_api_key']          = ! empty( $provider ) && ! empty( $api_keys[ $provider ] );
+				$settings['kaigen_has_api_key']                                   = ! empty( $provider ) && ! empty( $api_keys[ $provider ] );
 
 				return $settings;
 			},

@@ -6,6 +6,7 @@
  */
 
 namespace KaiGen;
+
 use WP_Error;
 
 /**
@@ -236,6 +237,7 @@ final class Rest_API {
 	/**
 	 * Saves generation metadata on the post when available.
 	 *
+	 * @param int             $attachment_id The attachment ID.
 	 * @param WP_REST_Request $request The request object.
 	 * @param string          $provider_id The provider ID.
 	 * @param string          $model The resolved model.
@@ -264,11 +266,11 @@ final class Rest_API {
 		$provider_instance = new $provider_class( $api_key, $model );
 		$effective_model   = $provider_instance->get_effective_model( $quality, $additional_params );
 
-		$meta = [
-			'prompt'  => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
+		$meta             = [
+			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
 			'provider' => sanitize_text_field( $provider_id ),
-			'quality' => sanitize_text_field( $quality ),
-			'model'   => sanitize_text_field( $effective_model ),
+			'quality'  => sanitize_text_field( $quality ),
+			'model'    => sanitize_text_field( $effective_model ),
 		];
 		$source_image_ids = $request->get_param( 'source_image_ids' );
 		if ( is_array( $source_image_ids ) ) {

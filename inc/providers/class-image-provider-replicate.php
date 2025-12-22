@@ -421,8 +421,8 @@ class Image_Provider_Replicate extends Image_Provider {
 	 * @return int Estimated time in seconds.
 	 */
 	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
-		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
-		$model   = $this->get_effective_model( $quality, $additional_params );
+		$quality           = $quality_setting ? $quality_setting : self::get_quality_setting();
+		$model             = $this->get_effective_model( $quality, $additional_params );
 		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
 			! empty( $additional_params['source_image_url'] );
 
