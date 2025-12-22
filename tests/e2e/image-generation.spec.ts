@@ -485,9 +485,8 @@ test.describe( 'KaiGen Image Generation', () => {
 		const kaiGenPanelToggle = page.getByRole( 'button', {
 			name: 'KaiGen Settings',
 		} );
-		const isPanelExpanded = await kaiGenPanelToggle.getAttribute(
-			'aria-expanded'
-		);
+		const isPanelExpanded =
+			await kaiGenPanelToggle.getAttribute( 'aria-expanded' );
 		if ( isPanelExpanded !== 'true' ) {
 			await kaiGenPanelToggle.click();
 		}
@@ -531,9 +530,9 @@ test.describe( 'KaiGen Image Generation', () => {
 		let selectedCount = 0;
 		for ( let attempt = 0; attempt < 3; attempt++ ) {
 			await selectedReference.click( { force: true } );
-			selectedCount = await page.locator(
-				'.kaigen-modal-reference-image-selected'
-			).count();
+			selectedCount = await page
+				.locator( '.kaigen-modal-reference-image-selected' )
+				.count();
 			if ( selectedCount > 0 ) {
 				break;
 			}
