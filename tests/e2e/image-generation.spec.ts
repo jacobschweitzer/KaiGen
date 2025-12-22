@@ -258,9 +258,9 @@ test.describe( 'KaiGen Image Generation', () => {
 
 		await generateButton.click();
 
-		// Wait for generation to start (button should show spinner)
+		// Wait for generation to start (progress bar should appear)
 		await expect(
-			page.locator( '.kaigen-modal__submit-button .components-spinner' )
+			page.locator( '.kaigen-modal__progress [role="progressbar"]' )
 		).toBeVisible( { timeout: 5000 } );
 
 		// Wait for generation to complete (mocked response should be quick)
@@ -387,7 +387,7 @@ test.describe( 'KaiGen Image Generation', () => {
 
 		// Wait for generation to start
 		await expect(
-			page.locator( '.kaigen-modal__submit-button .components-spinner' )
+			page.locator( '.kaigen-modal__progress [role="progressbar"]' )
 		).toBeVisible( { timeout: 5000 } );
 
 		// Wait for generation to complete
