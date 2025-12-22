@@ -79,6 +79,10 @@ async function configureKaiGenProvider( page: any ) {
 }
 
 test.describe( 'KaiGen Image Generation', () => {
+	const tinyPngBuffer = Buffer.from(
+		'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+		'base64'
+	);
 	/**
 	 * Configure provider once before all tests
 	 */
@@ -444,6 +448,120 @@ test.describe( 'KaiGen Image Generation', () => {
 				throw error;
 			}
 		}
+	} );
+
+	/**
+	 * Test image generation with a reference image.
+	 */
+	test( 'should generate image with reference thumbnails in settings', async ( {
+		editor,
+		page,
+	} ) => {
+		// Insert image block
+		await editor.insertBlock( { name: 'core/image' } );
+
+		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
+		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
+
+		// Upload a small reference image
+		const uploadButton = imageBlock.getByRole( 'button', {
+			name: /upload/i,
+		} );
+		await expect( uploadButton ).toBeVisible( { timeout: 10000 } );
+		await uploadButton.click();
+
+		const fileInput = editor.canvas.locator( 'input[type="file"]' );
+		await expect( fileInput ).toBeAttached( { timeout: 10000 } );
+		await fileInput.setInputFiles( {
+			name: 'reference.png',
+			mimeType: 'image/png',
+			buffer: tinyPngBuffer,
+		} );
+
+		const insertedImage = imageBlock.locator( 'img' );
+		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+
+		// Mark the image as a reference
+		const kaiGenPanelToggle = page.getByRole( 'button', {
+			name: 'KaiGen Settings',
+		} );
+		const isPanelExpanded = await kaiGenPanelToggle.getAttribute(
+			'aria-expanded'
+		);
+		if ( isPanelExpanded !== 'true' ) {
+			await kaiGenPanelToggle.click();
+		}
+
+		const referenceCheckbox = page.getByRole( 'checkbox', {
+			name: 'Reference image',
+		} );
+		await expect( referenceCheckbox ).toBeVisible( { timeout: 5000 } );
+		if ( ! ( await referenceCheckbox.isChecked() ) ) {
+			await referenceCheckbox.check();
+			await page.waitForTimeout( 1000 );
+		}
+
+		// Open KaiGen modal from the toolbar
+		await imageBlock.click();
+		const kaiGenButton = page.getByRole( 'button', {
+			name: 'KaiGen',
+			exact: true,
+		} );
+		await expect( kaiGenButton.first() ).toBeVisible( { timeout: 10000 } );
+		await kaiGenButton.first().click();
+
+		// Wait for modal
+		const modal = page.locator( '.components-modal__screen-overlay' );
+		await expect( modal ).toBeVisible( { timeout: 10000 } );
+
+		// Open reference images dropdown and select the reference thumbnail
+		const referenceToggle = page.getByRole( 'button', {
+			name: 'Reference Images',
+		} );
+		await expect( referenceToggle ).toBeVisible( { timeout: 5000 } );
+		await referenceToggle.click();
+
+		const referenceThumbnails = page.locator(
+			'.kaigen-modal-reference-image'
+		);
+		await expect
+			.poll( async () => referenceThumbnails.count() )
+			.toBeGreaterThan( 0 );
+		const selectedReference = referenceThumbnails.first();
+		let selectedCount = 0;
+		for ( let attempt = 0; attempt < 3; attempt++ ) {
+			await selectedReference.click( { force: true } );
+			selectedCount = await page.locator(
+				'.kaigen-modal-reference-image-selected'
+			).count();
+			if ( selectedCount > 0 ) {
+				break;
+			}
+			await page.waitForTimeout( 300 );
+		}
+		expect( selectedCount ).toBeGreaterThan( 0 );
+
+		// Enter prompt
+		const promptInput = page.getByPlaceholder( 'Image prompt...' );
+		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+		await promptInput.fill( 'A cinematic forest scene' );
+
+		// Click generate button
+		const generateButton = page.getByRole( 'button', {
+			name: 'Generate Image',
+		} );
+		await expect( generateButton ).toBeVisible( { timeout: 5000 } );
+		await generateButton.click();
+
+		// Wait for generation to start
+		await expect(
+			page.locator( '.kaigen-modal__progress [role="progressbar"]' )
+		).toBeVisible( { timeout: 5000 } );
+
+		// Wait for generation to complete
+		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
+
+		// Reference selection should be reflected in the modal before generation.
 	} );
 
 	/**
