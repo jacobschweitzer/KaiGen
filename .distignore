@@ -16,7 +16,6 @@ playwright.config.ts
 .editorconfig
 .gitignore
 .gitattributes
-CLAUDE.md
 README.md
 
 # Build configuration files
