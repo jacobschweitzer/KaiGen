@@ -51,3 +51,4 @@ KaiGen is an AI image generation tool. This is a WordPress plugin using KaiGen t
 - Add provider/server integration: `inc/` (new handler + hooks/filters), then expose in `src/`.
 - Update settings UI: `src/admin.js`; settings persistence in `inc/`.
 - Adjust build outputs: edit `src/` and run `npm run build` (avoid direct edits in `build/`).
+- Version update: Update version in `kaigen.php` ("Version: "), readme.txt ("Stable tag: "), and `package.json` ("version"). 
