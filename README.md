@@ -92,8 +92,8 @@ This plugin connects to third-party AI image generation services to create image
 
 ## Models Supported
 - [HiDream-I1 Fast by PrunaAI (low quality)](https://replicate.com/prunaai/hidream-l1-fast)
-- [Seedream 4.5 by ByteDance (high quality)](https://replicate.com/bytedance/seedream-4.5)
-- [Nano Banana Pro by Google (highest quality)](https://replicate.com/google/nano-banana-pro)
+- [Seedream 4.5 by ByteDance (medium quality)](https://replicate.com/bytedance/seedream-4.5)
+- [Nano Banana Pro by Google (high quality)](https://replicate.com/google/nano-banana-pro)
 - [GPT Image 1.5 by OpenAI](https://platform.openai.com/docs/guides/images)
 
 ## Source Code
