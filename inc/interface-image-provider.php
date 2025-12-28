@@ -84,4 +84,22 @@ interface Image_Provider_Interface {
 	 * @return bool True if the model was successfully set, false otherwise.
 	 */
 	public function set_model( $model );
+
+	/**
+	 * Gets the estimated image generation time in seconds.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for estimation.
+	 * @return int Estimated time in seconds.
+	 */
+	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] );
+
+	/**
+	 * Resolves the model to use for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return string The resolved model identifier.
+	 */
+	public function get_model_for_request( $quality_setting = '', $additional_params = [] );
 }

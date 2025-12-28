@@ -5,11 +5,11 @@ import {
 	Button,
 	TextareaControl,
 	Modal,
-	Spinner,
 	Dropdown,
 	Dashicon,
 } from '@wordpress/components';
 import { generateImage, fetchReferenceImages } from '../api';
+import useGenerationProgress from '../hooks/useGenerationProgress';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
 
@@ -35,15 +35,20 @@ const GenerateImageModal = ( {
 	const [ referenceImages, setReferenceImages ] = useState( [] );
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
 	const [ aspectRatio, setAspectRatio ] = useState( '1:1' );
+	const [ quality, setQuality ] = useState( 'medium' );
+	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
-	const provider =
-		wp.data.select( 'core/editor' )?.getEditorSettings()?.kaigen_provider ||
-		'replicate';
+	const editorSettings =
+		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
+	const provider = editorSettings.kaigen_provider || 'replicate';
+	const defaultQuality = editorSettings.kaigen_quality || 'medium';
 	const maxRefs = provider === 'replicate' ? 10 : 16;
+	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
 
 	useEffect( () => {
 		if ( isOpen ) {
 			fetchReferenceImages().then( setReferenceImages );
+			setQuality( defaultQuality );
 
 			// Pre-select initial reference image if provided
 			if ( initialReferenceImage && initialReferenceImage.url ) {
@@ -52,7 +57,7 @@ const GenerateImageModal = ( {
 				setSelectedRefs( [] );
 			}
 		}
-	}, [ isOpen, initialReferenceImage ] );
+	}, [ isOpen, initialReferenceImage, defaultQuality ] );
 
 	/**
 	 * Handles Enter key press in textarea
@@ -78,15 +83,27 @@ const GenerateImageModal = ( {
 			return;
 		}
 		setIsLoading( true );
+		setEstimatedDurationMs( null );
 		setError( null );
 
 		const options = {};
 		if ( selectedRefs.length > 0 ) {
 			options.sourceImageUrls = selectedRefs.map( ( ref ) => ref.url );
+			options.sourceImageIds = selectedRefs
+				.map( ( ref ) => ref.id )
+				.filter( ( id ) => Number.isInteger( id ) && id > 0 );
 		}
 		if ( aspectRatio ) {
 			options.aspectRatio = aspectRatio;
 		}
+		if ( quality ) {
+			options.quality = quality;
+		}
+		options.onEstimatedTime = ( estimatedSecondsValue ) => {
+			if ( typeof estimatedSecondsValue === 'number' ) {
+				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
+			}
+		};
 
 		generateImage(
 			prompt.trim(),
@@ -111,6 +128,8 @@ const GenerateImageModal = ( {
 		setPrompt( '' );
 		setError( null );
 		setSelectedRefs( [] );
+		setQuality( defaultQuality );
+		setEstimatedDurationMs( null );
 		onClose();
 	};
 
@@ -275,11 +294,7 @@ const GenerateImageModal = ( {
 						disabled={ isLoading || ! prompt.trim() }
 						aria-label="Generate Image"
 					>
-						{ isLoading ? (
-							<Spinner />
-						) : (
-							<Dashicon icon="admin-appearance" />
-						) }
+						<Dashicon icon="admin-appearance" />
 					</Button>
 				) }
 
@@ -360,10 +375,56 @@ const GenerateImageModal = ( {
 									</button>
 								) ) }
 							</div>
+							<h4 className="kaigen-modal-dropdown-content-title">
+								Quality
+							</h4>
+							<div className="kaigen-modal-quality-container">
+								{ [
+									{ value: 'low', label: 'Low' },
+									{ value: 'medium', label: 'Medium' },
+									{ value: 'high', label: 'High' },
+								].map( ( opt ) => (
+									<button
+										type="button"
+										key={ opt.value }
+										onClick={ () =>
+											setQuality( opt.value )
+										}
+										aria-pressed={ quality === opt.value }
+										className={ `kaigen-modal__quality-button ${
+											quality === opt.value
+												? 'kaigen-modal__quality-button-selected'
+												: ''
+										}` }
+									>
+										{ opt.label }
+									</button>
+								) ) }
+							</div>
 						</div>
 					) }
 				/>
 			</div>
+			{ isLoading && (
+				<div className="kaigen-modal__progress">
+					<div className="kaigen-modal__progress-label">
+						Generating... { progress }%
+					</div>
+					<div
+						className="kaigen-modal__progress-track"
+						role="progressbar"
+						aria-valuenow={ progress }
+						aria-valuemin={ 0 }
+						aria-valuemax={ 100 }
+						aria-label="Image generation progress"
+					>
+						<div
+							className="kaigen-modal__progress-fill"
+							style={ { width: `${ progress }%` } }
+						/>
+					</div>
+				</div>
+			) }
 		</Modal>
 	);
 };

@@ -27,6 +27,12 @@ addFilter(
 				typeof props.attributes.id === 'number' &&
 				props.attributes.id > 0;
 			const [ hasInitialized, setHasInitialized ] = useState( false );
+			const [ generationMeta, setGenerationMeta ] = useState( null );
+			const [ isMetaLoading, setIsMetaLoading ] = useState( false );
+			const [ referenceImages, setReferenceImages ] = useState( [] );
+			const [ isPanelOpen, setIsPanelOpen ] = useState( false );
+			const [ fetchedAttachmentId, setFetchedAttachmentId ] =
+				useState( null );
 
 			// Destructure props for useEffect dependencies
 			const {
@@ -79,6 +85,76 @@ addFilter(
 				hasInitialized,
 				setAttributes,
 			] );
+
+			useEffect( () => {
+				if ( ! blockId ) {
+					return;
+				}
+
+				setGenerationMeta( null );
+				setReferenceImages( [] );
+				setFetchedAttachmentId( null );
+			}, [ blockId ] );
+
+			useEffect( () => {
+				if ( ! isPanelOpen || ! blockId ) {
+					return;
+				}
+
+				if ( fetchedAttachmentId === blockId ) {
+					return;
+				}
+
+				setIsMetaLoading( true );
+				apiFetch( {
+					path: `/kaigen/v1/generation-meta?attachment_id=${ blockId }`,
+				} )
+					.then( ( meta ) => {
+						setGenerationMeta(
+							meta && Object.keys( meta ).length ? meta : null
+						);
+					} )
+					.catch( () => {
+						setGenerationMeta( null );
+					} )
+					.finally( () => {
+						setIsMetaLoading( false );
+						setFetchedAttachmentId( blockId );
+					} );
+			}, [ isPanelOpen, blockId, fetchedAttachmentId ] );
+
+			useEffect( () => {
+				if (
+					! isPanelOpen ||
+					! generationMeta ||
+					! Array.isArray( generationMeta.reference_image_ids ) ||
+					! generationMeta.reference_image_ids.length
+				) {
+					setReferenceImages( [] );
+					return;
+				}
+
+				const ids = generationMeta.reference_image_ids.join( ',' );
+				apiFetch( {
+					path: `/wp/v2/media?include=${ ids }&per_page=${ generationMeta.reference_image_ids.length }`,
+				} )
+					.then( ( media ) => {
+						const images = Array.isArray( media )
+							? media
+									.map( ( item ) => ( {
+										id: item.id,
+										url:
+											item.media_details?.sizes?.thumbnail
+												?.source_url || item.source_url,
+									} ) )
+									.filter( ( item ) => item.url )
+							: [];
+						setReferenceImages( images );
+					} )
+					.catch( () => {
+						setReferenceImages( [] );
+					} );
+			}, [ isPanelOpen, generationMeta ] );
 
 			/**
 			 * Build current image object for the modal
@@ -137,6 +213,9 @@ addFilter(
 							<PanelBody
 								title="KaiGen Settings"
 								initialOpen={ false }
+								onToggle={ ( nextOpen ) => {
+									setIsPanelOpen( nextOpen );
+								} }
 							>
 								<CheckboxControl
 									label="Reference image"
@@ -174,6 +253,64 @@ addFilter(
 									} }
 									help="Add to the list of reference images."
 								/>
+								{ isMetaLoading && (
+									<p className="kaigen-generation-meta-loading">
+										Loading generation details...
+									</p>
+								) }
+								{ ! isMetaLoading && generationMeta && (
+									<table className="kaigen-generation-meta-table">
+										<tbody>
+											<tr>
+												<th>Prompt</th>
+												<td>
+													{ generationMeta.prompt }
+												</td>
+											</tr>
+											<tr>
+												<th>Provider</th>
+												<td>
+													{ generationMeta.provider }
+												</td>
+											</tr>
+											<tr>
+												<th>Quality</th>
+												<td>
+													{ generationMeta.quality }
+												</td>
+											</tr>
+											<tr>
+												<th>Model</th>
+												<td>
+													{ generationMeta.model }
+												</td>
+											</tr>
+											{ referenceImages.length > 0 && (
+												<tr>
+													<th>References</th>
+													<td>
+														<div className="kaigen-generation-meta-images">
+															{ referenceImages.map(
+																( image ) => (
+																	<img
+																		key={
+																			image.id
+																		}
+																		src={
+																			image.url
+																		}
+																		alt=""
+																		className="kaigen-generation-meta-image"
+																	/>
+																)
+															) }
+														</div>
+													</td>
+												</tr>
+											) }
+										</tbody>
+									</table>
+								) }
 							</PanelBody>
 						</InspectorControls>
 					) }

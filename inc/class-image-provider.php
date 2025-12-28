@@ -62,6 +62,28 @@ abstract class Image_Provider implements Image_Provider_Interface {
 	}
 
 	/**
+	 * Gets the estimated image generation time in seconds.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for estimation.
+	 * @return int Estimated time in seconds.
+	 */
+	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
+		return 30;
+	}
+
+	/**
+	 * Resolves the model to use for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return string The resolved model identifier.
+	 */
+	public function get_model_for_request( $quality_setting = '', $additional_params = [] ) {
+		return $this->model;
+	}
+
+	/**
 	 * Prepares the headers for API requests.
 	 *
 	 * @return array The headers array for the API request.

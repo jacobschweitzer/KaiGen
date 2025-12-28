@@ -2,7 +2,7 @@
 Contributors:      Jacob Schweitzer
 Tags:              block
 Tested up to:      6.9
-Stable tag:        0.2.6
+Stable tag:        0.2.7
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,7 +47,7 @@ This plugin connects to third-party AI image generation services to create image
 * API Endpoint: https://api.replicate.com/v1/models/ and https://api.replicate.com/v1/predictions/
 * Terms of Service: https://replicate.com/terms
 * Privacy Policy: https://replicate.com/privacy
-* Models supported: low quality (HiDream-I1 by Pruna AI), medium quality (Seedream 4.5 by ByteDance), and high quality (Nano Banana Pro by Google).
+* Models supported: low quality (HiDream-I1 Fast by PrunaAI), medium quality (Seedream 4.5 by ByteDance), and high quality (Nano Banana Pro by Google).
 
 Important: You must obtain your own API keys from these services and are responsible for complying with their respective terms of service and privacy policies. The plugin does not collect, store, or transmit any of your data to any other parties.
 
@@ -67,6 +67,7 @@ This plugin uses @wordpress/scripts build system. To build from source:
 1. Install Node.js and npm
 2. Run: npm install
 3. Run: npm run build
+The build/ directory is committed and used by WordPress at runtime; do not edit it directly.
 
 For development: npm run start
 For more details see the README.md file.

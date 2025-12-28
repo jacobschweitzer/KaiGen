@@ -7,6 +7,8 @@
 
 namespace KaiGen;
 
+use WP_Error;
+
 /**
  * Handles all REST API endpoints and functionality for the plugin.
  */
@@ -98,6 +100,28 @@ final class Rest_API {
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+
+		// Register the estimated generation time endpoint.
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/estimated-generation-time',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'get_estimated_generation_time' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		// Register the generation metadata endpoint.
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/generation-meta',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'get_generation_meta' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -120,55 +144,166 @@ final class Rest_API {
 		$prompt      = $request->get_param( 'prompt' );
 		$provider_id = $request->get_param( 'provider' );
 
+		// Get additional parameters with defaults.
+		$additional_params = $this->get_additional_params( $request );
+
 		// Get provider model.
-		$model = $this->get_provider_model( $provider_id );
+		$model = $this->get_provider_model( $provider_id, $additional_params );
 		if ( is_wp_error( $model ) ) {
 			return $model;
 		}
 
-		// Get additional parameters with defaults.
-		$additional_params = $this->get_additional_params( $request );
-
 		// Handle retries for image generation.
-		return $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
+		$response = $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
+
+		if ( $response instanceof \WP_REST_Response ) {
+			$response_data = $response->get_data();
+			if ( ! empty( $response_data['id'] ) ) {
+				$this->maybe_save_generation_meta(
+					absint( $response_data['id'] ),
+					$request,
+					$provider_id,
+					$model
+				);
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Gets the estimated generation time for a request.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error The response or error.
+	 */
+	public function get_estimated_generation_time( $request ) {
+		$provider_id = $request->get_param( 'provider' );
+		if ( empty( $provider_id ) ) {
+			return new WP_Error( 'invalid_provider', 'Provider is required.', [ 'status' => 400 ] );
+		}
+
+		$additional_params = $this->get_additional_params( $request );
+		$model             = $this->get_provider_model( $provider_id, $additional_params );
+		if ( is_wp_error( $model ) ) {
+			return $model;
+		}
+		$quality  = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
+		$provider = kaigen_provider_manager()->get_provider( $provider_id );
+
+		if ( ! $provider ) {
+			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}", [ 'status' => 400 ] );
+		}
+
+		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
+		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
+
+		$provider_class    = get_class( $provider );
+		$provider_instance = new $provider_class( $api_key, $model );
+		$estimated_time    = (int) $provider_instance->get_estimated_generation_time( $quality, $additional_params );
+
+		return new \WP_REST_Response(
+			[ 'estimated_time_seconds' => $estimated_time ],
+			200
+		);
+	}
+
+	/**
+	 * Gets the stored generation metadata for a post.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error The response or error.
+	 */
+	public function get_generation_meta( $request ) {
+		$attachment_id = absint( $request->get_param( 'attachment_id' ) );
+		if ( ! $attachment_id ) {
+			return new WP_Error( 'invalid_attachment_id', 'Attachment ID is required.', [ 'status' => 400 ] );
+		}
+
+		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+			return new WP_Error( 'forbidden', 'You do not have permission to view this attachment.', [ 'status' => 403 ] );
+		}
+
+		$meta = get_post_meta( $attachment_id, 'kaigen_generation_meta', true );
+		if ( ! is_array( $meta ) ) {
+			$meta = [];
+		}
+
+		return new \WP_REST_Response( $meta, 200 );
+	}
+
+	/**
+	 * Saves generation metadata on the post when available.
+	 *
+	 * @param int             $attachment_id The attachment ID.
+	 * @param WP_REST_Request $request The request object.
+	 * @param string          $provider_id The provider ID.
+	 * @param string          $model The resolved model.
+	 * @return void
+	 */
+	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model ) {
+		if ( ! $attachment_id ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+			return;
+		}
+
+		$quality = $request->get_param( 'quality' );
+		if ( ! in_array( $quality, [ 'low', 'medium', 'high' ], true ) ) {
+			$quality = Image_Provider::get_quality_setting();
+		}
+		$meta             = [
+			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
+			'provider' => sanitize_text_field( $provider_id ),
+			'quality'  => sanitize_text_field( $quality ),
+			'model'    => sanitize_text_field( $model ),
+		];
+		$source_image_ids = $request->get_param( 'source_image_ids' );
+		if ( is_array( $source_image_ids ) ) {
+			$sanitized_ids = array_values(
+				array_filter(
+					array_map( 'absint', $source_image_ids )
+				)
+			);
+			if ( ! empty( $sanitized_ids ) ) {
+				$meta['reference_image_ids'] = $sanitized_ids;
+			}
+		}
+
+		update_post_meta( $attachment_id, 'kaigen_generation_meta', $meta );
 	}
 
 	/**
 	 * Gets the model for a specific provider.
 	 *
 	 * @param string $provider_id The provider ID.
+	 * @param array  $additional_params Additional parameters.
 	 * @return string|WP_Error The model or error.
 	 */
-	private function get_provider_model( $provider_id ) {
-		// For Replicate, get the model based on quality setting.
-		if ( 'replicate' === $provider_id ) {
-			$quality = Image_Provider::get_quality_setting();
-
-			$provider = kaigen_provider_manager()->get_provider( $provider_id );
-			if ( $provider ) {
-				$model = $provider->get_model_from_quality_setting( $quality );
-				return $model;
-			}
+	private function get_provider_model( $provider_id, $additional_params = [] ) {
+		$provider = kaigen_provider_manager()->get_provider( $provider_id );
+		if ( ! $provider ) {
+			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}", [ 'status' => 400 ] );
 		}
 
-		// For other providers, use the stored model or default.
 		$provider_models = get_option( 'kaigen_provider_models', [] );
-		$default_models  = [
-			'openai' => 'dall-e-3',
-		];
+		$stored_model    = $provider_models[ $provider_id ] ?? '';
+		$quality         = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
 
-		if ( ! empty( $provider_models[ $provider_id ] ) ) {
-			return $provider_models[ $provider_id ];
+		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
+		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
+
+		$provider_class    = get_class( $provider );
+		$provider_instance = new $provider_class( $api_key, $stored_model );
+		$model             = $provider_instance->get_model_for_request( $quality, $additional_params );
+
+		if ( empty( $model ) ) {
+			return new WP_Error( 'model_not_set', "No model set for provider: {$provider_id}", [ 'status' => 400 ] );
 		}
 
-		if ( ! empty( $default_models[ $provider_id ] ) ) {
-			$model                           = $default_models[ $provider_id ];
-			$provider_models[ $provider_id ] = $model;
-			update_option( 'kaigen_provider_models', $provider_models );
-			return $model;
-		}
-
-		return new \WP_Error( 'model_not_set', "No model set for provider: {$provider_id}", [ 'status' => 400 ] );
+		return $model;
 	}
 
 	/**
@@ -183,6 +318,10 @@ final class Rest_API {
 		$quality_value    = 'hd' === $quality ? 100 : 80;
 		$quality_settings = get_option( 'kaigen_quality_settings', [] );
 		$style_value      = isset( $quality_settings['style'] ) ? $quality_settings['style'] : 'natural';
+		$quality_override = $request->get_param( 'quality' );
+		if ( in_array( $quality_override, [ 'low', 'medium', 'high' ], true ) ) {
+			$quality = $quality_override;
+		}
 
 		$defaults = [
 			'num_outputs'    => 1,
@@ -200,6 +339,7 @@ final class Rest_API {
 		foreach ( $defaults as $key => $default ) {
 			$params[ $key ] = $request->get_param( $key ) ?? $default;
 		}
+		$params['quality'] = $quality;
 
 		// Add source image URL if provided (single or array).
 		$source_image_urls = $request->get_param( 'source_image_urls' );
@@ -275,7 +415,7 @@ final class Rest_API {
 					// Handle failed status with content filtering error.
 					if ( isset( $result['status'] ) && 'failed' === $result['status'] ) {
 						if ( isset( $result['error'] ) && strpos( $result['error'], 'flagged by safety filters' ) !== false ) {
-							return new \WP_Error(
+							return new WP_Error(
 								'content_filtered',
 								'The image was flagged by the provider\'s safety filters. Please modify your prompt and try again.',
 								[ 'status' => 400 ]
@@ -356,7 +496,7 @@ final class Rest_API {
 				++$retry_count;
 
 				if ( $retry_count >= $max_retries ) {
-					return new \WP_Error(
+					return new WP_Error(
 						'api_error',
 						'Failed after ' . $max_retries . ' attempts: ' . $e->getMessage(),
 						[ 'status' => 500 ]
@@ -381,7 +521,7 @@ final class Rest_API {
 	private function make_provider_request( $provider_id, $prompt, $model, $additional_params ) {
 		$provider = kaigen_provider_manager()->get_provider( $provider_id );
 		if ( ! $provider ) {
-			return new \WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}" );
+			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}" );
 		}
 
 		// Get API keys from options.

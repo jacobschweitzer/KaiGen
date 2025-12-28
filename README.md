@@ -32,7 +32,7 @@ File exclusion is managed by `.distignore` which excludes development files like
 - Tests (`/tests`, `/playwright`)
 - Node modules (`/node_modules`)
 - Configuration files (`package.json`, `playwright.config.ts`)
-- Development documentation (`README.md`, `CLAUDE.md`)
+- Development documentation (`README.md`, `AGENTS.md`)
 
 ### Creating a New Release
 To create a new versioned release:
@@ -67,7 +67,7 @@ To create a new versioned release:
 This plugin connects to third-party AI image generation services to create images based on your prompts. **No data is sent to these services without your explicit action** - images are only generated when you click the "Generate Image" button.
 
 ### OpenAI API
-- **What it is:** OpenAI's image generation service (DALL-E)
+- **What it is:** OpenAI's image generation service (GPT-Image)
 - **What data is sent:** Your text prompt and selected image parameters (size, quality, etc.)
 - **When data is sent:** Only when you click "Generate Image" with OpenAI selected as your provider
 - **API Endpoint:** `https://api.openai.com/v1/images/generations` and `https://api.openai.com/v1/images/edits`
@@ -91,9 +91,9 @@ This plugin connects to third-party AI image generation services to create image
 
 
 ## Models Supported
-- [HiDream-I1 by Pruna AI](https://replicate.com/prunaai/hidream-l1-fast)
-- [Seedream 4.5 by ByteDance](https://replicate.com/bytedance/seedream-4.5)
-- [Nano Banana Pro by Google](https://replicate.com/google/nano-banana-pro)
+- [HiDream-I1 Fast by PrunaAI (low quality)](https://replicate.com/prunaai/hidream-l1-fast)
+- [Seedream 4.5 by ByteDance (medium quality)](https://replicate.com/bytedance/seedream-4.5)
+- [Nano Banana Pro by Google (high quality)](https://replicate.com/google/nano-banana-pro)
 - [GPT Image 1.5 by OpenAI](https://platform.openai.com/docs/guides/images)
 
 ## Source Code
@@ -161,6 +161,7 @@ npm run format
 ```
 
 The build process uses `@wordpress/scripts` which internally uses webpack to bundle and optimize the JavaScript files. Source maps are generated during development builds for debugging.
+The `build/` directory is committed and used by WordPress at runtime; do not edit it directly.
 
 ## Testing
 
@@ -168,13 +169,16 @@ The build process uses `@wordpress/scripts` which internally uses webpack to bun
 
 KaiGen includes comprehensive end-to-end tests that run without making actual API calls. The tests use HTTP mocking to intercept external requests and return predictable responses.
 
-To run e2e tests:
+To run e2e tests, Playwright starts WordPress Playground automatically:
 
 ```bash
-# Start WordPress Playground with e2e test configuration
-npm run playground:start
+npm run test:e2e
+```
 
-# In another terminal, run the tests
+Optional manual start (useful for debugging in the browser):
+
+```bash
+npm run playground:start
 npm run test:e2e
 ```
 

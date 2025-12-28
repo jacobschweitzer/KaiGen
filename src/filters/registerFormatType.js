@@ -17,6 +17,7 @@ import { generateImage } from '../api'; // Import API function for image generat
 const FormatEditComponent = ( { value } ) => {
 	// Create state for generation state.
 	const [ isGenerating, setIsGenerating ] = useState( false ); // Indicates if an image is being generated.
+	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
 	// Retrieve the currently selected block.
 	const selectedBlock = useSelect(
@@ -76,45 +77,59 @@ const FormatEditComponent = ( { value } ) => {
 			] );
 
 			setIsGenerating( true ); // Set generating state.
+			setEstimatedDurationMs( null );
 
 			// Call the API function to generate the image.
-			generateImage( selectedText, ( result ) => {
-				setIsGenerating( false ); // Reset generating state.
+			generateImage(
+				selectedText,
+				( result ) => {
+					setIsGenerating( false ); // Reset generating state.
+					setEstimatedDurationMs( null );
 
-				if ( result.error ) {
-					wp.data
-						.dispatch( 'core/notices' )
-						.createErrorNotice(
-							'Failed to generate image: ' + result.error,
-							{ type: 'snackbar' }
+					if ( result.error ) {
+						wp.data
+							.dispatch( 'core/notices' )
+							.createErrorNotice(
+								'Failed to generate image: ' + result.error,
+								{ type: 'snackbar' }
+							);
+						// Remove the placeholder block on error.
+						replaceBlocks( placeholderBlock.clientId, [] );
+					} else {
+						// Create a new image block with the image details
+						const blockAttributes = {
+							url: result.url,
+							alt: result.alt,
+							caption: '',
+						};
+
+						// Only add ID attribute if it's a valid WordPress media ID
+						if (
+							result.id &&
+							typeof result.id === 'number' &&
+							result.id > 0
+						) {
+							blockAttributes.id = result.id;
+						}
+
+						const imageBlock = wp.blocks.createBlock(
+							'core/image',
+							blockAttributes
 						);
-					// Remove the placeholder block on error.
-					replaceBlocks( placeholderBlock.clientId, [] );
-				} else {
-					// Create a new image block with the image details
-					const blockAttributes = {
-						url: result.url,
-						alt: result.alt,
-						caption: '',
-					};
-
-					// Only add ID attribute if it's a valid WordPress media ID
-					if (
-						result.id &&
-						typeof result.id === 'number' &&
-						result.id > 0
-					) {
-						blockAttributes.id = result.id;
+						// Replace the placeholder with the new image block.
+						replaceBlocks( placeholderBlock.clientId, [
+							imageBlock,
+						] );
 					}
-
-					const imageBlock = wp.blocks.createBlock(
-						'core/image',
-						blockAttributes
-					);
-					// Replace the placeholder with the new image block.
-					replaceBlocks( placeholderBlock.clientId, [ imageBlock ] );
+				},
+				{
+					onEstimatedTime: ( estimatedSeconds ) => {
+						if ( typeof estimatedSeconds === 'number' ) {
+							setEstimatedDurationMs( estimatedSeconds * 1000 );
+						}
+					},
 				}
-			} );
+			);
 		}
 	}, [ selectedBlock, value.text, value.start, value.end, replaceBlocks ] );
 
@@ -128,6 +143,7 @@ const FormatEditComponent = ( { value } ) => {
 				isGenerating={ isGenerating }
 				onGenerateImage={ handleGenerateImage }
 				isTextSelected={ isTextSelected }
+				estimatedDurationMs={ estimatedDurationMs }
 			/>
 		</BlockControls>
 	);
