@@ -188,8 +188,8 @@ final class Rest_API {
 		if ( is_wp_error( $model ) ) {
 			return $model;
 		}
-		$quality           = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
-		$provider          = kaigen_provider_manager()->get_provider( $provider_id );
+		$quality  = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
+		$provider = kaigen_provider_manager()->get_provider( $provider_id );
 
 		if ( ! $provider ) {
 			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}", [ 'status' => 400 ] );
