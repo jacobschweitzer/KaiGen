@@ -194,9 +194,9 @@ class Image_Provider_OpenAI extends Image_Provider {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt -- Needed to prevent low-speed aborts for long-running requests.
 			curl_setopt( $handle, CURLOPT_CONNECTTIMEOUT, 30 );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt -- Needed to prevent low-speed aborts for long-running requests.
-			curl_setopt( $handle, CURLOPT_LOW_SPEED_TIME, 0 );
+			curl_setopt( $handle, CURLOPT_LOW_SPEED_TIME, 180 );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt -- Needed to prevent low-speed aborts for long-running requests.
-			curl_setopt( $handle, CURLOPT_LOW_SPEED_LIMIT, 0 );
+			curl_setopt( $handle, CURLOPT_LOW_SPEED_LIMIT, 1 );
 		};
 
 		add_action( 'http_api_curl', $curl_override, 10, 3 );
