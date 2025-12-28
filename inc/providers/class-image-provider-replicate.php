@@ -79,9 +79,6 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		$input_data = [ 'prompt' => $prompt ];
 
-		// Determine which model to use.
-		$model_to_use = $this->model;
-
 		// Handle source image URLs (can be single string or array).
 		$source_image_urls = $additional_params['source_image_urls'] ?? $additional_params['source_image_url'] ?? null;
 		if ( ! empty( $source_image_urls ) ) {
@@ -101,7 +98,6 @@ class Image_Provider_Replicate extends Image_Provider {
 			}
 
 			if ( ! empty( $image_inputs ) ) {
-				$model_to_use              = $this->get_image_to_image_model();
 				$input_data['image_input'] = $image_inputs;
 
 				// Set size to 2K for low quality image edits (seedream-4.5 only supports "2K", "4K", or "custom").
@@ -153,7 +149,7 @@ class Image_Provider_Replicate extends Image_Provider {
 			),
 		];
 
-		$api_url = self::API_BASE_URL . "{$model_to_use}/predictions";
+		$api_url = self::API_BASE_URL . "{$this->model}/predictions";
 
 		// Make initial request with shorter timeout since we're just waiting for the URL.
 		$response = wp_remote_post(
@@ -408,8 +404,8 @@ class Image_Provider_Replicate extends Image_Provider {
 	public function get_available_models() {
 		return [
 			'prunaai/hidream-l1-fast' => 'HiDream-I1 Fast by PrunaAI (low quality)',
-			'bytedance/seedream-4.5'  => 'Seedream 4.5 by Bytedance (high quality)',
-			'google/nano-banana-pro'  => 'Nano Banana Pro by Google (highest quality)',
+			'bytedance/seedream-4.5'  => 'Seedream 4.5 by Bytedance (medium quality)',
+			'google/nano-banana-pro'  => 'Nano Banana Pro by Google (high quality)',
 		];
 	}
 
@@ -422,7 +418,7 @@ class Image_Provider_Replicate extends Image_Provider {
 	 */
 	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
 		$quality           = $quality_setting ? $quality_setting : self::get_quality_setting();
-		$model             = $this->get_effective_model( $quality, $additional_params );
+		$model             = $this->model ? $this->model : $this->get_model_from_quality_setting( $quality, $additional_params );
 		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
 			! empty( $additional_params['source_image_url'] );
 
@@ -449,34 +445,14 @@ class Image_Provider_Replicate extends Image_Provider {
 	}
 
 	/**
-	 * Gets the effective model used for a generation request.
-	 *
-	 * @param string $quality_setting Optional quality setting.
-	 * @param array  $additional_params Optional additional parameters for the request.
-	 * @return string The effective model identifier.
-	 */
-	public function get_effective_model( $quality_setting = '', $additional_params = [] ) {
-		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
-		$model   = $this->model ? $this->model : $this->get_model_from_quality_setting( $quality );
-
-		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
-			! empty( $additional_params['source_image_url'] );
-
-		if ( $has_source_images ) {
-			$model = $this->get_image_to_image_model();
-		}
-
-		return $model;
-	}
-
-	/**
 	 * Gets the image-to-image model for Replicate based on quality setting.
 	 *
+	 * @param string $quality_setting The quality setting.
 	 * @return string The image-to-image model.
 	 */
-	private function get_image_to_image_model() {
+	private function get_image_to_image_model( $quality_setting ) {
 		$model   = 'bytedance/seedream-4.5';
-		$quality = self::get_quality_setting();
+		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
 
 		if ( 'high' === $quality ) {
 			$model = 'google/nano-banana-pro';
@@ -489,9 +465,17 @@ class Image_Provider_Replicate extends Image_Provider {
 	 * Gets the model from the quality setting.
 	 *
 	 * @param string $quality_setting The quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
 	 * @return string The model.
 	 */
-	public function get_model_from_quality_setting( $quality_setting ) {
+	public function get_model_from_quality_setting( $quality_setting, $additional_params = [] ) {
+		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
+			! empty( $additional_params['source_image_url'] );
+
+		if ( $has_source_images ) {
+			return $this->get_image_to_image_model( $quality_setting );
+		}
+
 		switch ( $quality_setting ) {
 			case 'low':
 				$model = 'prunaai/hidream-l1-fast';

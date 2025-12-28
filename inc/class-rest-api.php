@@ -144,14 +144,14 @@ final class Rest_API {
 		$prompt      = $request->get_param( 'prompt' );
 		$provider_id = $request->get_param( 'provider' );
 
+		// Get additional parameters with defaults.
+		$additional_params = $this->get_additional_params( $request );
+
 		// Get provider model.
-		$model = $this->get_provider_model( $provider_id );
+		$model = $this->get_provider_model( $provider_id, $additional_params );
 		if ( is_wp_error( $model ) ) {
 			return $model;
 		}
-
-		// Get additional parameters with defaults.
-		$additional_params = $this->get_additional_params( $request );
 
 		// Handle retries for image generation.
 		$response = $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
@@ -163,8 +163,7 @@ final class Rest_API {
 					absint( $response_data['id'] ),
 					$request,
 					$provider_id,
-					$model,
-					$additional_params
+					$model
 				);
 			}
 		}
@@ -184,12 +183,11 @@ final class Rest_API {
 			return new WP_Error( 'invalid_provider', 'Provider is required.', [ 'status' => 400 ] );
 		}
 
-		$model = $this->get_provider_model( $provider_id );
+		$additional_params = $this->get_additional_params( $request );
+		$model             = $this->get_provider_model( $provider_id, $additional_params );
 		if ( is_wp_error( $model ) ) {
 			return $model;
 		}
-
-		$additional_params = $this->get_additional_params( $request );
 		$quality           = Image_Provider::get_quality_setting();
 		$provider          = kaigen_provider_manager()->get_provider( $provider_id );
 
@@ -241,10 +239,9 @@ final class Rest_API {
 	 * @param WP_REST_Request $request The request object.
 	 * @param string          $provider_id The provider ID.
 	 * @param string          $model The resolved model.
-	 * @param array           $additional_params Additional parameters.
 	 * @return void
 	 */
-	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model, $additional_params ) {
+	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model ) {
 		if ( ! $attachment_id ) {
 			return;
 		}
@@ -254,23 +251,11 @@ final class Rest_API {
 		}
 
 		$quality  = Image_Provider::get_quality_setting();
-		$provider = kaigen_provider_manager()->get_provider( $provider_id );
-		if ( ! $provider ) {
-			return;
-		}
-
-		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
-		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
-
-		$provider_class    = get_class( $provider );
-		$provider_instance = new $provider_class( $api_key, $model );
-		$effective_model   = $provider_instance->get_effective_model( $quality, $additional_params );
-
 		$meta             = [
 			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
 			'provider' => sanitize_text_field( $provider_id ),
 			'quality'  => sanitize_text_field( $quality ),
-			'model'    => sanitize_text_field( $effective_model ),
+			'model'    => sanitize_text_field( $model ),
 		];
 		$source_image_ids = $request->get_param( 'source_image_ids' );
 		if ( is_array( $source_image_ids ) ) {
@@ -291,16 +276,17 @@ final class Rest_API {
 	 * Gets the model for a specific provider.
 	 *
 	 * @param string $provider_id The provider ID.
+	 * @param array  $additional_params Additional parameters.
 	 * @return string|WP_Error The model or error.
 	 */
-	private function get_provider_model( $provider_id ) {
+	private function get_provider_model( $provider_id, $additional_params = [] ) {
 		// For Replicate, get the model based on quality setting.
 		if ( 'replicate' === $provider_id ) {
 			$quality = Image_Provider::get_quality_setting();
 
 			$provider = kaigen_provider_manager()->get_provider( $provider_id );
 			if ( $provider ) {
-				$model = $provider->get_model_from_quality_setting( $quality );
+				$model = $provider->get_model_from_quality_setting( $quality, $additional_params );
 				return $model;
 			}
 		}
@@ -308,7 +294,7 @@ final class Rest_API {
 		// For other providers, use the stored model or default.
 		$provider_models = get_option( 'kaigen_provider_models', [] );
 		$default_models  = [
-			'openai' => 'dall-e-3',
+			'openai' => 'gpt-image-1.5',
 		];
 
 		if ( ! empty( $provider_models[ $provider_id ] ) ) {

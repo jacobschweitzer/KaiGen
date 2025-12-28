@@ -405,17 +405,6 @@ class Image_Provider_OpenAI extends Image_Provider {
 	}
 
 	/**
-	 * Gets the effective model used for a generation request.
-	 *
-	 * @param string $quality_setting Optional quality setting.
-	 * @param array  $additional_params Optional additional parameters for the request.
-	 * @return string The effective model identifier.
-	 */
-	public function get_effective_model( $quality_setting = '', $additional_params = [] ) {
-		return self::DEFAULT_MODEL;
-	}
-
-	/**
 	 * Maps aspect ratio to OpenAI's supported size formats.
 	 *
 	 * @param string $aspect_ratio The desired aspect ratio.

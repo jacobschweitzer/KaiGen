@@ -93,13 +93,4 @@ interface Image_Provider_Interface {
 	 * @return int Estimated time in seconds.
 	 */
 	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] );
-
-	/**
-	 * Gets the effective model used for a generation request.
-	 *
-	 * @param string $quality_setting Optional quality setting.
-	 * @param array  $additional_params Optional additional parameters for the request.
-	 * @return string The effective model identifier.
-	 */
-	public function get_effective_model( $quality_setting = '', $additional_params = [] );
 }
