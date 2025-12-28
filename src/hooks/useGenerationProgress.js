@@ -8,6 +8,7 @@ const useGenerationProgress = ( isActive, expectedDurationMs ) => {
 	const [ progress, setProgress ] = useState( 0 );
 	const durationRef = useRef( DEFAULT_DURATION_MS );
 	const startTimeRef = useRef( null );
+	const lastProgressRef = useRef( 0 );
 
 	useEffect( () => {
 		durationRef.current =
@@ -20,25 +21,28 @@ const useGenerationProgress = ( isActive, expectedDurationMs ) => {
 		if ( ! isActive ) {
 			setProgress( 0 );
 			startTimeRef.current = null;
+			lastProgressRef.current = 0;
 			return undefined;
 		}
 
 		if ( ! startTimeRef.current ) {
 			startTimeRef.current = Date.now();
 			setProgress( 0 );
+			lastProgressRef.current = 0;
 		}
 
 		const interval = setInterval( () => {
 			const elapsed = Date.now() - startTimeRef.current;
 			const nextProgress = Math.min(
-				Math.round( ( elapsed / durationRef.current ) * 100 ),
-				100
+				Math.floor( ( elapsed / durationRef.current ) * 100 ),
+				99
 			);
-			setProgress( nextProgress );
-
-			if ( nextProgress >= 100 ) {
-				clearInterval( interval );
-			}
+			const clampedProgress = Math.max(
+				nextProgress,
+				lastProgressRef.current
+			);
+			lastProgressRef.current = clampedProgress;
+			setProgress( clampedProgress );
 		}, 200 );
 
 		return () => clearInterval( interval );
