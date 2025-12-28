@@ -73,40 +73,8 @@ class Image_Provider_OpenAI extends Image_Provider {
 		$source_image_urls = array_slice( array_unique( $source_image_urls ), 0, 16 );
 
 		$max_retries = 3;
-		$timeout     = 150; // Increased timeout for image generation (docs say up to 2 mins).
+		$timeout     = 360; // Allow long-running high-quality generations.
 		$retry_delay = 2; // Seconds to wait between retries.
-
-		// Add filter to ensure WordPress respects our timeout settings.
-		add_filter(
-			'http_request_timeout',
-			function () use ( $timeout ) {
-				return $timeout;
-			}
-		);
-
-		// Add filter to set cURL options.
-		add_filter(
-			'http_request_args',
-			function ( $args ) use ( $timeout ) {
-				$args['timeout']   = $timeout;
-				$args['sslverify'] = true;
-				$args['blocking']  = true;
-
-				// Set cURL options directly.
-				if ( ! isset( $args['curl'] ) ) {
-					$args['curl'] = [];
-				}
-				$args['curl'][ CURLOPT_TIMEOUT ]        = $timeout;
-				$args['curl'][ CURLOPT_CONNECTTIMEOUT ] = 30; // Increased connect timeout.
-				$args['curl'][ CURLOPT_TCP_KEEPALIVE ]  = 1; // Enable TCP keepalive.
-
-				// Adjust low speed settings to prevent timeouts on slow generation.
-				$args['curl'][ CURLOPT_LOW_SPEED_TIME ]  = 600; // Wait 10 minutes before timing out due to low speed.
-				$args['curl'][ CURLOPT_LOW_SPEED_LIMIT ] = 1; // Only timeout if speed is effectively 0.
-
-				return $args;
-			}
-		);
 
 		// Default to API_BASE_URL.
 		$endpoint = self::API_BASE_URL;
@@ -116,8 +84,16 @@ class Image_Provider_OpenAI extends Image_Provider {
 			$endpoint = self::IMAGE_EDIT_API_BASE_URL;
 		}
 
-		// Get quality setting from admin options.
-		$quality = self::get_quality_setting();
+		// Get quality setting from admin options or request override.
+		$quality = $additional_params['quality'] ?? self::get_quality_setting();
+
+		// Scale timeout based on quality to keep faster requests snappy.
+		$timeout = 180;
+		if ( 'low' === $quality ) {
+			$timeout = 90;
+		} elseif ( 'high' === $quality ) {
+			$timeout = 360;
+		}
 
 		// Map quality settings to supported values.
 		$quality_map = [
@@ -203,8 +179,23 @@ class Image_Provider_OpenAI extends Image_Provider {
 		}
 
 		// Make the API request with retries.
-		$attempt    = 0;
-		$last_error = null;
+		$attempt        = 0;
+		$last_error     = null;
+		$final_response = null;
+		$final_error    = null;
+
+		$curl_override = function ( $handle, $request_args, $url ) use ( $timeout ) {
+			if ( false === strpos( $url, 'api.openai.com' ) ) {
+				return;
+			}
+
+			curl_setopt( $handle, CURLOPT_TIMEOUT, $timeout );
+			curl_setopt( $handle, CURLOPT_CONNECTTIMEOUT, 30 );
+			curl_setopt( $handle, CURLOPT_LOW_SPEED_TIME, 0 );
+			curl_setopt( $handle, CURLOPT_LOW_SPEED_LIMIT, 0 );
+		};
+
+		add_action( 'http_api_curl', $curl_override, 10, 3 );
 
 		while ( $attempt < $max_retries ) {
 			++$attempt;
@@ -230,15 +221,14 @@ class Image_Provider_OpenAI extends Image_Provider {
 					}
 				}
 
-				// For other errors, return immediately.
-				return $response;
+				$final_error = new WP_Error( 'openai_error', 'OpenAI API request failed: ' . $error_message );
+				break;
 			}
 
 			$response_body = wp_remote_retrieve_body( $response );
 			$response_code = wp_remote_retrieve_response_code( $response );
 
 			if ( 200 !== $response_code ) {
-
 				// Parse error response.
 				$error_data = json_decode( $response_body, true );
 				if ( isset( $error_data['error']['message'] ) ) {
@@ -246,7 +236,6 @@ class Image_Provider_OpenAI extends Image_Provider {
 
 					// Check for specific error about image URL in prompt.
 					if ( strpos( $error_message, 'image URL' ) !== false ) {
-
 						// Remove the image URL from the body and retry.
 						$body['prompt'] = $prompt;
 						$retry_response = wp_remote_post(
@@ -263,24 +252,37 @@ class Image_Provider_OpenAI extends Image_Provider {
 							$retry_code = wp_remote_retrieve_response_code( $retry_response );
 
 							if ( $retry_code < 400 ) {
-								return json_decode( $retry_body, true );
+								$final_response = json_decode( $retry_body, true );
+								break;
 							}
 						}
 					}
 
-					return new WP_Error( 'openai_error', $error_message );
+					$final_error = new WP_Error( 'openai_error', $error_message );
+					break;
 				}
 
-				return new WP_Error( 'api_error', "API Error (HTTP $response_code): $response_body" );
+				$final_error = new WP_Error( 'api_error', "API Error (HTTP $response_code): $response_body" );
+				break;
 			}
 
 			// Success! Return the response.
-			return json_decode( $response_body, true );
+			$final_response = json_decode( $response_body, true );
+			break;
 		}
 
-		// If we get here, all retries failed.
+		remove_action( 'http_api_curl', $curl_override, 10 );
+
+		if ( null !== $final_response ) {
+			return $final_response;
+		}
+
+		if ( $final_error ) {
+			return $final_error;
+		}
+
 		if ( $last_error ) {
-			return $last_error;
+			return new WP_Error( 'openai_error', 'OpenAI API request failed: ' . $last_error->get_error_message() );
 		}
 
 		return new WP_Error( 'max_retries_exceeded', 'Maximum retry attempts exceeded' );
@@ -386,7 +388,7 @@ class Image_Provider_OpenAI extends Image_Provider {
 
 		switch ( $quality ) {
 			case 'low':
-				$base_time = 10;
+				$base_time = 15;
 				break;
 			case 'high':
 				$base_time = 60;
@@ -402,6 +404,17 @@ class Image_Provider_OpenAI extends Image_Provider {
 		}
 
 		return $base_time;
+	}
+
+	/**
+	 * Resolves the model to use for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return string The resolved model identifier.
+	 */
+	public function get_model_for_request( $quality_setting = '', $additional_params = [] ) {
+		return self::DEFAULT_MODEL;
 	}
 
 	/**

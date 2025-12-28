@@ -35,17 +35,20 @@ const GenerateImageModal = ( {
 	const [ referenceImages, setReferenceImages ] = useState( [] );
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
 	const [ aspectRatio, setAspectRatio ] = useState( '1:1' );
+	const [ quality, setQuality ] = useState( 'medium' );
 	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
 	const editorSettings =
 		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
 	const provider = editorSettings.kaigen_provider || 'replicate';
+	const defaultQuality = editorSettings.kaigen_quality || 'medium';
 	const maxRefs = provider === 'replicate' ? 10 : 16;
 	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
 
 	useEffect( () => {
 		if ( isOpen ) {
 			fetchReferenceImages().then( setReferenceImages );
+			setQuality( defaultQuality );
 
 			// Pre-select initial reference image if provided
 			if ( initialReferenceImage && initialReferenceImage.url ) {
@@ -54,7 +57,7 @@ const GenerateImageModal = ( {
 				setSelectedRefs( [] );
 			}
 		}
-	}, [ isOpen, initialReferenceImage ] );
+	}, [ isOpen, initialReferenceImage, defaultQuality ] );
 
 	/**
 	 * Handles Enter key press in textarea
@@ -93,6 +96,9 @@ const GenerateImageModal = ( {
 		if ( aspectRatio ) {
 			options.aspectRatio = aspectRatio;
 		}
+		if ( quality ) {
+			options.quality = quality;
+		}
 		options.onEstimatedTime = ( estimatedSecondsValue ) => {
 			if ( typeof estimatedSecondsValue === 'number' ) {
 				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
@@ -122,6 +128,7 @@ const GenerateImageModal = ( {
 		setPrompt( '' );
 		setError( null );
 		setSelectedRefs( [] );
+		setQuality( defaultQuality );
 		setEstimatedDurationMs( null );
 		onClose();
 	};
@@ -365,6 +372,32 @@ const GenerateImageModal = ( {
 										<span className="kaigen-modal-aspect-ratio-label">
 											{ opt.label }
 										</span>
+									</button>
+								) ) }
+							</div>
+							<h4 className="kaigen-modal-dropdown-content-title">
+								Quality
+							</h4>
+							<div className="kaigen-modal-quality-container">
+								{ [
+									{ value: 'low', label: 'Low' },
+									{ value: 'medium', label: 'Medium' },
+									{ value: 'high', label: 'High' },
+								].map( ( opt ) => (
+									<button
+										type="button"
+										key={ opt.value }
+										onClick={ () =>
+											setQuality( opt.value )
+										}
+										aria-pressed={ quality === opt.value }
+										className={ `kaigen-modal__quality-button ${
+											quality === opt.value
+												? 'kaigen-modal__quality-button-selected'
+												: ''
+										}` }
+									>
+										{ opt.label }
 									</button>
 								) ) }
 							</div>

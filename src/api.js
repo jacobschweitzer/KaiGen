@@ -12,6 +12,7 @@
  * @param {string}   [options.maskUrl]             - URL of mask image for inpainting (for GPT Image-1 only).
  * @param {string}   [options.moderation]          - Moderation level: 'auto' or 'low' (for GPT Image-1 only).
  * @param {string}   [options.style]               - Style parameter: 'natural' or 'vivid' (for GPT Image-1 only).
+ * @param {string}   [options.quality]             - Quality level: 'low', 'medium', or 'high'.
  * @param {Function} [options.onEstimatedTime]     - Callback to receive estimated time in seconds.
  * @return {Promise<void>} A promise that resolves when the image generation is complete.
  */
@@ -94,6 +95,14 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 			)
 		) {
 			data.aspect_ratio = options.aspectRatio;
+		}
+
+		// Add quality if provided
+		if (
+			options.quality &&
+			[ 'low', 'medium', 'high' ].includes( options.quality )
+		) {
+			data.quality = options.quality;
 		}
 
 		const estimatePromise = wp.apiFetch( {

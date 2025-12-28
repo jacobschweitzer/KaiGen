@@ -188,7 +188,7 @@ final class Rest_API {
 		if ( is_wp_error( $model ) ) {
 			return $model;
 		}
-		$quality           = Image_Provider::get_quality_setting();
+		$quality           = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
 		$provider          = kaigen_provider_manager()->get_provider( $provider_id );
 
 		if ( ! $provider ) {
@@ -250,7 +250,10 @@ final class Rest_API {
 			return;
 		}
 
-		$quality  = Image_Provider::get_quality_setting();
+		$quality = $request->get_param( 'quality' );
+		if ( ! in_array( $quality, [ 'low', 'medium', 'high' ], true ) ) {
+			$quality = Image_Provider::get_quality_setting();
+		}
 		$meta             = [
 			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
 			'provider' => sanitize_text_field( $provider_id ),
@@ -280,35 +283,27 @@ final class Rest_API {
 	 * @return string|WP_Error The model or error.
 	 */
 	private function get_provider_model( $provider_id, $additional_params = [] ) {
-		// For Replicate, get the model based on quality setting.
-		if ( 'replicate' === $provider_id ) {
-			$quality = Image_Provider::get_quality_setting();
-
-			$provider = kaigen_provider_manager()->get_provider( $provider_id );
-			if ( $provider ) {
-				$model = $provider->get_model_from_quality_setting( $quality, $additional_params );
-				return $model;
-			}
+		$provider = kaigen_provider_manager()->get_provider( $provider_id );
+		if ( ! $provider ) {
+			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}", [ 'status' => 400 ] );
 		}
 
-		// For other providers, use the stored model or default.
 		$provider_models = get_option( 'kaigen_provider_models', [] );
-		$default_models  = [
-			'openai' => 'gpt-image-1.5',
-		];
+		$stored_model    = $provider_models[ $provider_id ] ?? '';
+		$quality         = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
 
-		if ( ! empty( $provider_models[ $provider_id ] ) ) {
-			return $provider_models[ $provider_id ];
+		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
+		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
+
+		$provider_class    = get_class( $provider );
+		$provider_instance = new $provider_class( $api_key, $stored_model );
+		$model             = $provider_instance->get_model_for_request( $quality, $additional_params );
+
+		if ( empty( $model ) ) {
+			return new WP_Error( 'model_not_set', "No model set for provider: {$provider_id}", [ 'status' => 400 ] );
 		}
 
-		if ( ! empty( $default_models[ $provider_id ] ) ) {
-			$model                           = $default_models[ $provider_id ];
-			$provider_models[ $provider_id ] = $model;
-			update_option( 'kaigen_provider_models', $provider_models );
-			return $model;
-		}
-
-		return new WP_Error( 'model_not_set', "No model set for provider: {$provider_id}", [ 'status' => 400 ] );
+		return $model;
 	}
 
 	/**
@@ -323,6 +318,10 @@ final class Rest_API {
 		$quality_value    = 'hd' === $quality ? 100 : 80;
 		$quality_settings = get_option( 'kaigen_quality_settings', [] );
 		$style_value      = isset( $quality_settings['style'] ) ? $quality_settings['style'] : 'natural';
+		$quality_override = $request->get_param( 'quality' );
+		if ( in_array( $quality_override, [ 'low', 'medium', 'high' ], true ) ) {
+			$quality = $quality_override;
+		}
 
 		$defaults = [
 			'num_outputs'    => 1,
@@ -340,6 +339,7 @@ final class Rest_API {
 		foreach ( $defaults as $key => $default ) {
 			$params[ $key ] = $request->get_param( $key ) ?? $default;
 		}
+		$params['quality'] = $quality;
 
 		// Add source image URL if provided (single or array).
 		$source_image_urls = $request->get_param( 'source_image_urls' );

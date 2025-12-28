@@ -67,7 +67,7 @@ To create a new versioned release:
 This plugin connects to third-party AI image generation services to create images based on your prompts. **No data is sent to these services without your explicit action** - images are only generated when you click the "Generate Image" button.
 
 ### OpenAI API
-- **What it is:** OpenAI's image generation service (DALL-E)
+- **What it is:** OpenAI's image generation service (GPT-Image)
 - **What data is sent:** Your text prompt and selected image parameters (size, quality, etc.)
 - **When data is sent:** Only when you click "Generate Image" with OpenAI selected as your provider
 - **API Endpoint:** `https://api.openai.com/v1/images/generations` and `https://api.openai.com/v1/images/edits`

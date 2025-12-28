@@ -101,7 +101,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				$input_data['image_input'] = $image_inputs;
 
 				// Set size to 2K for low quality image edits (seedream-4.5 only supports "2K", "4K", or "custom").
-				$quality = self::get_quality_setting();
+				$quality = $additional_params['quality'] ?? self::get_quality_setting();
 
 				if ( 'low' === $quality ) {
 					$additional_params['size'] = '2K';
@@ -442,6 +442,18 @@ class Image_Provider_Replicate extends Image_Provider {
 		}
 
 		return $base_time;
+	}
+
+	/**
+	 * Resolves the model to use for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return string The resolved model identifier.
+	 */
+	public function get_model_for_request( $quality_setting = '', $additional_params = [] ) {
+		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
+		return $this->model ? $this->model : $this->get_model_from_quality_setting( $quality, $additional_params );
 	}
 
 	/**

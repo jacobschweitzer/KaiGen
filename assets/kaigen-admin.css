@@ -219,6 +219,20 @@
 	background: #f0f8ff;
 }
 
+.kaigen-modal__quality-button {
+	cursor: pointer;
+	padding: 6px 10px;
+	border-radius: 4px;
+	border: 1px solid #ccd0d4;
+	background: #fff;
+	font-size: 12px;
+}
+
+.kaigen-modal__quality-button-selected {
+	border: 2px solid #007cba;
+	background: #f0f8ff;
+}
+
 /* ===== NEW STYLES ===== */
 
 .kaigen-hidden {
@@ -339,6 +353,13 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
+}
+
+.kaigen-modal-quality-container {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 8px;
 }
 
 .kaigen-modal-aspect-ratio-icon-container {
