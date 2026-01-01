@@ -90,6 +90,36 @@ add_filter(
 			}
 		}
 
+		// Mock OpenAI responses endpoint (for alt text generation).
+		if ( str_contains( $url, 'api.openai.com/v1/responses' ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'KaiGen E2E Mock: Returning mocked OpenAI responses output' );
+
+			return [
+				'headers'  => [ 'content-type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'output' => [
+							[
+								'content' => [
+									[
+										'type' => 'output_text',
+										'text' => 'A tiny test image with a simple green checkmark icon.',
+									],
+								],
+							],
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => '',
+			];
+		}
+
 		// Mock OpenAI image generation endpoint.
 		if ( str_contains( $url, 'api.openai.com/v1/images/generations' ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
