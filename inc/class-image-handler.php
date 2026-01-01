@@ -55,8 +55,22 @@ class Image_Handler {
 		$prompt_slug = sanitize_title( $prompt );
 		$prompt_slug = substr( $prompt_slug, 0, 50 ); // Limit length.
 
+		$mime_type = '';
+		$image_info = getimagesizefromstring( $image_data );
+		if ( ! empty( $image_info['mime'] ) ) {
+			$mime_type = $image_info['mime'];
+		}
+
+		// Match the filename extension to the actual image data for reliable attachments (e.g., E2E base64 PNGs).
+		$extension_map = [
+			'image/jpeg' => 'jpg',
+			'image/png'  => 'png',
+			'image/webp' => 'webp',
+		];
+		$extension = $extension_map[ $mime_type ] ?? 'webp';
+
 		// Generate a filename with prompt and unique ID.
-		$filename = 'ai-' . $prompt_slug . '-' . uniqid() . '.webp';
+		$filename = 'ai-' . $prompt_slug . '-' . uniqid() . '.' . $extension;
 
 		$upload = wp_upload_bits( $filename, null, $image_data );
 
