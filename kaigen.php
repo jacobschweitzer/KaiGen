@@ -35,6 +35,9 @@ require_once __DIR__ . '/inc/class-image-provider.php';
 // Load provider manager and admin classes.
 require_once __DIR__ . '/inc/class-provider-manager.php';
 require_once __DIR__ . '/inc/class-admin.php';
+require_once __DIR__ . '/inc/alt-text/class-alt-text-generator-core.php';
+require_once __DIR__ . '/inc/alt-text/class-alt-text-generator-openai.php';
+require_once __DIR__ . '/inc/alt-text/class-alt-text-generator-replicate.php';
 
 // Load REST API functionality.
 require_once __DIR__ . '/inc/class-rest-api.php';
