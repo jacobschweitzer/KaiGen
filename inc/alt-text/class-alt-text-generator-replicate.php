@@ -12,7 +12,9 @@ use WP_Error;
 /**
  * Generates alt text using Replicate.
  */
-class Alt_Text_Generator_Replicate extends Alt_Text_Generator_Core {
+class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
+	use Alt_Text_Generator_Helpers;
+
 	/**
 	 * Replicate API URL for model predictions.
 	 *

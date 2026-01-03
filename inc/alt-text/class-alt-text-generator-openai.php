@@ -12,7 +12,9 @@ use WP_Error;
 /**
  * Generates alt text using OpenAI.
  */
-class Alt_Text_Generator_OpenAI extends Alt_Text_Generator_Core {
+class Alt_Text_Generator_OpenAI implements Alt_Text_Generator_Core {
+	use Alt_Text_Generator_Helpers;
+
 	/**
 	 * OpenAI API URL for responses.
 	 *
