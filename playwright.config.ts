@@ -49,14 +49,14 @@ export default defineConfig( {
 		launchOptions: {
 			headless: true,
 			args: [
-			  '--no-sandbox',
-			  '--disable-dev-shm-usage',
-			  '--disable-background-networking',
-			  '--disable-background-timer-throttling',
-			  '--disable-renderer-backgrounding',
-			  '--disable-ipc-flooding-protection',
+				'--no-sandbox',
+				'--disable-dev-shm-usage',
+				'--disable-background-networking',
+				'--disable-background-timer-throttling',
+				'--disable-renderer-backgrounding',
+				'--disable-ipc-flooding-protection',
 			],
-		  },
+		},
 	},
 
 	/* Configure browsers - focus on Chromium only for CI speed */
@@ -68,7 +68,6 @@ export default defineConfig( {
 				browserName: 'chromium',
 				headless: true,
 			},
-			
 		},
 	],
 

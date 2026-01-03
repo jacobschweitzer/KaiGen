@@ -25,8 +25,7 @@ addFilter(
 
 			const normalizedBlockId = Number( props.attributes.id );
 			const hasValidId =
-				Number.isInteger( normalizedBlockId ) &&
-				normalizedBlockId > 0;
+				Number.isInteger( normalizedBlockId ) && normalizedBlockId > 0;
 			const [ hasInitialized, setHasInitialized ] = useState( false );
 			const [ generationMeta, setGenerationMeta ] = useState( null );
 			const [ isMetaLoading, setIsMetaLoading ] = useState( false );
@@ -38,9 +37,7 @@ addFilter(
 
 			// Destructure props for useEffect dependencies
 			const {
-				attributes: {
-					kaigen_reference_image: referenceImage,
-				},
+				attributes: { kaigen_reference_image: referenceImage },
 				setAttributes,
 			} = props;
 
@@ -379,7 +376,8 @@ addFilter(
 									Generate Alt Text
 								</Button>
 								<p className="components-base-control__help">
-									Generate a descriptive alt text suggestion for this image.
+									Generate a descriptive alt text suggestion
+									for this image.
 								</p>
 								{ isMetaLoading && (
 									<p className="kaigen-generation-meta-loading">

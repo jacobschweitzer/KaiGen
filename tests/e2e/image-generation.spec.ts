@@ -110,13 +110,16 @@ test.describe( 'KaiGen Image Generation', () => {
 			};
 		} );
 		const { clientId, attachmentId } = await imageBlockHandle.jsonValue();
-		await page.evaluate( ( { id, attachment } ) => {
-			( window as any ).wp.data
-				.dispatch( 'core/block-editor' )
-				.updateBlockAttributes( id, {
-					id: Number( attachment ),
-				} );
-		}, { id: clientId, attachment: attachmentId } );
+		await page.evaluate(
+			( { id, attachment } ) => {
+				( window as any ).wp.data
+					.dispatch( 'core/block-editor' )
+					.updateBlockAttributes( id, {
+						id: Number( attachment ),
+					} );
+			},
+			{ id: clientId, attachment: attachmentId }
+		);
 		await page.waitForFunction( () => {
 			const selectedBlock = ( window as any ).wp.data
 				.select( 'core/block-editor' )
@@ -197,10 +200,10 @@ test.describe( 'KaiGen Image Generation', () => {
 		}
 		await page.waitForURL( /post-new\.php|post\.php/ );
 		await page.waitForLoadState( 'domcontentloaded' );
-		await page.waitForSelector(
-			'.edit-post-layout, .block-editor',
-			{ timeout: 15000, state: 'attached' }
-		);
+		await page.waitForSelector( '.edit-post-layout, .block-editor', {
+			timeout: 15000,
+			state: 'attached',
+		} );
 	} );
 
 	/**
@@ -654,16 +657,16 @@ test.describe( 'KaiGen Image Generation', () => {
 	/**
 	 * Test alt text generation for an uploaded image.
 	 */
-test( 'should generate alt text for an uploaded image', async ( {
-	admin,
-	editor,
-	page,
-} ) => {
-	await configureKaiGenProvider( page );
-	await admin.createNewPost( { showWelcomeGuide: false } );
+	test( 'should generate alt text for an uploaded image', async ( {
+		admin,
+		editor,
+		page,
+	} ) => {
+		await configureKaiGenProvider( page );
+		await admin.createNewPost( { showWelcomeGuide: false } );
 
-	// Insert image block
-	await editor.insertBlock( { name: 'core/image' } );
+		// Insert image block
+		await editor.insertBlock( { name: 'core/image' } );
 
 		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
 		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
@@ -703,10 +706,9 @@ test( 'should generate alt text for an uploaded image', async ( {
 		const initialAlt = await insertedImage.getAttribute( 'alt' );
 		await altButton.click();
 
-		const successNotice = page.locator(
-			'.components-snackbar__content',
-			{ hasText: 'Alt text generated.' }
-		);
+		const successNotice = page.locator( '.components-snackbar__content', {
+			hasText: 'Alt text generated.',
+		} );
 		await expect( successNotice ).toBeVisible( { timeout: 15000 } );
 
 		await expect
