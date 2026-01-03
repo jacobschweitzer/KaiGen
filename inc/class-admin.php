@@ -72,21 +72,8 @@ class Admin {
 		add_filter(
 			'block_editor_settings_all',
 			function ( $settings ) {
-				$provider = get_option( 'kaigen_provider', '' );
+				$provider = kaigen_provider_manager()->get_active_provider_id();
 				$api_keys = get_option( 'kaigen_provider_api_keys', [] );
-
-				// If no provider is set but we have active providers, use OpenAI if available, otherwise use the first active provider.
-				if ( empty( $provider ) ) {
-					$active_providers = $this->get_active_providers(); // Get fresh list.
-					if ( ! empty( $active_providers ) ) {
-
-						if ( isset( $api_keys['openai'] ) && ! empty( $api_keys['openai'] ) ) {
-							$provider = 'openai';
-						} else {
-							$provider = $active_providers[0];
-						}
-					}
-				}
 
 				// Ensure settings is an array.
 				if ( ! is_array( $settings ) ) {
@@ -474,20 +461,7 @@ class Admin {
 		// Enqueue block editor scripts.
 		if ( in_array( $hook, [ 'post.php', 'post-new.php' ], true ) ) {
 			// Get the provider setting.
-			$provider = get_option( 'kaigen_provider', '' );
-
-			// If no provider is set but we have active providers, use OpenAI if available, otherwise use the first active provider.
-			if ( empty( $provider ) ) {
-				$active_providers = $this->get_active_providers(); // Get fresh list instead of cached.
-				if ( ! empty( $active_providers ) ) {
-					$api_keys = get_option( 'kaigen_provider_api_keys', [] );
-					if ( isset( $api_keys['openai'] ) && ! empty( $api_keys['openai'] ) ) {
-						$provider = 'openai';
-					} else {
-						$provider = $active_providers[0];
-					}
-				}
-			}
+			$provider = kaigen_provider_manager()->get_active_provider_id();
 
 			// Enqueue admin CSS for block editor.
 			wp_enqueue_style(

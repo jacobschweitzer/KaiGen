@@ -346,17 +346,22 @@ final class Rest_API {
 	 */
 	private function get_alt_text_generator( $provider ) {
 		$provider = strtolower( trim( (string) $provider ) );
-		$class    = apply_filters( 'kaigen_alt_text_generator_class', '', $provider );
+		$active   = kaigen_provider_manager()->get_active_provider_id();
 
-		if ( ! is_string( $class ) || '' === $class ) {
-			return new WP_Error( 'invalid_provider', 'Unknown provider for alt text generation.', [ 'status' => 400 ] );
+		if ( '' === $active || $provider !== $active ) {
+			return new WP_Error( 'invalid_provider', 'Alt text generator is not available for the selected provider.', [ 'status' => 400 ] );
+		}
+
+		$class = kaigen_provider_manager()->get_active_alt_text_generator_class();
+		if ( '' === $class ) {
+			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
 		}
 
 		if ( ! class_exists( $class ) ) {
 			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
 		}
 
-		if ( ! is_subclass_of( $class, Alt_Text_Generator_Core::class ) ) {
+		if ( ! in_array( Alt_Text_Generator_Core::class, class_implements( $class ), true ) ) {
 			return new WP_Error( 'invalid_provider', 'Alt text generator class is invalid.', [ 'status' => 400 ] );
 		}
 
