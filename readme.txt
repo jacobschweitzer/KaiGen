@@ -23,27 +23,28 @@ Click the "KaiGen" button in the block toolbar
 Put a prompt into the input box
 Click the Generate Image button
 View/Edit the inserted image block (the alt text contains the prompt)
+Use "Generate Alt Text" in the block inspector to describe the image
 
 Text to image generation times vary by quality, low quality can be ~1 second, medium quality ~10 seconds, and high quality ~30 seconds or more. 
 Image to image generation times can take up to 2 minutes. 
 
 == External Services ==
 
-This plugin connects to third-party AI image generation services to create images based on your prompts. No data is sent to these services without your explicit action - images are only generated when you click the "Generate Image" button.
+This plugin connects to third-party AI services to generate images and alt text. No data is sent to these services without your explicit action - images are only generated when you click "Generate Image", and alt text is only generated when you click "Generate Alt Text".
 
 = OpenAI API =
 * What it is: OpenAI's image generation service
-* What data is sent: Your text prompt and selected image parameters (size, quality, etc.)
-* When data is sent: Only when you click "Generate Image" with OpenAI selected as your provider
-* API Endpoint: https://api.openai.com/v1/images/generations and https://api.openai.com/v1/images/edits
+* What data is sent: Your text prompt, selected image parameters (size, quality, etc.), and image data for alt text generation
+* When data is sent: Only when you click "Generate Image" or "Generate Alt Text" with OpenAI selected as your provider
+* API Endpoint: https://api.openai.com/v1/images/generations, https://api.openai.com/v1/images/edits, and https://api.openai.com/v1/responses
 * Terms of Service: https://openai.com/terms/
 * Privacy Policy: https://openai.com/privacy/
 * Models supported: GPT Image 1.5
 
 = Replicate API =
 * What it is: Replicate's machine learning model hosting service for various AI image generation models
-* What data is sent: Your text prompt and selected model parameters
-* When data is sent: Only when you click "Generate Image" with a Replicate model selected as your provider
+* What data is sent: Your text prompt, selected model parameters, and image data for alt text generation
+* When data is sent: Only when you click "Generate Image" or "Generate Alt Text" with Replicate selected as your provider
 * API Endpoint: https://api.replicate.com/v1/models/ and https://api.replicate.com/v1/predictions/
 * Terms of Service: https://replicate.com/terms
 * Privacy Policy: https://replicate.com/privacy
