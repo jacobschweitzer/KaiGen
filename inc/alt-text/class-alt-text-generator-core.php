@@ -8,23 +8,9 @@
 namespace KaiGen;
 
 /**
- * Interface for alt text generators.
- */
-interface Alt_Text_Generator_Interface {
-	/**
-	 * Generates alt text using a provider.
-	 *
-	 * @param string $prompt The prompt describing the image.
-	 * @param string $image_data_url Base64 data URL of the image.
-	 * @return string|WP_Error Alt text or error on failure.
-	 */
-	public function generate( $prompt, $image_data_url = '' );
-}
-
-/**
  * Shared helpers for alt text generators.
  */
-abstract class Alt_Text_Generator_Core implements Alt_Text_Generator_Interface {
+abstract class Alt_Text_Generator_Core {
 	/**
 	 * Registers default alt text generator classes.
 	 *
@@ -33,7 +19,7 @@ abstract class Alt_Text_Generator_Core implements Alt_Text_Generator_Interface {
 	public static function register_filters() {
 		add_filter(
 			'kaigen_alt_text_generator_class',
-			function ( $class, $provider ) {
+			function ( $class_name, $provider ) {
 				$provider = strtolower( trim( (string) $provider ) );
 
 				$map = [
@@ -41,7 +27,7 @@ abstract class Alt_Text_Generator_Core implements Alt_Text_Generator_Interface {
 					'replicate' => Alt_Text_Generator_Replicate::class,
 				];
 
-				return $map[ $provider ] ?? $class;
+				return $map[ $provider ] ?? $class_name;
 			},
 			10,
 			2
@@ -74,7 +60,6 @@ abstract class Alt_Text_Generator_Core implements Alt_Text_Generator_Interface {
 		$content = trim( (string) $content, "\" \n\r\t" );
 		return sanitize_text_field( $content );
 	}
-
 }
 
 Alt_Text_Generator_Core::register_filters();

@@ -342,7 +342,7 @@ final class Rest_API {
 	 * Resolves an alt text generator for the selected provider.
 	 *
 	 * @param string $provider The provider key.
-	 * @return Alt_Text_Generator_Interface|WP_Error Generator instance or error.
+	 * @return Alt_Text_Generator_Core|WP_Error Generator instance or error.
 	 */
 	private function get_alt_text_generator( $provider ) {
 		$provider = strtolower( trim( (string) $provider ) );
@@ -356,7 +356,7 @@ final class Rest_API {
 			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
 		}
 
-		if ( ! is_subclass_of( $class, Alt_Text_Generator_Interface::class ) ) {
+		if ( ! is_subclass_of( $class, Alt_Text_Generator_Core::class ) ) {
 			return new WP_Error( 'invalid_provider', 'Alt text generator class is invalid.', [ 'status' => 400 ] );
 		}
 
@@ -386,7 +386,7 @@ final class Rest_API {
 			if ( ! is_array( $phrases ) ) {
 				continue;
 			}
-			$key = sanitize_key( $key );
+			$key               = sanitize_key( $key );
 			$sanitized_phrases = [];
 			foreach ( $phrases as $phrase ) {
 				if ( ! is_string( $phrase ) ) {
@@ -442,15 +442,17 @@ final class Rest_API {
 			}
 
 			$mime = $content_type ? $content_type : 'image/jpeg';
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Needed for image data URL.
 			return 'data:' . $mime . ';base64,' . base64_encode( $body );
 		}
 
-		$max_size = 10 * 1024 * 1024;
+		$max_size  = 10 * 1024 * 1024;
 		$file_size = filesize( $file_path );
 		if ( $file_size && $file_size > $max_size ) {
 			return new WP_Error( 'file_too_large', 'Attachment is too large for alt text generation.', [ 'status' => 400 ] );
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local file read for attachment data.
 		$contents = file_get_contents( $file_path );
 		if ( false === $contents ) {
 			return new WP_Error( 'file_read_error', 'Unable to read attachment data.', [ 'status' => 500 ] );
@@ -459,6 +461,7 @@ final class Rest_API {
 		$filetype = wp_check_filetype( $file_path );
 		$mime     = $filetype['type'] ?? 'image/jpeg';
 
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Needed for image data URL.
 		return 'data:' . $mime . ';base64,' . base64_encode( $contents );
 	}
 

@@ -55,7 +55,7 @@ class Image_Handler {
 		$prompt_slug = sanitize_title( $prompt );
 		$prompt_slug = substr( $prompt_slug, 0, 50 ); // Limit length.
 
-		$mime_type = '';
+		$mime_type  = '';
 		$image_info = getimagesizefromstring( $image_data );
 		if ( ! empty( $image_info['mime'] ) ) {
 			$mime_type = $image_info['mime'];
@@ -67,7 +67,7 @@ class Image_Handler {
 			'image/png'  => 'png',
 			'image/webp' => 'webp',
 		];
-		$extension = $extension_map[ $mime_type ] ?? 'webp';
+		$extension     = $extension_map[ $mime_type ] ?? 'webp';
 
 		// Generate a filename with prompt and unique ID.
 		$filename = 'ai-' . $prompt_slug . '-' . uniqid() . '.' . $extension;
