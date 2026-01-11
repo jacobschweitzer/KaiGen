@@ -38,6 +38,13 @@ class Provider_Manager {
 	private static $providers_loaded = false;
 
 	/**
+	 * Cached alt text generator class name.
+	 *
+	 * @var string|null
+	 */
+	private static $alt_text_generator_class = null;
+
+	/**
 	 * Private constructor to prevent direct instantiation.
 	 */
 	private function __construct() {
@@ -128,6 +135,90 @@ class Provider_Manager {
 	 */
 	public function get_provider( $provider_id ) {
 		return isset( self::$providers[ $provider_id ] ) ? self::$providers[ $provider_id ] : null;
+	}
+
+	/**
+	 * Gets the active provider ID based on settings and stored keys.
+	 *
+	 * @return string Active provider ID or empty string if none configured.
+	 */
+	public function get_active_provider_id() {
+		$provider = get_option( 'kaigen_provider', '' );
+		if ( '' !== $provider ) {
+			return strtolower( trim( (string) $provider ) );
+		}
+
+		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
+		if ( ! empty( $api_keys['openai'] ) ) {
+			return 'openai';
+		}
+
+		foreach ( $api_keys as $provider_id => $api_key ) {
+			if ( ! empty( $api_key ) ) {
+				return strtolower( trim( (string) $provider_id ) );
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Gets the loaded alt text generator class for the active provider.
+	 *
+	 * @return string Loaded generator class name or empty string.
+	 */
+	public function get_active_alt_text_generator_class() {
+		$this->load_active_alt_text_generator();
+
+		$active = $this->get_active_provider_id();
+		if ( '' === $active ) {
+			return '';
+		}
+
+		if ( null !== self::$alt_text_generator_class ) {
+			return self::$alt_text_generator_class;
+		}
+
+		foreach ( get_declared_classes() as $class ) {
+			if ( 0 !== strpos( $class, __NAMESPACE__ . '\\' ) ) {
+				continue;
+			}
+
+			$implements = class_implements( $class );
+			if ( empty( $implements ) ) {
+				continue;
+			}
+
+			if ( in_array( Alt_Text_Generator_Core::class, $implements, true ) ) {
+				self::$alt_text_generator_class = $class;
+				return $class;
+			}
+		}
+
+		self::$alt_text_generator_class = '';
+		return '';
+	}
+
+	/**
+	 * Loads the active alt text generator class file when available.
+	 *
+	 * @return void
+	 */
+	private function load_active_alt_text_generator() {
+		$provider = $this->get_active_provider_id();
+		if ( '' === $provider ) {
+			return;
+		}
+
+		$provider = sanitize_key( $provider );
+		$base_dir = plugin_dir_path( __DIR__ ) . 'inc/alt-text/';
+
+		require_once $base_dir . 'trait-alt-text-generator-helpers.php';
+
+		$class_file = $base_dir . 'class-alt-text-generator-' . $provider . '.php';
+		if ( file_exists( $class_file ) ) {
+			require_once $class_file;
+		}
 	}
 
 	/**

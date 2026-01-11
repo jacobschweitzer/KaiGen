@@ -3,8 +3,9 @@
 import { addFilter } from '@wordpress/hooks';
 import { useState, useEffect } from '@wordpress/element';
 import { BlockControls, InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, CheckboxControl } from '@wordpress/components';
+import { PanelBody, CheckboxControl, Button } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
+import { generateAltText } from '../api';
 import AIImageToolbar from '../components/AIImageToolbar';
 
 /**
@@ -22,24 +23,21 @@ addFilter(
 				return <BlockEdit { ...props } />;
 			}
 
+			const normalizedBlockId = Number( props.attributes.id );
 			const hasValidId =
-				props.attributes.id &&
-				typeof props.attributes.id === 'number' &&
-				props.attributes.id > 0;
+				Number.isInteger( normalizedBlockId ) && normalizedBlockId > 0;
 			const [ hasInitialized, setHasInitialized ] = useState( false );
 			const [ generationMeta, setGenerationMeta ] = useState( null );
 			const [ isMetaLoading, setIsMetaLoading ] = useState( false );
 			const [ referenceImages, setReferenceImages ] = useState( [] );
 			const [ isPanelOpen, setIsPanelOpen ] = useState( false );
+			const [ isAltGenerating, setIsAltGenerating ] = useState( false );
 			const [ fetchedAttachmentId, setFetchedAttachmentId ] =
 				useState( null );
 
 			// Destructure props for useEffect dependencies
 			const {
-				attributes: {
-					id: blockId,
-					kaigen_reference_image: referenceImage,
-				},
+				attributes: { kaigen_reference_image: referenceImage },
 				setAttributes,
 			} = props;
 
@@ -52,7 +50,7 @@ addFilter(
 				// Only initialize if the block attribute is not explicitly set (undefined or null)
 				if ( referenceImage === undefined || referenceImage === null ) {
 					apiFetch( {
-						path: `/wp/v2/media/${ blockId }`,
+						path: `/wp/v2/media/${ normalizedBlockId }`,
 					} )
 						.then( ( media ) => {
 							if (
@@ -80,34 +78,38 @@ addFilter(
 				}
 			}, [
 				hasValidId,
-				blockId,
+				normalizedBlockId,
 				referenceImage,
 				hasInitialized,
 				setAttributes,
 			] );
 
 			useEffect( () => {
-				if ( ! blockId ) {
+				if ( ! normalizedBlockId ) {
 					return;
+				}
+
+				if ( props.attributes.id !== normalizedBlockId ) {
+					setAttributes( { id: normalizedBlockId } );
 				}
 
 				setGenerationMeta( null );
 				setReferenceImages( [] );
 				setFetchedAttachmentId( null );
-			}, [ blockId ] );
+			}, [ normalizedBlockId, props.attributes.id, setAttributes ] );
 
 			useEffect( () => {
-				if ( ! isPanelOpen || ! blockId ) {
+				if ( ! isPanelOpen || ! normalizedBlockId ) {
 					return;
 				}
 
-				if ( fetchedAttachmentId === blockId ) {
+				if ( fetchedAttachmentId === normalizedBlockId ) {
 					return;
 				}
 
 				setIsMetaLoading( true );
 				apiFetch( {
-					path: `/kaigen/v1/generation-meta?attachment_id=${ blockId }`,
+					path: `/kaigen/v1/generation-meta?attachment_id=${ normalizedBlockId }`,
 				} )
 					.then( ( meta ) => {
 						setGenerationMeta(
@@ -119,9 +121,9 @@ addFilter(
 					} )
 					.finally( () => {
 						setIsMetaLoading( false );
-						setFetchedAttachmentId( blockId );
+						setFetchedAttachmentId( normalizedBlockId );
 					} );
-			}, [ isPanelOpen, blockId, fetchedAttachmentId ] );
+			}, [ isPanelOpen, normalizedBlockId, fetchedAttachmentId ] );
 
 			useEffect( () => {
 				if (
@@ -196,6 +198,23 @@ addFilter(
 					} );
 			};
 
+			/**
+			 * Gets the best prompt text available for alt text generation.
+			 *
+			 * @return {string} Prompt text.
+			 */
+			const getAltPromptText = () => {
+				if ( generationMeta?.prompt_text ) {
+					return generationMeta.prompt_text;
+				}
+
+				if ( typeof generationMeta?.prompt === 'string' ) {
+					return generationMeta.prompt;
+				}
+
+				return props.attributes.alt || '';
+			};
+
 			return (
 				<>
 					<BlockEdit { ...props } />
@@ -211,7 +230,7 @@ addFilter(
 					{ hasValidId && (
 						<InspectorControls>
 							<PanelBody
-								title="KaiGen Settings"
+								title="KaiGen"
 								initialOpen={ false }
 								onToggle={ ( nextOpen ) => {
 									setIsPanelOpen( nextOpen );
@@ -233,7 +252,7 @@ addFilter(
 
 										try {
 											await apiFetch( {
-												path: `/wp/v2/media/${ props.attributes.id }`,
+												path: `/wp/v2/media/${ normalizedBlockId }`,
 												method: 'POST',
 												data: {
 													meta: {
@@ -253,6 +272,113 @@ addFilter(
 									} }
 									help="Add to the list of reference images."
 								/>
+								<Button
+									variant="secondary"
+									isBusy={ isAltGenerating }
+									disabled={ isAltGenerating }
+									style={ { marginTop: '8px' } }
+									onClick={ async () => {
+										const provider =
+											wp.data
+												.select( 'core/editor' )
+												?.getEditorSettings()
+												?.kaigen_provider || '';
+										if ( ! provider ) {
+											wp.data
+												.dispatch( 'core/notices' )
+												.createErrorNotice(
+													'No AI provider configured. Please set one in the plugin settings.',
+													{ type: 'snackbar' }
+												);
+											return;
+										}
+
+										const promptText = getAltPromptText();
+										if (
+											! promptText.trim() &&
+											! normalizedBlockId
+										) {
+											wp.data
+												.dispatch( 'core/notices' )
+												.createErrorNotice(
+													'No prompt or image available to generate alt text.',
+													{ type: 'snackbar' }
+												);
+											return;
+										}
+
+										let structuredPrompt = null;
+										if (
+											generationMeta &&
+											typeof generationMeta.prompt ===
+												'string'
+										) {
+											try {
+												const parsed = JSON.parse(
+													generationMeta.prompt
+												);
+												if (
+													parsed &&
+													typeof parsed === 'object'
+												) {
+													structuredPrompt = parsed;
+												}
+											} catch ( err ) {
+												structuredPrompt = null;
+											}
+										}
+
+										setIsAltGenerating( true );
+										try {
+											const response =
+												await generateAltText(
+													promptText.trim(),
+													provider,
+													structuredPrompt,
+													normalizedBlockId
+												);
+											const altText =
+												response?.alt_text || '';
+											if ( ! altText ) {
+												throw new Error(
+													'Alt text response was empty.'
+												);
+											}
+
+											setAttributes( { alt: altText } );
+
+											await apiFetch( {
+												path: `/wp/v2/media/${ normalizedBlockId }`,
+												method: 'POST',
+												data: {
+													alt_text: altText,
+												},
+											} );
+
+											wp.data
+												.dispatch( 'core/notices' )
+												.createSuccessNotice(
+													'Alt text generated.',
+													{ type: 'snackbar' }
+												);
+										} catch ( err ) {
+											wp.data
+												.dispatch( 'core/notices' )
+												.createErrorNotice(
+													'Failed to generate alt text.',
+													{ type: 'snackbar' }
+												);
+										} finally {
+											setIsAltGenerating( false );
+										}
+									} }
+								>
+									Generate Alt Text
+								</Button>
+								<p className="components-base-control__help">
+									Generate a descriptive alt text suggestion
+									for this image.
+								</p>
 								{ isMetaLoading && (
 									<p className="kaigen-generation-meta-loading">
 										Loading generation details...

@@ -122,6 +122,17 @@ final class Rest_API {
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+
+		// Register the alt text generation endpoint.
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/generate-alt-text',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'handle_generate_alt_text_request' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -233,6 +244,58 @@ final class Rest_API {
 	}
 
 	/**
+	 * Generates alt text for an image based on a prompt.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return \WP_REST_Response|WP_Error The response or error.
+	 */
+	public function handle_generate_alt_text_request( $request ) {
+		$prompt = sanitize_textarea_field( (string) $request->get_param( 'prompt' ) );
+
+		$provider = sanitize_text_field( (string) $request->get_param( 'provider' ) );
+		if ( '' === $provider ) {
+			return new WP_Error( 'invalid_provider', 'Provider is required.', [ 'status' => 400 ] );
+		}
+
+		$attachment_id = absint( $request->get_param( 'attachment_id' ) );
+		if ( ! $attachment_id ) {
+			return new WP_Error( 'missing_image', 'Image is required for alt text generation.', [ 'status' => 400 ] );
+		}
+
+		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+			return new WP_Error( 'forbidden', 'You do not have permission to access this attachment.', [ 'status' => 403 ] );
+		}
+
+		$image_data = $this->get_attachment_data_url( $attachment_id );
+		if ( is_wp_error( $image_data ) ) {
+			return $image_data;
+		}
+
+		$structured = $this->sanitize_prompt_structured( $request->get_param( 'prompt_structured' ) );
+		$alt_prompt = $prompt;
+		if ( ! empty( $structured ) ) {
+			$alt_prompt = $prompt . "\nStructured details: " . wp_json_encode( $structured );
+		}
+
+		$generator = $this->get_alt_text_generator( $provider );
+		if ( is_wp_error( $generator ) ) {
+			return $generator;
+		}
+
+		$result = $generator->generate( $alt_prompt, $image_data );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new \WP_REST_Response(
+			[
+				'alt_text' => $result,
+			],
+			200
+		);
+	}
+
+	/**
 	 * Saves generation metadata on the post when available.
 	 *
 	 * @param int             $attachment_id The attachment ID.
@@ -273,6 +336,138 @@ final class Rest_API {
 		}
 
 		update_post_meta( $attachment_id, 'kaigen_generation_meta', $meta );
+	}
+
+	/**
+	 * Resolves an alt text generator for the selected provider.
+	 *
+	 * @param string $provider The provider key.
+	 * @return Alt_Text_Generator_Core|WP_Error Generator instance or error.
+	 */
+	private function get_alt_text_generator( $provider ) {
+		$provider = strtolower( trim( (string) $provider ) );
+		$active   = kaigen_provider_manager()->get_active_provider_id();
+
+		if ( '' === $active || $provider !== $active ) {
+			return new WP_Error( 'invalid_provider', 'Alt text generator is not available for the selected provider.', [ 'status' => 400 ] );
+		}
+
+		$class = kaigen_provider_manager()->get_active_alt_text_generator_class();
+		if ( '' === $class ) {
+			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
+		}
+
+		if ( ! class_exists( $class ) ) {
+			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
+		}
+
+		if ( ! in_array( Alt_Text_Generator_Core::class, class_implements( $class ), true ) ) {
+			return new WP_Error( 'invalid_provider', 'Alt text generator class is invalid.', [ 'status' => 400 ] );
+		}
+
+		return new $class();
+	}
+
+	/**
+	 * Sanitizes a structured prompt into a safe array.
+	 *
+	 * @param mixed $structured The structured prompt data.
+	 * @return array Sanitized structured prompt.
+	 */
+	private function sanitize_prompt_structured( $structured ) {
+		if ( is_string( $structured ) ) {
+			$decoded = json_decode( $structured, true );
+			if ( is_array( $decoded ) ) {
+				$structured = $decoded;
+			}
+		}
+
+		if ( ! is_array( $structured ) ) {
+			return [];
+		}
+
+		$clean = [];
+		foreach ( $structured as $key => $phrases ) {
+			if ( ! is_array( $phrases ) ) {
+				continue;
+			}
+			$key               = sanitize_key( $key );
+			$sanitized_phrases = [];
+			foreach ( $phrases as $phrase ) {
+				if ( ! is_string( $phrase ) ) {
+					continue;
+				}
+				$phrase = sanitize_text_field( $phrase );
+				if ( '' !== $phrase ) {
+					$sanitized_phrases[] = $phrase;
+				}
+			}
+			if ( ! empty( $sanitized_phrases ) ) {
+				$clean[ $key ] = $sanitized_phrases;
+			}
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Builds a base64 data URL for an attachment image.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return string|WP_Error Base64 data URL or error.
+	 */
+	private function get_attachment_data_url( $attachment_id ) {
+		$file_path = get_attached_file( $attachment_id );
+		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+			$attachment_url = wp_get_attachment_url( $attachment_id );
+			if ( empty( $attachment_url ) ) {
+				return new WP_Error( 'missing_file', 'Attachment file not found.', [ 'status' => 404 ] );
+			}
+
+			$response = wp_remote_get(
+				$attachment_url,
+				[
+					'timeout' => 10,
+				]
+			);
+
+			if ( is_wp_error( $response ) ) {
+				return new WP_Error( 'file_read_error', 'Unable to fetch attachment data.', [ 'status' => 500 ] );
+			}
+
+			$body         = wp_remote_retrieve_body( $response );
+			$content_type = wp_remote_retrieve_header( $response, 'content-type' );
+			$content_len  = wp_remote_retrieve_header( $response, 'content-length' );
+			if ( $content_len && (int) $content_len > 10 * 1024 * 1024 ) {
+				return new WP_Error( 'file_too_large', 'Attachment is too large for alt text generation.', [ 'status' => 400 ] );
+			}
+
+			if ( '' === $body ) {
+				return new WP_Error( 'file_read_error', 'Unable to read attachment data.', [ 'status' => 500 ] );
+			}
+
+			$mime = $content_type ? $content_type : 'image/jpeg';
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Needed for image data URL.
+			return 'data:' . $mime . ';base64,' . base64_encode( $body );
+		}
+
+		$max_size  = 10 * 1024 * 1024;
+		$file_size = filesize( $file_path );
+		if ( $file_size && $file_size > $max_size ) {
+			return new WP_Error( 'file_too_large', 'Attachment is too large for alt text generation.', [ 'status' => 400 ] );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local file read for attachment data.
+		$contents = file_get_contents( $file_path );
+		if ( false === $contents ) {
+			return new WP_Error( 'file_read_error', 'Unable to read attachment data.', [ 'status' => 500 ] );
+		}
+
+		$filetype = wp_check_filetype( $file_path );
+		$mime     = $filetype['type'] ?? 'image/jpeg';
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Needed for image data URL.
+		return 'data:' . $mime . ';base64,' . base64_encode( $contents );
 	}
 
 	/**

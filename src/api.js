@@ -191,6 +191,53 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 };
 
 /**
+ * Generates alt text for an image using the prompt and attachment.
+ *
+ * @param {string} prompt           - The prompt text.
+ * @param {string} provider         - The selected provider ID.
+ * @param {Object} promptStructured - Optional structured prompt object.
+ * @param {number} attachmentId     - Optional attachment ID.
+ * @return {Promise<Object>} Alt text response.
+ */
+export const generateAltText = async (
+	prompt,
+	provider,
+	promptStructured = null,
+	attachmentId = null
+) => {
+	try {
+		const data = {
+			prompt,
+			provider,
+		};
+
+		if ( promptStructured ) {
+			data.prompt_structured = promptStructured;
+		}
+		if ( attachmentId ) {
+			data.attachment_id = attachmentId;
+		}
+
+		const response = await wp.apiFetch( {
+			path: '/kaigen/v1/generate-alt-text',
+			method: 'POST',
+			data,
+		} );
+
+		if ( response && response.code && response.message ) {
+			throw new Error( response.message );
+		}
+
+		return response;
+	} catch ( error ) {
+		throw new Error(
+			error.message ||
+				'An unknown error occurred while generating alt text'
+		);
+	}
+};
+
+/**
  * Fetches all reference images marked in the media library.
  *
  * @return {Promise<Array>} Array of image objects.

@@ -67,6 +67,18 @@ lsof -ti:9400 | xargs kill -9
 
 - **`image-generation.spec.ts`**: Full image generation flow tests with mocked APIs
 
+### Current Test Coverage
+
+The `image-generation.spec.ts` suite includes:
+
+- Placeholder UI shows all image source buttons plus the KaiGen button.
+- Provider data is injected into the editor (`window.kaiGen.provider`).
+- OpenAI generation flow inserts an image and takes screenshots.
+- Replicate generation flow inserts an image and takes screenshots.
+- Reference image flow selects a thumbnail and generates an image.
+- Alt text generation updates the image alt attribute.
+- Error handling keeps the modal open and allows closing it.
+
 ## Writing New Tests
 
 When writing new e2e tests that involve API calls:
