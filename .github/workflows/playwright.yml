@@ -52,4 +52,5 @@ jobs:
         with:
           name: playwright-report-${{ github.run_id }}
           path: playwright-report/
+          if-no-files-found: ignore
           retention-days: 30
