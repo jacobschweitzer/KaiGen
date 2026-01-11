@@ -30,7 +30,7 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false --prefer-offline
 
       # Cache Playwright browsers
       - name: Cache Playwright browsers
@@ -48,7 +48,7 @@ jobs:
         run: npm run test:e2e
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: playwright-report-${{ github.run_id }}
           path: playwright-report/

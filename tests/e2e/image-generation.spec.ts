@@ -202,19 +202,17 @@ test.describe( 'KaiGen Image Generation', () => {
 	} );
 
 	/**
-	 * Test case for verifying image block placeholder buttons.
+	 * Test case for verifying image block placeholder buttons and provider data.
 	 */
-	test( 'should show all image source buttons in placeholder', async ( {
+	test( 'should show placeholder buttons and provider data', async ( {
 		editor,
 		page,
 	} ) => {
-		// Insert the image block
+		// Insert the image block to trigger editor scripts
 		await editor.insertBlock( { name: 'core/image' } );
 
 		const imageBlockSelector = '[data-type="core/image"]';
 		const imageBlock = editor.canvas.locator( imageBlockSelector );
-
-		// Wait for the block to be visible
 		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
 
 		// Verify the media placeholder is visible
@@ -249,21 +247,6 @@ test.describe( 'KaiGen Image Generation', () => {
 		// Verify the KaiGen button exists and is visible
 		await expect( aiGenerateButton ).toBeVisible( { timeout: 10000 } );
 		await expect( aiGenerateButton ).toBeEnabled();
-	} );
-
-	/**
-	 * Test case for verifying provider data is available in editor.
-	 */
-	test( 'should have provider data available in editor', async ( {
-		editor,
-		page,
-	} ) => {
-		// Insert image block to trigger editor scripts
-		await editor.insertBlock( { name: 'core/image' } );
-
-		const imageBlockSelector = '[data-type="core/image"]';
-		const imageBlock = editor.canvas.locator( imageBlockSelector );
-		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
 
 		await page.waitForFunction( () => {
 			return !! ( window as any ).kaiGen;
