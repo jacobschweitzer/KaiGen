@@ -2,6 +2,13 @@
 
 KaiGen is an AI image generation tool. This WordPress plugin integrates KaiGen into the block editor so users can generate and insert images.
 
+## Folder-Specific Agent Docs
+Prefer the nearest folder-specific `AGENTS.md` when one exists.
+- `tests/AGENTS.md` (overview for all tests)
+- `tests/e2e/AGENTS.md` (E2E specifics)
+- `inc/AGENTS.md` (PHP server-side)
+- `src/AGENTS.md` (editor UI)
+
 ## Build/Test Commands
 - Build: `npm run build`
 - Lint JavaScript: `npm run lint:js`
@@ -10,12 +17,7 @@ KaiGen is an AI image generation tool. This WordPress plugin integrates KaiGen i
 - Lint PHP: `npm run lint:php` (requires `composer install` first)
 - Fix PHP: `npm run lint:php:fix` (auto-fixes issues where possible)
 - Format code: `npm run format`
-- Run all e2e tests: `npm run test:e2e` (automatically starts WordPress Playground)
-- Run single e2e test: `npx playwright test tests/e2e/[test-file].spec.ts`
-- Debug tests: `npm run test:e2e:debug`
-- Run tests with UI: `npm run test:e2e:ui`
-- Start Playground manually (optional): `npm run playground:start`
-- After any changeset that is ready to commit, run `npm run test:e2e`. If that passes, run linters based on what changed:
+- After any changeset that is ready to commit, run the relevant tests and linters (see `tests/AGENTS.md` and `tests/e2e/AGENTS.md` for specifics). If tests pass, run linters based on what changed:
   - PHP changes: `npm run lint:php`
   - CSS changes: `npm run lint:css`
   - JS changes: `npm run lint:js`
