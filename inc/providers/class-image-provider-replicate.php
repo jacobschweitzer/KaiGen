@@ -52,6 +52,103 @@ class Image_Provider_Replicate extends Image_Provider {
 	}
 
 	/**
+	 * Gets the model configuration data for Replicate models.
+	 *
+	 * @return array Model definitions keyed by model ID.
+	 */
+	private function get_model_definitions() {
+		$models = [
+			'black-forest-labs/flux-2-klein-4b' => [
+				'label'                => 'FLUX.2 klein 4B by Black Forest Labs (low quality)',
+				'quality'              => 'low',
+				'base_time'            => 3,
+				'max_reference_images' => 5,
+				'image_param'          => 'images',
+				'valid_params'         => [
+					'seed',
+					'aspect_ratio',
+					'output_megapixels',
+					'go_fast',
+					'output_format',
+					'output_quality',
+					'disable_safety_checker',
+				],
+			],
+			'bytedance/seedream-4.5'            => [
+				'label'                => 'Seedream 4.5 by Bytedance (medium quality)',
+				'quality'              => 'medium',
+				'base_time'            => 20,
+				'max_reference_images' => 10,
+				'image_param'          => 'image_input',
+				'valid_params'         => [
+					'size',
+					'width',
+					'height',
+					'max_images',
+					'aspect_ratio',
+					'sequential_image_generation',
+				],
+			],
+			'google/nano-banana-pro'            => [
+				'label'                => 'Nano Banana Pro by Google (high quality)',
+				'quality'              => 'high',
+				'base_time'            => 40,
+				'max_reference_images' => 10,
+				'image_param'          => 'image_input',
+				'valid_params'         => [
+					'seed',
+					'aspect_ratio',
+					'size',
+					'width',
+					'height',
+					'guidance_scale',
+				],
+			],
+		];
+
+		return apply_filters( 'kaigen_replicate_model_definitions', $models );
+	}
+
+	/**
+	 * Gets the model definition for a specific model.
+	 *
+	 * @param string $model The model identifier.
+	 * @return array The model definition.
+	 */
+	private function get_model_definition( $model ) {
+		$models = $this->get_model_definitions();
+		return $models[ $model ] ?? [];
+	}
+
+	/**
+	 * Resolves the model to use for a quality setting.
+	 *
+	 * @param string $quality_setting The quality setting.
+	 * @return string The resolved model identifier.
+	 */
+	private function get_model_for_quality( $quality_setting ) {
+		$models        = $this->get_model_definitions();
+		$default_model = '';
+
+		foreach ( $models as $model => $definition ) {
+			if ( 'medium' === ( $definition['quality'] ?? '' ) ) {
+				$default_model = $model;
+			}
+
+			if ( ( $definition['quality'] ?? '' ) === $quality_setting ) {
+				return $model;
+			}
+		}
+
+		if ( $default_model ) {
+			return $default_model;
+		}
+
+		$model_keys = array_keys( $models );
+		return $model_keys ? $model_keys[0] : '';
+	}
+
+	/**
 	 * Overrides the parent method to get the current model from the quality setting.
 	 *
 	 * @return string The current model.
@@ -79,6 +176,11 @@ class Image_Provider_Replicate extends Image_Provider {
 
 		$input_data = [ 'prompt' => $prompt ];
 
+		$quality              = $additional_params['quality'] ?? self::get_quality_setting();
+		$model_for_request    = $this->model ? $this->model : $this->get_model_from_quality_setting( $quality, $additional_params );
+		$model_definition     = $this->get_model_definition( $model_for_request );
+		$max_reference_images = $model_definition['max_reference_images'] ?? 10;
+
 		// Handle source image URLs (can be single string or array).
 		$source_image_urls = $additional_params['source_image_urls'] ?? $additional_params['source_image_url'] ?? null;
 		if ( ! empty( $source_image_urls ) ) {
@@ -88,7 +190,7 @@ class Image_Provider_Replicate extends Image_Provider {
 
 			$image_inputs = [];
 			foreach ( $source_image_urls as $url ) {
-				if ( count( $image_inputs ) >= 10 ) {
+				if ( count( $image_inputs ) >= $max_reference_images ) {
 					break;
 				}
 				$processed = $this->process_image_url( $url );
@@ -98,14 +200,8 @@ class Image_Provider_Replicate extends Image_Provider {
 			}
 
 			if ( ! empty( $image_inputs ) ) {
-				$input_data['image_input'] = $image_inputs;
-
-				// Set size to 2K for low quality image edits (seedream-4.5 only supports "2K", "4K", or "custom").
-				$quality = $additional_params['quality'] ?? self::get_quality_setting();
-
-				if ( 'low' === $quality ) {
-					$additional_params['size'] = '2K';
-				}
+				$image_param                = $model_definition['image_param'] ?? 'image_input';
+				$input_data[ $image_param ] = $image_inputs;
 			}
 		}
 
@@ -115,32 +211,16 @@ class Image_Provider_Replicate extends Image_Provider {
 		unset( $additional_params['input_image'] );
 
 		// Filter parameters based on the model being used.
-		if ( ! empty( $source_image_urls ) ) {
-			// For seedream-4.5, only keep valid parameters according to schema.
-			$valid_params    = [ 'size', 'width', 'height', 'max_images', 'aspect_ratio', 'sequential_image_generation' ];
-			$filtered_params = [];
+		$valid_params    = $model_definition['valid_params'] ?? [ 'seed', 'aspect_ratio', 'size', 'width', 'height', 'guidance_scale' ];
+		$filtered_params = [];
 
-			foreach ( $valid_params as $param ) {
-				if ( isset( $additional_params[ $param ] ) ) {
-					$value                     = $additional_params[ $param ];
-					$filtered_params[ $param ] = $value;
-				}
+		foreach ( $valid_params as $param ) {
+			if ( isset( $additional_params[ $param ] ) ) {
+				$filtered_params[ $param ] = $additional_params[ $param ];
 			}
-
-			$additional_params = $filtered_params;
-		} else {
-			/**
-			 * Remove unsupported generic params to avoid 422 validation errors.
-			 */
-			$valid_general_params = [ 'seed', 'aspect_ratio', 'size', 'width', 'height', 'guidance_scale' ];
-			$filtered_params      = [];
-			foreach ( $valid_general_params as $param ) {
-				if ( isset( $additional_params[ $param ] ) ) {
-					$filtered_params[ $param ] = $additional_params[ $param ];
-				}
-			}
-			$additional_params = $filtered_params;
 		}
+
+		$additional_params = $filtered_params;
 
 		$body = [
 			'input' => array_merge(
@@ -149,7 +229,7 @@ class Image_Provider_Replicate extends Image_Provider {
 			),
 		];
 
-		$api_url = self::API_BASE_URL . "{$this->model}/predictions";
+		$api_url = self::API_BASE_URL . "{$model_for_request}/predictions";
 
 		// Make initial request with shorter timeout since we're just waiting for the URL.
 		$response = wp_remote_post(
@@ -402,11 +482,13 @@ class Image_Provider_Replicate extends Image_Provider {
 	 * @return array List of available models with their display names.
 	 */
 	public function get_available_models() {
-		return [
-			'prunaai/hidream-l1-fast' => 'HiDream-I1 Fast by PrunaAI (low quality)',
-			'bytedance/seedream-4.5'  => 'Seedream 4.5 by Bytedance (medium quality)',
-			'google/nano-banana-pro'  => 'Nano Banana Pro by Google (high quality)',
-		];
+		$models = [];
+		foreach ( $this->get_model_definitions() as $model => $definition ) {
+			if ( ! empty( $definition['label'] ) ) {
+				$models[ $model ] = $definition['label'];
+			}
+		}
+		return $models;
 	}
 
 	/**
@@ -421,21 +503,8 @@ class Image_Provider_Replicate extends Image_Provider {
 		$model             = $this->model ? $this->model : $this->get_model_from_quality_setting( $quality, $additional_params );
 		$has_source_images = ! empty( $additional_params['source_image_urls'] ) ||
 			! empty( $additional_params['source_image_url'] );
-
-		switch ( $model ) {
-			case 'prunaai/hidream-l1-fast':
-				$base_time = 3;
-				break;
-			case 'bytedance/seedream-4.5':
-				$base_time = 20;
-				break;
-			case 'google/nano-banana-pro':
-				$base_time = 40;
-				break;
-			default:
-				$base_time = 30;
-				break;
-		}
+		$model_definition  = $this->get_model_definition( $model );
+		$base_time         = $model_definition['base_time'] ?? 30;
 
 		if ( $has_source_images ) {
 			return (int) ceil( $base_time * 1.25 );
@@ -457,20 +526,28 @@ class Image_Provider_Replicate extends Image_Provider {
 	}
 
 	/**
+	 * Gets the maximum number of reference images supported for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return int The maximum number of reference images.
+	 */
+	public function get_max_reference_images( $quality_setting = '', $additional_params = [] ) {
+		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
+		$model   = $this->get_model_from_quality_setting( $quality, $additional_params );
+		$data    = $this->get_model_definition( $model );
+		return $data['max_reference_images'] ?? 10;
+	}
+
+	/**
 	 * Gets the image-to-image model for Replicate based on quality setting.
 	 *
 	 * @param string $quality_setting The quality setting.
 	 * @return string The image-to-image model.
 	 */
 	private function get_image_to_image_model( $quality_setting ) {
-		$model   = 'bytedance/seedream-4.5';
 		$quality = $quality_setting ? $quality_setting : self::get_quality_setting();
-
-		if ( 'high' === $quality ) {
-			$model = 'google/nano-banana-pro';
-		}
-
-		return $model;
+		return $this->get_model_for_quality( $quality );
 	}
 
 	/**
@@ -488,20 +565,7 @@ class Image_Provider_Replicate extends Image_Provider {
 			return $this->get_image_to_image_model( $quality_setting );
 		}
 
-		switch ( $quality_setting ) {
-			case 'low':
-				$model = 'prunaai/hidream-l1-fast';
-				break;
-			case 'medium':
-				$model = 'bytedance/seedream-4.5';
-				break;
-			case 'high':
-				$model = 'google/nano-banana-pro';
-				break;
-			default:
-				$model = 'bytedance/seedream-4.5'; // Default to medium quality.
-		}
-		return $model;
+		return $this->get_model_for_quality( $quality_setting );
 	}
 
 	/**
