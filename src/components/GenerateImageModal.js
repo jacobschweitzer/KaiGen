@@ -1,6 +1,6 @@
 // This file contains the GenerateImageModal component - a shared modal for AI image generation.
 
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useMemo } from '@wordpress/element';
 import {
 	Button,
 	TextareaControl,
@@ -12,6 +12,7 @@ import { generateImage, fetchReferenceImages } from '../api';
 import useGenerationProgress from '../hooks/useGenerationProgress';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
+const featureFlags = window.kaiGen?.featureFlags || {};
 
 /**
  * GenerateImageModal component - shared modal for generating AI images.
@@ -37,6 +38,8 @@ const GenerateImageModal = ( {
 	const [ aspectRatio, setAspectRatio ] = useState( '1:1' );
 	const [ quality, setQuality ] = useState( 'medium' );
 	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
+	const [ bestOfResults, setBestOfResults ] = useState( [] );
+	const [ bestOfPrompts, setBestOfPrompts ] = useState( [] );
 
 	const editorSettings =
 		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
@@ -44,11 +47,20 @@ const GenerateImageModal = ( {
 	const defaultQuality = editorSettings.kaigen_quality || 'medium';
 	const maxRefs = provider === 'replicate' ? 10 : 16;
 	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
+	const isBestOfEnabled = featureFlags.bestOfImages === true;
+	const isBestOfEligible =
+		isBestOfEnabled && provider === 'replicate' && quality === 'low';
+	const bestOfLabels = useMemo(
+		() => [ 'Original', 'Detailed', 'Creative' ],
+		[]
+	);
 
 	useEffect( () => {
 		if ( isOpen ) {
 			fetchReferenceImages().then( setReferenceImages );
 			setQuality( defaultQuality );
+			setBestOfResults( [] );
+			setBestOfPrompts( [] );
 
 			// Pre-select initial reference image if provided
 			if ( initialReferenceImage && initialReferenceImage.url ) {
@@ -58,6 +70,96 @@ const GenerateImageModal = ( {
 			}
 		}
 	}, [ isOpen, initialReferenceImage, defaultQuality ] );
+
+	useEffect( () => {
+		setBestOfResults( [] );
+		setBestOfPrompts( [] );
+	}, [ prompt, aspectRatio, quality, provider, selectedRefs ] );
+
+	const buildDetailedPrompt = ( basePrompt ) => {
+		const detailAdditions =
+			' with rich textures, cinematic lighting, sharp focus, and a cohesive color palette';
+		return `${ basePrompt }${ detailAdditions }`;
+	};
+
+	const buildCreativePrompt = ( basePrompt ) => {
+		const promptLower = basePrompt.toLowerCase();
+		const sportsKeywords = [
+			'sport',
+			'sports',
+			'soccer',
+			'basketball',
+			'football',
+			'baseball',
+			'tennis',
+			'golf',
+			'hockey',
+			'running',
+			'cycling',
+		];
+		const humorKeywords = [
+			'humor',
+			'humour',
+			'funny',
+			'comedy',
+			'joke',
+			'humorous',
+			'silly',
+			'whimsical',
+		];
+		const isSportsPrompt = sportsKeywords.some( ( keyword ) =>
+			promptLower.includes( keyword )
+		);
+		const isHumorPrompt = humorKeywords.some( ( keyword ) =>
+			promptLower.includes( keyword )
+		);
+		let creativeAddition =
+			' with a playful, unexpected twist that complements the scene';
+
+		if ( isSportsPrompt ) {
+			creativeAddition =
+				' with dynamic sports energy, a cheering crowd, and dramatic motion blur';
+		}
+		if ( isHumorPrompt ) {
+			creativeAddition =
+				' with a surprising comedic element, like a quirky character photobombing the scene';
+		}
+
+		return `${ basePrompt }, reimagined${ creativeAddition }`;
+	};
+
+	const buildBestOfPrompts = ( basePrompt ) => [
+		basePrompt,
+		buildDetailedPrompt( basePrompt ),
+		buildCreativePrompt( basePrompt ),
+	];
+
+	const buildOptions = () => {
+		const options = {};
+		if ( selectedRefs.length > 0 ) {
+			options.sourceImageUrls = selectedRefs.map( ( ref ) => ref.url );
+			options.sourceImageIds = selectedRefs
+				.map( ( ref ) => ref.id )
+				.filter( ( id ) => Number.isInteger( id ) && id > 0 );
+		}
+		if ( aspectRatio ) {
+			options.aspectRatio = aspectRatio;
+		}
+		if ( quality ) {
+			options.quality = quality;
+		}
+		options.onEstimatedTime = ( estimatedSecondsValue ) => {
+			if ( typeof estimatedSecondsValue === 'number' ) {
+				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
+			}
+		};
+		return options;
+	};
+
+	const generateImagePromise = ( promptText, options ) =>
+		new Promise( ( resolve ) => {
+			generateImage( promptText, resolve, options );
+		} );
 
 	/**
 	 * Handles Enter key press in textarea
@@ -85,28 +187,41 @@ const GenerateImageModal = ( {
 		setIsLoading( true );
 		setEstimatedDurationMs( null );
 		setError( null );
+		setBestOfResults( [] );
+		setBestOfPrompts( [] );
 
-		const options = {};
-		if ( selectedRefs.length > 0 ) {
-			options.sourceImageUrls = selectedRefs.map( ( ref ) => ref.url );
-			options.sourceImageIds = selectedRefs
-				.map( ( ref ) => ref.id )
-				.filter( ( id ) => Number.isInteger( id ) && id > 0 );
+		const options = buildOptions();
+		const basePrompt = prompt.trim();
+
+		if ( isBestOfEligible ) {
+			const prompts = buildBestOfPrompts( basePrompt );
+			setBestOfPrompts( prompts );
+			Promise.all(
+				prompts.map( ( promptText ) =>
+					generateImagePromise( promptText, options )
+				)
+			)
+				.then( ( results ) => {
+					const errors = results.filter( ( result ) => result.error );
+					if ( errors.length ) {
+						setError( errors[ 0 ].error );
+						setIsLoading( false );
+						return;
+					}
+					setBestOfResults( results );
+					setIsLoading( false );
+				} )
+				.catch( () => {
+					setError(
+						'An unknown error occurred while generating the images'
+					);
+					setIsLoading( false );
+				} );
+			return;
 		}
-		if ( aspectRatio ) {
-			options.aspectRatio = aspectRatio;
-		}
-		if ( quality ) {
-			options.quality = quality;
-		}
-		options.onEstimatedTime = ( estimatedSecondsValue ) => {
-			if ( typeof estimatedSecondsValue === 'number' ) {
-				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
-			}
-		};
 
 		generateImage(
-			prompt.trim(),
+			basePrompt,
 			( media ) => {
 				if ( media.error ) {
 					setError( media.error );
@@ -130,6 +245,8 @@ const GenerateImageModal = ( {
 		setSelectedRefs( [] );
 		setQuality( defaultQuality );
 		setEstimatedDurationMs( null );
+		setBestOfResults( [] );
+		setBestOfPrompts( [] );
 		onClose();
 	};
 
@@ -292,7 +409,11 @@ const GenerateImageModal = ( {
 						variant="primary"
 						onClick={ handleGenerate }
 						disabled={ isLoading || ! prompt.trim() }
-						aria-label="Generate Image"
+						aria-label={
+							isBestOfEligible
+								? 'Generate Images'
+								: 'Generate Image'
+						}
 					>
 						<Dashicon icon="admin-appearance" />
 					</Button>
@@ -401,10 +522,43 @@ const GenerateImageModal = ( {
 									</button>
 								) ) }
 							</div>
+							{ isBestOfEnabled && provider === 'replicate' && (
+								<p className="kaigen-modal__best-of-note">
+									Best-of works with Replicate at Low quality.
+								</p>
+							) }
 						</div>
 					) }
 				/>
 			</div>
+			{ isBestOfEligible && bestOfResults.length > 0 && (
+				<div className="kaigen-modal__best-of-results">
+					<p className="kaigen-modal__best-of-title">
+						Pick your favorite
+					</p>
+					<div className="kaigen-modal__best-of-grid">
+						{ bestOfResults.map( ( result, index ) => (
+							<button
+								type="button"
+								key={ `${ result.url }-${ index }` }
+								className="kaigen-modal__best-of-card"
+								onClick={ () => {
+									onSelect( result );
+									handleClose();
+								} }
+							>
+								<img
+									src={ result.url }
+									alt={ bestOfPrompts[ index ] || prompt }
+								/>
+								<span className="kaigen-modal__best-of-label">
+									{ bestOfLabels[ index ] }
+								</span>
+							</button>
+						) ) }
+					</div>
+				</div>
+			) }
 			{ isLoading && (
 				<div className="kaigen-modal__progress">
 					<div className="kaigen-modal__progress-label">

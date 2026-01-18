@@ -233,6 +233,54 @@
 	background: #f0f8ff;
 }
 
+.kaigen-modal__best-of-note {
+	margin: 8px 0 0 0;
+	font-size: 12px;
+	color: #555;
+}
+
+.kaigen-modal__best-of-results {
+	margin-top: 16px;
+}
+
+.kaigen-modal__best-of-title {
+	margin: 0 0 8px 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1e1e1e;
+}
+
+.kaigen-modal__best-of-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.kaigen-modal__best-of-card {
+	padding: 0;
+	border: 1px solid #ccd0d4;
+	border-radius: 6px;
+	background: #fff;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	overflow: hidden;
+}
+
+.kaigen-modal__best-of-card img {
+	width: 100%;
+	height: 140px;
+	object-fit: cover;
+	display: block;
+}
+
+.kaigen-modal__best-of-label {
+	padding: 6px 8px;
+	font-size: 12px;
+	color: #555;
+}
+
 /* ===== NEW STYLES ===== */
 
 .kaigen-hidden {
