@@ -575,7 +575,7 @@ final class Rest_API {
 	private function handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params ) {
 		$max_retries = 15;
 		$retry_count = 0;
-		$delay       = 3;
+		$delay       = 1;
 		$max_delay   = 20;
 
 		while ( $retry_count < $max_retries ) {

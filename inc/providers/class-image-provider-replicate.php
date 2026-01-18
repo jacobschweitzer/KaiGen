@@ -44,10 +44,19 @@ class Image_Provider_Replicate extends Image_Provider {
 	 * @return array The request headers.
 	 */
 	protected function get_request_headers() {
+		$quality          = self::get_quality_setting();
+		$model            = $this->model ? $this->model : $this->get_model_from_quality_setting( $quality );
+		$model_definition = $this->get_model_definition( $model );
+		$prefer_wait      = $model_definition['prefer_wait'] ?? 10;
+		$prefer_header    = 'wait=' . (int) $prefer_wait;
+		if ( 'wait' === $prefer_wait ) {
+			$prefer_header = 'wait';
+		}
+
 		return [
 			'Authorization' => 'Token ' . $this->api_key,
 			'Content-Type'  => 'application/json',
-			'Prefer'        => 'wait=10', // Shorter sync timeout since we only wait for URL.
+			'Prefer'        => $prefer_header, // Shorter sync timeout since we only wait for URL.
 		];
 	}
 
@@ -61,7 +70,9 @@ class Image_Provider_Replicate extends Image_Provider {
 			'black-forest-labs/flux-2-klein-4b' => [
 				'label'                => 'FLUX.2 klein 4B by Black Forest Labs (low quality)',
 				'quality'              => 'low',
-				'base_time'            => 3,
+				'base_time'            => 2,
+				'base_time_with_refs'  => 4,
+				'prefer_wait'          => 'wait',
 				'max_reference_images' => 5,
 				'image_param'          => 'images',
 				'valid_params'         => [
@@ -78,6 +89,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				'label'                => 'Seedream 4.5 by Bytedance (medium quality)',
 				'quality'              => 'medium',
 				'base_time'            => 20,
+				'base_time_with_refs'  => 35,
 				'max_reference_images' => 10,
 				'image_param'          => 'image_input',
 				'valid_params'         => [
@@ -93,6 +105,7 @@ class Image_Provider_Replicate extends Image_Provider {
 				'label'                => 'Nano Banana Pro by Google (high quality)',
 				'quality'              => 'high',
 				'base_time'            => 40,
+				'base_time_with_refs'  => 60,
 				'max_reference_images' => 10,
 				'image_param'          => 'image_input',
 				'valid_params'         => [
@@ -507,7 +520,7 @@ class Image_Provider_Replicate extends Image_Provider {
 		$base_time         = $model_definition['base_time'] ?? 30;
 
 		if ( $has_source_images ) {
-			return (int) ceil( $base_time * 1.25 );
+			$base_time = $model_definition['base_time_with_refs'] ?? $base_time;
 		}
 
 		return $base_time;
