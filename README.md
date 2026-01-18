@@ -90,7 +90,7 @@ This plugin connects to third-party AI services to generate images and alt text.
 
 
 ## Models Supported
-- [HiDream-I1 Fast by PrunaAI (low quality)](https://replicate.com/prunaai/hidream-l1-fast)
+- [FLUX.2 klein 4B by Black Forest Labs (low quality)](https://replicate.com/black-forest-labs/flux-2-klein-4b)
 - [Seedream 4.5 by ByteDance (medium quality)](https://replicate.com/bytedance/seedream-4.5)
 - [Nano Banana Pro by Google (high quality)](https://replicate.com/google/nano-banana-pro)
 - [GPT Image 1.5 by OpenAI](https://platform.openai.com/docs/guides/images)

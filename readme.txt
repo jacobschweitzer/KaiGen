@@ -48,7 +48,7 @@ This plugin connects to third-party AI services to generate images and alt text.
 * API Endpoint: https://api.replicate.com/v1/models/ and https://api.replicate.com/v1/predictions/
 * Terms of Service: https://replicate.com/terms
 * Privacy Policy: https://replicate.com/privacy
-* Models supported: low quality (HiDream-I1 Fast by PrunaAI), medium quality (Seedream 4.5 by ByteDance), and high quality (Nano Banana Pro by Google).
+* Models supported: low quality (FLUX.2 klein 4B by Black Forest Labs), medium quality (Seedream 4.5 by ByteDance), and high quality (Nano Banana Pro by Google).
 
 Important: You must obtain your own API keys from these services and are responsible for complying with their respective terms of service and privacy policies. The plugin does not collect, store, or transmit any of your data to any other parties.
 
