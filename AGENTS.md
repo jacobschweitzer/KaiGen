@@ -33,6 +33,7 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 - Sanitize user inputs with WordPress functions like `sanitize_text_field()`
 - Escape outputs with `esc_attr()`, `esc_html()`, etc.
 - Use hooks/filters for provider integration; avoid provider-specific code in base files.
+- Do not change AI model identifiers (image or alt-text) without explicit user approval.
 
 ## Minimal Architecture
 - PHP plugin bootstrap: `kaigen.php`
