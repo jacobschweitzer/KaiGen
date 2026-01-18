@@ -27,7 +27,14 @@ class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
 	 *
 	 * @var string
 	 */
-	private const REPLICATE_MODEL = 'openai/gpt-5.2';
+	private const REPLICATE_MODEL = 'google/gemini-3-pro';
+
+	/**
+	 * Replicate fallback model used for alt text generation.
+	 *
+	 * @var string
+	 */
+	private const REPLICATE_FALLBACK_MODEL = 'openai/gpt-5-mini';
 
 	/**
 	 * Generates alt text using Replicate.
@@ -54,16 +61,87 @@ class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
 			);
 		}
 
-		$model = apply_filters( 'kaigen_alt_text_replicate_model', self::REPLICATE_MODEL );
-		$input = [
-			'prompt'                => $prompt,
-			'system_prompt'         => $this->get_system_prompt(),
-			'image_input'           => [ $image_data_url ],
-			'verbosity'             => 'low',
-			'reasoning_effort'      => 'low',
-			'max_completion_tokens' => 120,
-		];
+		$model          = apply_filters( 'kaigen_alt_text_replicate_model', self::REPLICATE_MODEL );
+		$fallback_model = apply_filters( 'kaigen_alt_text_replicate_fallback_model', self::REPLICATE_FALLBACK_MODEL );
+		$image_key      = apply_filters( 'kaigen_alt_text_replicate_image_key', 'images' );
+		$input          = $this->build_gemini_input( $prompt, $image_data_url, $image_key );
+		$input          = apply_filters( 'kaigen_alt_text_replicate_input', $input, $prompt, $image_data_url );
 
+		$response = $this->make_replicate_request( $model, $input, $api_key );
+		if ( is_wp_error( $response ) && $this->should_retry_with_fallback( $response ) ) {
+			$fallback_input = $this->build_openai_input( $prompt, $image_data_url );
+			$fallback_input = apply_filters( 'kaigen_alt_text_replicate_fallback_input', $fallback_input, $prompt, $image_data_url );
+			$response       = $this->make_replicate_request( $fallback_model, $fallback_input, $api_key );
+		}
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+		$response_body = $response;
+
+		$content = $this->extract_replicate_output( $response_body, $api_key );
+		if ( is_wp_error( $content ) && $this->should_retry_with_fallback( $content ) ) {
+			$fallback_input = $this->build_openai_input( $prompt, $image_data_url );
+			$fallback_input = apply_filters( 'kaigen_alt_text_replicate_fallback_input', $fallback_input, $prompt, $image_data_url );
+			$response_body  = $this->make_replicate_request( $fallback_model, $fallback_input, $api_key );
+			if ( is_wp_error( $response_body ) ) {
+				return $response_body;
+			}
+			$content = $this->extract_replicate_output( $response_body, $api_key );
+		}
+		if ( is_wp_error( $content ) ) {
+			return $content;
+		}
+
+		$content = $this->sanitize_alt_text( $content );
+		if ( '' === $content ) {
+			return new WP_Error( 'invalid_replicate_response', 'Replicate response did not include alt text.' );
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Builds the input payload for Gemini Replicate models.
+	 *
+	 * @param string $prompt         The prompt text.
+	 * @param string $image_data_url Base64 data URL of the image.
+	 * @param string $image_key      Image input key for the model.
+	 * @return array Input payload.
+	 */
+	private function build_gemini_input( $prompt, $image_data_url, $image_key ) {
+		return [
+			'prompt'             => $prompt,
+			'system_instruction' => $this->get_system_prompt(),
+			$image_key           => [ $image_data_url ],
+		];
+	}
+
+	/**
+	 * Builds the input payload for OpenAI Replicate models.
+	 *
+	 * @param string $prompt         The prompt text.
+	 * @param string $image_data_url Base64 data URL of the image.
+	 * @return array Input payload.
+	 */
+	private function build_openai_input( $prompt, $image_data_url ) {
+		return [
+			'prompt'           => $prompt,
+			'system_prompt'    => $this->get_system_prompt(),
+			'image_input'      => [ $image_data_url ],
+			'verbosity'        => 'low',
+			'reasoning_effort' => 'minimal',
+		];
+	}
+
+	/**
+	 * Makes a Replicate prediction request for alt text generation.
+	 *
+	 * @param string $model   Replicate model identifier.
+	 * @param array  $input   Input payload.
+	 * @param string $api_key Replicate API key.
+	 * @return array|WP_Error Decoded response body or error.
+	 */
+	private function make_replicate_request( $model, $input, $api_key ) {
 		$response = wp_remote_post(
 			self::REPLICATE_API_URL . $model . '/predictions',
 			[
@@ -81,22 +159,20 @@ class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
 			return new WP_Error( 'replicate_error', 'Alt text generation failed: ' . $response->get_error_message() );
 		}
 
+		$response_code = wp_remote_retrieve_response_code( $response );
 		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $response_body ) ) {
 			return new WP_Error( 'replicate_error', 'Unexpected response from Replicate.' );
 		}
-
-		$content = $this->extract_replicate_output( $response_body, $api_key );
-		if ( is_wp_error( $content ) ) {
-			return $content;
+		if ( $response_code >= 400 ) {
+			$error_message = $response_body['detail'] ?? $response_body['error'] ?? 'Alt text generation failed.';
+			if ( is_array( $error_message ) ) {
+				$error_message = wp_json_encode( $error_message );
+			}
+			return new WP_Error( 'replicate_error', $error_message );
 		}
 
-		$content = $this->sanitize_alt_text( $content );
-		if ( '' === $content ) {
-			return new WP_Error( 'invalid_replicate_response', 'Replicate response did not include alt text.' );
-		}
-
-		return $content;
+		return $response_body;
 	}
 
 	/**
@@ -107,6 +183,14 @@ class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
 	 * @return string|WP_Error Output string or error.
 	 */
 	private function extract_replicate_output( $response_body, $api_key ) {
+		if ( ! empty( $response_body['error'] ) ) {
+			$error_message = $response_body['error'];
+			if ( is_array( $error_message ) ) {
+				$error_message = wp_json_encode( $error_message );
+			}
+			return new WP_Error( 'replicate_error', $error_message );
+		}
+
 		if ( isset( $response_body['output'] ) && ! empty( $response_body['output'] ) ) {
 			return $this->coerce_replicate_output( $response_body['output'] );
 		}
@@ -139,6 +223,13 @@ class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
 			$status_body = json_decode( wp_remote_retrieve_body( $status_response ), true );
 			if ( ! is_array( $status_body ) ) {
 				return new WP_Error( 'replicate_error', 'Unexpected Replicate status response.' );
+			}
+			if ( ! empty( $status_body['error'] ) ) {
+				$error_message = $status_body['error'];
+				if ( is_array( $error_message ) ) {
+					$error_message = wp_json_encode( $error_message );
+				}
+				return new WP_Error( 'replicate_error', $error_message );
 			}
 
 			if ( isset( $status_body['status'] ) && 'succeeded' === $status_body['status'] ) {
@@ -174,6 +265,31 @@ class Alt_Text_Generator_Replicate implements Alt_Text_Generator_Core {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Determines whether to retry with the fallback model.
+	 *
+	 * @param WP_Error $error Replicate error response.
+	 * @return bool True if fallback should be attempted.
+	 */
+	private function should_retry_with_fallback( $error ) {
+		$message = $error->get_error_message();
+		$signals = [
+			'exceeded your current quota',
+			'check your plan and billing details',
+			'request limit',
+			'quota',
+			'e001',
+		];
+
+		foreach ( $signals as $signal ) {
+			if ( false !== stripos( $message, $signal ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
