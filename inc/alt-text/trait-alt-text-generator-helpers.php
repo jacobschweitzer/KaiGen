@@ -20,10 +20,12 @@ trait Alt_Text_Generator_Helpers {
 		return implode(
 			"\n",
 			[
-				'You write concise alt text for images.',
-				'Return a single sentence, 20-30 words.',
-				'Include key subject, setting, and any notable action.',
-				'Do not include quotes or the phrase "image of".',
+				'You write helpful, accurate alt text for screen readers.',
+				'Return one sentence of 20-30 words in plain language.',
+				'Describe the most important visual information: primary subject, relevant details (count, condition, notable colors), setting, and action.',
+				'Include any visible on-image text only if it is essential to understanding the image.',
+				'Do not start with "image of", "photo of", or quotes; do not include filenames, camera metadata, hashtags, or speculation.',
+				'If the subject is unclear, focus on obvious visible elements without guessing.',
 			]
 		);
 	}

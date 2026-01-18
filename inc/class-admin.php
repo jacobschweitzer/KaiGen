@@ -80,47 +80,109 @@ class Admin {
 					$settings = [];
 				}
 
-				$quality         = Image_Provider::get_quality_setting();
-				$provider_models = get_option( 'kaigen_provider_models', [] );
-				$provider_model  = $provider_models[ $provider ] ?? '';
-				$estimated_time  = 30;
+				$quality                = Image_Provider::get_quality_setting();
+				$provider_models        = get_option( 'kaigen_provider_models', [] );
+				$provider_model         = $provider_models[ $provider ] ?? '';
+				$estimated_time         = 30;
+				$reference_image_limits = [
+					'low'    => 16,
+					'medium' => 16,
+					'high'   => 16,
+				];
 
 				$provider_instance = kaigen_provider_manager()->get_provider( $provider );
 				if ( $provider_instance ) {
 					if ( ! empty( $provider_model ) ) {
 						$provider_instance->set_model( $provider_model );
 					}
-					$estimated_time = (int) $provider_instance->get_estimated_generation_time( $quality, [] );
+					$estimated_time         = (int) $provider_instance->get_estimated_generation_time( $quality, [] );
+					$reference_image_limits = [
+						'low'    => (int) $provider_instance->get_max_reference_images( 'low', [] ),
+						'medium' => (int) $provider_instance->get_max_reference_images( 'medium', [] ),
+						'high'   => (int) $provider_instance->get_max_reference_images( 'high', [] ),
+					];
 				}
+				$reference_image_limits['default'] = $reference_image_limits[ $quality ] ?? 16;
 
-				// Add the provider setting in all possible locations to ensure it's available.
-				$settings['kaigen_provider']                          = $provider;
-				$settings['kaigen_quality']                           = $quality;
-				$settings['kaigen_provider_model']                    = $provider_model;
-				$settings['kaigen_estimated_generation_time_seconds'] = $estimated_time;
+				$defaults        = [
+					'provider'                          => $provider,
+					'quality'                           => $quality,
+					'provider_model'                    => $provider_model,
+					'estimated_generation_time_seconds' => $estimated_time,
+					'reference_image_limits'            => $reference_image_limits,
+				];
+				$kaigen_settings = $this->normalize_editor_settings( $settings, $defaults );
 
-				if ( ! isset( $settings['kaigen'] ) ) {
-					$settings['kaigen'] = [];
-				}
-				$settings['kaigen']['provider']                          = $provider;
-				$settings['kaigen']['quality']                           = $quality;
-				$settings['kaigen']['provider_model']                    = $provider_model;
-				$settings['kaigen']['estimated_generation_time_seconds'] = $estimated_time;
+				$settings['kaigen_settings'] = $kaigen_settings;
+				$settings['kaigen']          = $kaigen_settings;
 
-				// Add to editor settings directly.
-				if ( ! isset( $settings['kaigen_settings'] ) ) {
-					$settings['kaigen_settings'] = [];
-				}
-				$settings['kaigen_settings']['provider']                          = $provider;
-				$settings['kaigen_settings']['quality']                           = $quality;
-				$settings['kaigen_settings']['provider_model']                    = $provider_model;
-				$settings['kaigen_settings']['estimated_generation_time_seconds'] = $estimated_time;
-				$settings['kaigen_has_api_key']                                   = ! empty( $provider ) && ! empty( $api_keys[ $provider ] );
+				$settings['kaigen_provider']                          = $kaigen_settings['provider'];
+				$settings['kaigen_quality']                           = $kaigen_settings['quality'];
+				$settings['kaigen_provider_model']                    = $kaigen_settings['provider_model'];
+				$settings['kaigen_estimated_generation_time_seconds'] = $kaigen_settings['estimated_generation_time_seconds'];
+				$settings['kaigen_reference_image_limits']            = $kaigen_settings['reference_image_limits'];
+				$settings['kaigen_has_api_key']                       = ! empty( $provider ) && ! empty( $api_keys[ $provider ] );
 
 				return $settings;
 			},
 			20
 		); // Add a higher priority to ensure our settings are added after others.
+	}
+
+	/**
+	 * Normalizes editor settings with legacy fallbacks.
+	 *
+	 * @param array $settings Existing editor settings.
+	 * @param array $defaults Default settings to use when values are missing.
+	 * @return array Normalized settings array.
+	 */
+	private function normalize_editor_settings( $settings, $defaults ) {
+		$required_keys = [
+			'provider',
+			'quality',
+			'provider_model',
+			'estimated_generation_time_seconds',
+			'reference_image_limits',
+		];
+
+		if ( $this->has_editor_settings_payload( $settings['kaigen_settings'] ?? null, $required_keys ) ) {
+			return array_merge( $defaults, $settings['kaigen_settings'] );
+		}
+
+		if ( $this->has_editor_settings_payload( $settings['kaigen'] ?? null, $required_keys ) ) {
+			return array_merge( $defaults, $settings['kaigen'] );
+		}
+
+		$legacy = [
+			'provider'                          => $settings['kaigen_provider'] ?? $defaults['provider'],
+			'quality'                           => $settings['kaigen_quality'] ?? $defaults['quality'],
+			'provider_model'                    => $settings['kaigen_provider_model'] ?? $defaults['provider_model'],
+			'estimated_generation_time_seconds' => $settings['kaigen_estimated_generation_time_seconds'] ?? $defaults['estimated_generation_time_seconds'],
+			'reference_image_limits'            => $settings['kaigen_reference_image_limits'] ?? $defaults['reference_image_limits'],
+		];
+
+		return array_merge( $defaults, $legacy );
+	}
+
+	/**
+	 * Checks whether the editor settings payload contains all required keys.
+	 *
+	 * @param mixed $payload Potential settings payload.
+	 * @param array $required_keys Required keys to validate.
+	 * @return bool True if payload is valid.
+	 */
+	private function has_editor_settings_payload( $payload, $required_keys ) {
+		if ( ! is_array( $payload ) ) {
+			return false;
+		}
+
+		foreach ( $required_keys as $key ) {
+			if ( ! array_key_exists( $key, $payload ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
