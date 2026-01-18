@@ -40,9 +40,11 @@ const GenerateImageModal = ( {
 
 	const editorSettings =
 		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
-	const provider = editorSettings.kaigen_provider || 'replicate';
 	const defaultQuality = editorSettings.kaigen_quality || 'medium';
-	const maxRefs = provider === 'replicate' ? 10 : 16;
+	const referenceImageLimits =
+		editorSettings.kaigen_reference_image_limits || {};
+	const maxRefs =
+		referenceImageLimits[ quality ] ?? referenceImageLimits.default ?? 16;
 	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
 
 	useEffect( () => {
@@ -58,6 +60,12 @@ const GenerateImageModal = ( {
 			}
 		}
 	}, [ isOpen, initialReferenceImage, defaultQuality ] );
+
+	useEffect( () => {
+		setSelectedRefs( ( prev ) =>
+			prev.length > maxRefs ? prev.slice( 0, maxRefs ) : prev
+		);
+	}, [ maxRefs ] );
 
 	/**
 	 * Handles Enter key press in textarea
