@@ -164,8 +164,11 @@ final class Rest_API {
 			return $model;
 		}
 
+		$generation_start = microtime( true );
+
 		// Handle retries for image generation.
-		$response = $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
+		$response                = $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
+		$generation_time_seconds = microtime( true ) - $generation_start;
 
 		if ( $response instanceof \WP_REST_Response ) {
 			$response_data = $response->get_data();
@@ -174,7 +177,8 @@ final class Rest_API {
 					absint( $response_data['id'] ),
 					$request,
 					$provider_id,
-					$model
+					$model,
+					$generation_time_seconds
 				);
 			}
 		}
@@ -302,9 +306,10 @@ final class Rest_API {
 	 * @param WP_REST_Request $request The request object.
 	 * @param string          $provider_id The provider ID.
 	 * @param string          $model The resolved model.
+	 * @param float           $generation_time_seconds The total generation time in seconds.
 	 * @return void
 	 */
-	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model ) {
+	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model, $generation_time_seconds = 0 ) {
 		if ( ! $attachment_id ) {
 			return;
 		}
@@ -317,12 +322,15 @@ final class Rest_API {
 		if ( ! in_array( $quality, [ 'low', 'medium', 'high' ], true ) ) {
 			$quality = Image_Provider::get_quality_setting();
 		}
-		$meta             = [
+		$meta = [
 			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
 			'provider' => sanitize_text_field( $provider_id ),
 			'quality'  => sanitize_text_field( $quality ),
 			'model'    => sanitize_text_field( $model ),
 		];
+		if ( $generation_time_seconds > 0 ) {
+			$meta['generation_time_seconds'] = round( (float) $generation_time_seconds, 2 );
+		}
 		$source_image_ids = $request->get_param( 'source_image_ids' );
 		if ( is_array( $source_image_ids ) ) {
 			$sanitized_ids = array_values(
@@ -575,7 +583,7 @@ final class Rest_API {
 	private function handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params ) {
 		$max_retries = 15;
 		$retry_count = 0;
-		$delay       = 3;
+		$delay       = 1;
 		$max_delay   = 20;
 
 		while ( $retry_count < $max_retries ) {

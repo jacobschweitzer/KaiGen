@@ -84,6 +84,17 @@ abstract class Image_Provider implements Image_Provider_Interface {
 	}
 
 	/**
+	 * Gets the maximum number of reference images supported for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return int The maximum number of reference images.
+	 */
+	public function get_max_reference_images( $quality_setting = '', $additional_params = [] ) {
+		return 16;
+	}
+
+	/**
 	 * Prepares the headers for API requests.
 	 *
 	 * @return array The headers array for the API request.

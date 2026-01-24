@@ -411,6 +411,15 @@ addFilter(
 													{ generationMeta.model }
 												</td>
 											</tr>
+											{ typeof generationMeta.generation_time_seconds ===
+												'number' && (
+												<tr>
+													<th>Generation Time</th>
+													<td>
+														{ `${ generationMeta.generation_time_seconds }s` }
+													</td>
+												</tr>
+											) }
 											{ referenceImages.length > 0 && (
 												<tr>
 													<th>References</th>

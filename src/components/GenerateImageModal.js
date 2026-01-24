@@ -12,7 +12,6 @@ import { generateImage, fetchReferenceImages } from '../api';
 import useGenerationProgress from '../hooks/useGenerationProgress';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
-const featureFlags = window.kaiGen?.featureFlags || {};
 
 /**
  * GenerateImageModal component - shared modal for generating AI images.
@@ -45,9 +44,12 @@ const GenerateImageModal = ( {
 		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
 	const provider = editorSettings.kaigen_provider || 'replicate';
 	const defaultQuality = editorSettings.kaigen_quality || 'medium';
-	const maxRefs = provider === 'replicate' ? 10 : 16;
+	const referenceImageLimits =
+		editorSettings.kaigen_reference_image_limits || {};
+	const maxRefs =
+		referenceImageLimits[ quality ] ?? referenceImageLimits.default ?? 16;
 	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
-	const isBestOfEnabled = featureFlags.bestOfImages === true;
+	const isBestOfEnabled = true;
 	const isBestOfEligible =
 		isBestOfEnabled && provider === 'replicate' && quality === 'low';
 	const bestOfLabels = useMemo(
@@ -75,6 +77,12 @@ const GenerateImageModal = ( {
 		setBestOfResults( [] );
 		setBestOfPrompts( [] );
 	}, [ prompt, aspectRatio, quality, provider, selectedRefs ] );
+
+	useEffect( () => {
+		setSelectedRefs( ( prev ) =>
+			prev.length > maxRefs ? prev.slice( 0, maxRefs ) : prev
+		);
+	}, [ maxRefs ] );
 
 	const buildDetailedPrompt = ( basePrompt ) => {
 		const detailAdditions =

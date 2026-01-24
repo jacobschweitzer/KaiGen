@@ -102,4 +102,13 @@ interface Image_Provider_Interface {
 	 * @return string The resolved model identifier.
 	 */
 	public function get_model_for_request( $quality_setting = '', $additional_params = [] );
+
+	/**
+	 * Gets the maximum number of reference images supported for a request.
+	 *
+	 * @param string $quality_setting Optional quality setting.
+	 * @param array  $additional_params Optional additional parameters for the request.
+	 * @return int The maximum number of reference images.
+	 */
+	public function get_max_reference_images( $quality_setting = '', $additional_params = [] );
 }

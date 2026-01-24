@@ -392,14 +392,14 @@ class Image_Provider_OpenAI extends Image_Provider {
 
 		switch ( $quality ) {
 			case 'low':
-				$base_time = 15;
+				$base_time = 20;
 				break;
 			case 'high':
 				$base_time = 60;
 				break;
 			case 'medium':
 			default:
-				$base_time = 30;
+				$base_time = 25;
 				break;
 		}
 
