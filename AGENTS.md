@@ -18,6 +18,7 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 - Lint PHP: `npm run lint:php` (requires `composer install` first)
 - Fix PHP: `npm run lint:php:fix` (auto-fixes issues where possible)
 - Format code: `npm run format`
+- Always run `npm run lint:js` after ANY change to JS so the user can test immediately.
 - After any changeset that is ready to commit, run the relevant tests and linters (see `tests/AGENTS.md` and `tests/e2e/AGENTS.md` for specifics). If tests pass, run linters based on what changed:
   - PHP changes: `npm run lint:php`
   - CSS changes: `npm run lint:css`
