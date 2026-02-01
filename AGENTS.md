@@ -11,7 +11,7 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 
 ## Build/Test Commands
 - Build: `npm run build`
-- Always run `npm run build` after changing any file that feeds built assets (e.g., `src/`).
+- Always run `npm run build` after ANY change to JS or other build inputs (especially `src/`) so the user can test immediately. Do not skip this.
 - Lint JavaScript: `npm run lint:js`
 - Fix JavaScript: `npm run lint:js:fix` (auto-fixes issues where possible)
 - Lint CSS: `npm run lint:css`
