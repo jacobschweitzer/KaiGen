@@ -96,21 +96,23 @@ class Admin {
 						$provider_instance->set_model( $provider_model );
 					}
 					$estimated_time         = (int) $provider_instance->get_estimated_generation_time( $quality, [] );
-					$reference_image_limits = [
-						'low'    => (int) $provider_instance->get_max_reference_images( 'low', [] ),
-						'medium' => (int) $provider_instance->get_max_reference_images( 'medium', [] ),
-						'high'   => (int) $provider_instance->get_max_reference_images( 'high', [] ),
-					];
-				}
-				$reference_image_limits['default'] = $reference_image_limits[ $quality ] ?? 16;
-
-				$defaults        = [
-					'provider'                          => $provider,
-					'quality'                           => $quality,
-					'provider_model'                    => $provider_model,
-					'estimated_generation_time_seconds' => $estimated_time,
-					'reference_image_limits'            => $reference_image_limits,
+				$reference_image_limits = [
+					'low'    => (int) $provider_instance->get_max_reference_images( 'low', [] ),
+					'medium' => (int) $provider_instance->get_max_reference_images( 'medium', [] ),
+					'high'   => (int) $provider_instance->get_max_reference_images( 'high', [] ),
 				];
+			}
+			$reference_image_limits['default'] = $reference_image_limits[ $quality ] ?? 16;
+			$use_vision_alt_text = (bool) get_option( 'kaigen_use_vision_alt_text', false );
+
+			$defaults        = [
+				'provider'                          => $provider,
+				'quality'                           => $quality,
+				'provider_model'                    => $provider_model,
+				'estimated_generation_time_seconds' => $estimated_time,
+				'reference_image_limits'            => $reference_image_limits,
+				'use_vision_alt_text'               => $use_vision_alt_text,
+			];
 				$kaigen_settings = $this->normalize_editor_settings( $settings, $defaults );
 
 				$settings['kaigen_settings'] = $kaigen_settings;
@@ -121,6 +123,7 @@ class Admin {
 				$settings['kaigen_provider_model']                    = $kaigen_settings['provider_model'];
 				$settings['kaigen_estimated_generation_time_seconds'] = $kaigen_settings['estimated_generation_time_seconds'];
 				$settings['kaigen_reference_image_limits']            = $kaigen_settings['reference_image_limits'];
+				$settings['kaigen_use_vision_alt_text']               = $kaigen_settings['use_vision_alt_text'];
 				$settings['kaigen_has_api_key']                       = ! empty( $provider ) && ! empty( $api_keys[ $provider ] );
 
 				return $settings;
@@ -143,6 +146,7 @@ class Admin {
 			'provider_model',
 			'estimated_generation_time_seconds',
 			'reference_image_limits',
+			'use_vision_alt_text',
 		];
 
 		if ( $this->has_editor_settings_payload( $settings['kaigen_settings'] ?? null, $required_keys ) ) {
@@ -159,6 +163,7 @@ class Admin {
 			'provider_model'                    => $settings['kaigen_provider_model'] ?? $defaults['provider_model'],
 			'estimated_generation_time_seconds' => $settings['kaigen_estimated_generation_time_seconds'] ?? $defaults['estimated_generation_time_seconds'],
 			'reference_image_limits'            => $settings['kaigen_reference_image_limits'] ?? $defaults['reference_image_limits'],
+			'use_vision_alt_text'               => $settings['kaigen_use_vision_alt_text'] ?? $defaults['use_vision_alt_text'],
 		];
 
 		return array_merge( $defaults, $legacy );
@@ -243,6 +248,13 @@ class Admin {
 			[ 'sanitize_callback' => [ $this, 'sanitize_provider' ] ]
 		);
 
+		// Register alt text settings.
+		register_setting(
+			'kaigen_settings',
+			'kaigen_use_vision_alt_text',
+			[ 'sanitize_callback' => [ $this, 'sanitize_boolean_setting' ] ]
+		);
+
 		// Add settings section for providers.
 		add_settings_section(
 			'kaigen_settings_section',
@@ -256,6 +268,14 @@ class Admin {
 			'kaigen_quality_section',
 			'Image Quality Settings',
 			[ $this, 'render_quality_section' ],
+			'kaigen-settings'
+		);
+
+		// Add alt text settings section.
+		add_settings_section(
+			'kaigen_alt_text_section',
+			'Alt Text Settings',
+			[ $this, 'render_alt_text_section' ],
 			'kaigen-settings'
 		);
 
@@ -284,6 +304,15 @@ class Admin {
 			'kaigen-settings',
 			'kaigen_quality_section'
 		);
+
+		// Add alt text options.
+		add_settings_field(
+			'kaigen_use_vision_alt_text',
+			'Alt Text Generation',
+			[ $this, 'render_vision_alt_text_field' ],
+			'kaigen-settings',
+			'kaigen_alt_text_section'
+		);
 	}
 
 	/**
@@ -305,6 +334,42 @@ class Admin {
 				'provider_name' => $provider_name,
 			]
 		);
+	}
+
+	/**
+	 * Sanitizes boolean settings.
+	 *
+	 * @param mixed $value Raw input value.
+	 * @return bool Sanitized boolean.
+	 */
+	public function sanitize_boolean_setting( $value ) {
+		return (bool) $value;
+	}
+
+	/**
+	 * Renders the alt text section description.
+	 */
+	public function render_alt_text_section() {
+		echo '<p>Configure how alt text is generated for AI images.</p>';
+	}
+
+	/**
+	 * Renders the vision-based alt text option.
+	 */
+	public function render_vision_alt_text_field() {
+		$enabled = (bool) get_option( 'kaigen_use_vision_alt_text', false );
+		?>
+		<label for="kaigen_use_vision_alt_text">
+			<input
+				type="checkbox"
+				id="kaigen_use_vision_alt_text"
+				name="kaigen_use_vision_alt_text"
+				value="1"
+				<?php checked( $enabled ); ?>
+			/>
+			Use a vision model to generate alt text (recommended).
+		</label>
+		<?php
 	}
 
 	/**
