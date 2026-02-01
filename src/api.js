@@ -238,6 +238,39 @@ export const generateAltText = async (
 };
 
 /**
+ * Generates prompt variants for the Best-of workflow.
+ *
+ * @param {string} prompt   - The base prompt.
+ * @param {string} provider - The selected provider ID.
+ * @return {Promise<Object>} Prompt variant response.
+ */
+export const generatePromptVariants = async ( prompt, provider ) => {
+	try {
+		const data = {
+			prompt,
+			provider,
+		};
+
+		const response = await wp.apiFetch( {
+			path: '/kaigen/v1/generate-prompt-variants',
+			method: 'POST',
+			data,
+		} );
+
+		if ( response && response.code && response.message ) {
+			throw new Error( response.message );
+		}
+
+		return response;
+	} catch ( error ) {
+		throw new Error(
+			error.message ||
+				'An unknown error occurred while generating prompt variants'
+		);
+	}
+};
+
+/**
  * Fetches all reference images marked in the media library.
  *
  * @return {Promise<Array>} Array of image objects.
