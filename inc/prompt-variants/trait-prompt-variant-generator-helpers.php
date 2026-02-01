@@ -22,11 +22,10 @@ trait Prompt_Variant_Generator_Helpers {
 		return implode(
 			"\n",
 			[
-				'Create two image prompt variants in JSON only.',
-				'Return valid JSON with keys: detailed_variant, creative_variant.',
-				'Detailed variant: preserve subject and intent; add specific visual details (materials, textures, lighting quality, color palette, depth cues, lens style) and vary composition slightly.',
-				'Creative variant: reinterpret boldly; change style (illustration, photography, 3D render, collage), shift perspective or scale, alter time of day or season, or add a surreal twist while keeping the core subject recognizable.',
-				'Each variant must be a complete image prompt, not a fragment. Return JSON on a single line with no extra text.',
+				'Create two image prompts variants in JSON format.',
+				'Return valid JSON on a single line of text with each complete image prompt variant shown with these keys:',
+				'detailed_variant: preserve subject and intent, add specific visual details (materials, textures, lighting quality, color palette, depth cues, lens style) and vary composition slightly.',
+				'creative_variant: reinterpret boldly; change style (illustration, photography, 3D render, collage), shift perspective or scale, alter time of day or season, or add a surreal twist while keeping the core subject recognizable.',
 			]
 		);
 	}
