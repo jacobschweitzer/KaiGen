@@ -45,6 +45,13 @@ class Provider_Manager {
 	private static $alt_text_generator_class = null;
 
 	/**
+	 * Cached prompt variant generator class name.
+	 *
+	 * @var string|null
+	 */
+	private static $prompt_variant_generator_class = null;
+
+	/**
 	 * Private constructor to prevent direct instantiation.
 	 */
 	private function __construct() {
@@ -200,6 +207,43 @@ class Provider_Manager {
 	}
 
 	/**
+	 * Gets the loaded prompt variant generator class for the active provider.
+	 *
+	 * @return string Loaded generator class name or empty string.
+	 */
+	public function get_active_prompt_variant_generator_class() {
+		$this->load_active_prompt_variant_generator();
+
+		$active = $this->get_active_provider_id();
+		if ( '' === $active ) {
+			return '';
+		}
+
+		if ( null !== self::$prompt_variant_generator_class ) {
+			return self::$prompt_variant_generator_class;
+		}
+
+		foreach ( get_declared_classes() as $class ) {
+			if ( 0 !== strpos( $class, __NAMESPACE__ . '\\' ) ) {
+				continue;
+			}
+
+			$implements = class_implements( $class );
+			if ( empty( $implements ) ) {
+				continue;
+			}
+
+			if ( in_array( Prompt_Variant_Generator_Core::class, $implements, true ) ) {
+				self::$prompt_variant_generator_class = $class;
+				return $class;
+			}
+		}
+
+		self::$prompt_variant_generator_class = '';
+		return '';
+	}
+
+	/**
 	 * Loads the active alt text generator class file when available.
 	 *
 	 * @return void
@@ -216,6 +260,28 @@ class Provider_Manager {
 		require_once $base_dir . 'trait-alt-text-generator-helpers.php';
 
 		$class_file = $base_dir . 'class-alt-text-generator-' . $provider . '.php';
+		if ( file_exists( $class_file ) ) {
+			require_once $class_file;
+		}
+	}
+
+	/**
+	 * Loads the active prompt variant generator class file when available.
+	 *
+	 * @return void
+	 */
+	private function load_active_prompt_variant_generator() {
+		$provider = $this->get_active_provider_id();
+		if ( '' === $provider ) {
+			return;
+		}
+
+		$provider = sanitize_key( $provider );
+		$base_dir = plugin_dir_path( __DIR__ ) . 'inc/prompt-variants/';
+
+		require_once $base_dir . 'trait-prompt-variant-generator-helpers.php';
+
+		$class_file = $base_dir . 'class-prompt-variant-generator-' . $provider . '.php';
 		if ( file_exists( $class_file ) ) {
 			require_once $class_file;
 		}
