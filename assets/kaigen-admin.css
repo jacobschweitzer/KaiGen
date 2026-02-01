@@ -1,5 +1,12 @@
 /* KaiGen Plugin Admin Styles */
 
+/* ===== MODAL SIZE ===== */
+
+.components-modal__frame.kaigen-modal {
+	width: 33%;
+	max-width: 90vw;
+}
+
 /* ===== MODAL HEADER STYLING ===== */
 
 /* Center the logo in KaiGen modal header */
@@ -37,7 +44,8 @@
 
 .kaigen-modal__textarea .components-textarea-control__input {
 	width: 100%;
-	resize: none;
+	min-height: 80px;
+	resize: vertical;
 	border: none;
 	box-shadow: none;
 	outline: none;
@@ -270,9 +278,38 @@
 
 .kaigen-modal__best-of-card img {
 	width: 100%;
-	height: 140px;
+	height: 180px;
 	object-fit: cover;
 	display: block;
+}
+
+.kaigen-modal__best-of-placeholder {
+	width: 100%;
+	height: 180px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	background: #f6f7f7;
+	color: #6c7781;
+	font-size: 12px;
+}
+
+.kaigen-modal__best-of-placeholder-progress {
+	width: 80%;
+	height: 6px;
+	background: #e9eef0;
+	border-radius: 999px;
+	overflow: hidden;
+	border: 1px solid #c3c4c7;
+}
+
+.kaigen-modal__best-of-placeholder-fill {
+	height: 100%;
+	width: 0;
+	background: #007cba;
+	transition: width 0.2s linear;
 }
 
 .kaigen-modal__best-of-label {
@@ -401,6 +438,9 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #e6e6e6;
 }
 
 .kaigen-modal-quality-container {
@@ -408,6 +448,29 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 	gap: 8px;
 	flex-wrap: wrap;
 	margin-top: 8px;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #e6e6e6;
+}
+
+.kaigen-modal-dropdown-content-container .components-checkbox-control {
+	margin-top: 8px;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #e6e6e6;
+}
+
+.kaigen-modal-dropdown-content-container
+	.components-checkbox-control
+	.components-base-control__field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.kaigen-modal-dropdown-content-container
+	.components-checkbox-control__label {
+	margin: 0;
 }
 
 .kaigen-modal-aspect-ratio-icon-container {
