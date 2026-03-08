@@ -307,9 +307,9 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
-			const promptInput = getModalPromptInput( modal );
-			await expect( promptInput ).toBeVisible( { timeout: 5000 } );
-			await promptInput.fill( 'A beautiful sunset over mountains' );
+		const promptInput = getModalPromptInput( modal );
+		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+		await promptInput.fill( 'A beautiful sunset over mountains' );
 
 		// Click generate button
 		const generateButton = page.getByRole( 'button', {
@@ -331,8 +331,8 @@ test.describe( 'KaiGen Image Generation', () => {
 			await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
 			// Verify image was inserted
-				const insertedImage = getInsertedImage( imageBlock );
-				await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+			const insertedImage = getInsertedImage( imageBlock );
+			await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 			// Get the image src
 			const imageSrc = await insertedImage.getAttribute( 'src' );
@@ -442,9 +442,9 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
-			const promptInput = getModalPromptInput( modal );
-			await expect( promptInput ).toBeVisible( { timeout: 5000 } );
-			await promptInput.fill( 'A futuristic cityscape at night' );
+		const promptInput = getModalPromptInput( modal );
+		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+		await promptInput.fill( 'A futuristic cityscape at night' );
 
 		// Click generate button
 		const generateButton = page.getByRole( 'button', {
@@ -463,8 +463,8 @@ test.describe( 'KaiGen Image Generation', () => {
 			await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
 			// Verify image was inserted
-				const insertedImage = getInsertedImage( imageBlock );
-				await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+			const insertedImage = getInsertedImage( imageBlock );
+			await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 			// Get the image src
 			const imageSrc = await insertedImage.getAttribute( 'src' );
