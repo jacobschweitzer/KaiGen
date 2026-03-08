@@ -5,19 +5,43 @@
 import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 
 /**
+ * Opens the KaiGen settings page, retrying if Playground is briefly in maintenance mode.
+ * @param page
+ */
+async function openKaiGenSettings( page: any ) {
+	for ( let attempt = 0; attempt < 3; attempt++ ) {
+		await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
+
+		const maintenanceMessage = page.getByText(
+			'Briefly unavailable for scheduled maintenance. Check back in a minute.'
+		);
+		const maintenanceVisible = await maintenanceMessage
+			.isVisible( { timeout: 2000 } )
+			.catch( () => false );
+		if ( maintenanceVisible ) {
+			await page.waitForTimeout( 2000 );
+			continue;
+		}
+
+		const pageTitle = page.locator( '.wrap h1' );
+		await expect( pageTitle ).toBeVisible( { timeout: 10000 } );
+		return pageTitle;
+	}
+
+	throw new Error( 'KaiGen settings page stayed in maintenance mode.' );
+}
+
+/**
  * Helper function to configure KaiGen provider settings via WordPress admin.
  * @param page
  * @param provider
  */
 async function configureKaiGenProvider( page: any, provider = 'openai' ) {
 	// Navigate to the KaiGen settings page
-	await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
-
-	// Wait for the settings page to load
-	await page.waitForSelector( '.wrap h1', { timeout: 10000 } );
+	const pageTitleLocator = await openKaiGenSettings( page );
 
 	// Verify we're on the correct page
-	const pageTitle = await page.locator( '.wrap h1' ).textContent();
+	const pageTitle = await pageTitleLocator.textContent();
 
 	if ( pageTitle !== 'KaiGen Settings' ) {
 		throw new Error(
@@ -83,10 +107,11 @@ test.describe( 'KaiGen Image Generation', () => {
 		'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
 		'base64'
 	);
+	const getKaiGenModal = ( page ) => page.locator( '.kaigen-modal' ).first();
 	const getModalPromptInput = ( modal ) =>
 		modal.getByPlaceholder( 'Image prompt...' );
 	const getInsertedImage = ( imageBlock ) =>
-		imageBlock.locator( 'figure img' ).first();
+		imageBlock.locator( 'img[src*="/wp-content/uploads/"]' ).first();
 
 	const openKaiGenPanel = async ( page, editor ) => {
 		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
@@ -303,7 +328,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
@@ -395,8 +420,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		admin,
 	} ) => {
 		// First, change provider to Replicate
-		await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
-		await page.waitForSelector( '.wrap h1', { timeout: 10000 } );
+		await openKaiGenSettings( page );
 
 		// Select Replicate provider
 		const providerSelect = page.locator( 'select[name="kaigen_provider"]' );
@@ -438,7 +462,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
@@ -568,7 +592,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.first().click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Open reference images dropdown and select the reference thumbnail
@@ -649,7 +673,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( kaiGenButton ).toBeVisible( { timeout: 10000 } );
 		await kaiGenButton.click();
 
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		const promptInput = getModalPromptInput( modal );
@@ -712,7 +736,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( kaiGenButton ).toBeVisible( { timeout: 10000 } );
 		await kaiGenButton.click();
 
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		const promptInput = getModalPromptInput( modal );
@@ -770,7 +794,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter a prompt that might trigger content moderation (mocked)
