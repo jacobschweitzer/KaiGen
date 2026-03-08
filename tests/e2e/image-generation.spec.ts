@@ -83,6 +83,10 @@ test.describe( 'KaiGen Image Generation', () => {
 		'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
 		'base64'
 	);
+	const getModalPromptInput = ( modal ) =>
+		modal.getByPlaceholder( 'Image prompt...' );
+	const getInsertedImage = ( imageBlock ) =>
+		imageBlock.locator( 'figure img' ).first();
 
 	const openKaiGenPanel = async ( page, editor ) => {
 		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
@@ -303,11 +307,9 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
-		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
-		await promptInput.fill( 'A beautiful sunset over mountains' );
+			const promptInput = getModalPromptInput( modal );
+			await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+			await promptInput.fill( 'A beautiful sunset over mountains' );
 
 		// Click generate button
 		const generateButton = page.getByRole( 'button', {
@@ -329,8 +331,8 @@ test.describe( 'KaiGen Image Generation', () => {
 			await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
 			// Verify image was inserted
-			const insertedImage = imageBlock.locator( 'img' );
-			await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+				const insertedImage = getInsertedImage( imageBlock );
+				await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 			// Get the image src
 			const imageSrc = await insertedImage.getAttribute( 'src' );
@@ -440,11 +442,9 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
-		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
-		await promptInput.fill( 'A futuristic cityscape at night' );
+			const promptInput = getModalPromptInput( modal );
+			await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+			await promptInput.fill( 'A futuristic cityscape at night' );
 
 		// Click generate button
 		const generateButton = page.getByRole( 'button', {
@@ -463,8 +463,8 @@ test.describe( 'KaiGen Image Generation', () => {
 			await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
 			// Verify image was inserted
-			const insertedImage = imageBlock.locator( 'img' );
-			await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+				const insertedImage = getInsertedImage( imageBlock );
+				await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 			// Get the image src
 			const imageSrc = await insertedImage.getAttribute( 'src' );
@@ -546,7 +546,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			buffer: tinyPngBuffer,
 		} );
 
-		const insertedImage = imageBlock.locator( 'img' );
+		const insertedImage = getInsertedImage( imageBlock );
 		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 		await openKaiGenPanel( page, editor );
@@ -652,9 +652,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		const modal = page.locator( '.components-modal__screen-overlay' );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'A tiny green checkmark icon' );
 
@@ -666,7 +664,7 @@ test.describe( 'KaiGen Image Generation', () => {
 
 		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
-		const insertedImage = imageBlock.locator( 'img' );
+		const insertedImage = getInsertedImage( imageBlock );
 		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 		await openKaiGenPanel( page, editor );
@@ -717,9 +715,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		const modal = page.locator( '.components-modal__screen-overlay' );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'A tiny green checkmark icon' );
 
@@ -731,7 +727,7 @@ test.describe( 'KaiGen Image Generation', () => {
 
 		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
-		const insertedImage = imageBlock.locator( 'img' );
+		const insertedImage = getInsertedImage( imageBlock );
 		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 		await openKaiGenPanel( page, editor );
@@ -778,9 +774,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter a prompt that might trigger content moderation (mocked)
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'TRIGGER_ERROR_RESPONSE' );
 
