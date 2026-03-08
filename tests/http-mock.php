@@ -87,6 +87,25 @@ add_filter(
 					'cookies'  => [],
 					'filename' => '',
 				];
+			} elseif ( str_contains( $url, 'api.x.ai' ) ) {
+				return [
+					'headers'  => [ 'content-type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'message' => 'Your request was rejected as a result of our safety system.',
+								'type'    => 'invalid_request_error',
+								'code'    => 'content_policy_violation',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => '',
+				];
 			}
 		}
 
@@ -106,6 +125,33 @@ add_filter(
 										'type' => 'output_text',
 										'text' => 'A tiny test image with a simple green checkmark icon.',
 									],
+								],
+							],
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => '',
+			];
+		}
+
+		// Mock xAI chat completions endpoint (for alt text generation).
+		if ( str_contains( $url, 'api.x.ai/v1/chat/completions' ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'KaiGen E2E Mock: Returning mocked xAI chat completion output' );
+
+			return [
+				'headers'  => [ 'content-type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'choices' => [
+							[
+								'message' => [
+									'content' => 'A tiny test image with a simple green checkmark icon.',
 								],
 							],
 						],
@@ -156,6 +202,95 @@ add_filter(
 		if ( str_contains( $url, 'api.openai.com/v1/images/edits' ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( 'KaiGen E2E Mock: Returning mocked OpenAI edit response' );
+
+			$placeholder_base64 = 'iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAfUlEQVR42u3RAQ0AAAjDMO5fNCxICg0B0FEBGUgDJSMpIyljKSMrYykhKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKWOpIyllKWw/4Ab2agQMAAAAAElFTkSuQmCC';
+
+			return [
+				'headers'  => [ 'content-type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'created' => time(),
+						'data'    => [
+							[
+								'b64_json'       => $placeholder_base64,
+								'revised_prompt' => 'An edited version of the original image',
+							],
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => '',
+			];
+		}
+
+		// Mock xAI image generation endpoint.
+		if ( str_contains( $url, 'api.x.ai/v1/images/generations' ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'KaiGen E2E Mock: Returning mocked xAI generation response' );
+
+			$png_base64 = 'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAPJJREFUSEvt1M0RgjAQBOCWq3QD3SA36QbphGyQbpBuoG4g3SAdwAbtJg7sCg7QhZAEb3L5l5CQUlq4W3h5IcwQ2gU3nd23sQggoZoJAxzEa243u0G2QAvzKLRNC9gQwpIBbeoV0A+w/wN8AcflGqY7QPl4gA3kNaYg9k/wbQCNY3E0sA0LDUQx3wFj2Gr+C8wd4AxbMMSx3wBs5piO2b4C3MwzzHds3gFv5hjO274CPs0xzHcv3gFv5hrW2z4C3s0wrLf8BrOYZ1lv+wns5plWW/4DOs9zLP8B7OYZ1mGfAQTwC3b3/wFSGddpE8wD/gAAAABJRU5ErkJggg==';
+
+			return [
+				'headers'  => [ 'content-type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'created' => time(),
+						'data'    => [
+							[
+								'b64_json'       => $png_base64,
+								'revised_prompt' => 'A bright test pattern with a green checkmark.',
+							],
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => '',
+			];
+		}
+
+		// Mock xAI image edit endpoint.
+		if ( str_contains( $url, 'api.x.ai/v1/images/edits' ) ) {
+			$body_data = [];
+			if ( ! empty( $args['body'] ) && is_string( $args['body'] ) ) {
+				$body_data = json_decode( $args['body'], true );
+			}
+
+			$image_payload = $body_data['image'] ?? null;
+			if (
+				! is_array( $image_payload ) ||
+				empty( $image_payload['url'] ) ||
+				! is_string( $image_payload['url'] )
+			) {
+				return [
+					'headers'  => [ 'content-type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'message' => 'Failed to deserialize the JSON body into the target type: image: expected object with url',
+								'type'    => 'invalid_request_error',
+								'code'    => 'invalid_request_error',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 422,
+						'message' => 'Unprocessable Entity',
+					],
+					'cookies'  => [],
+					'filename' => '',
+				];
+			}
+
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'KaiGen E2E Mock: Returning mocked xAI edit response' );
 
 			$placeholder_base64 = 'iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAfUlEQVR42u3RAQ0AAAjDMO5fNCxICg0B0FEBGUgDJSMpIyljKSMrYykhKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKWOpIyllKSMpYykhKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKSMpYyklKWOpIyllKWw/4Ab2agQMAAAAAElFTkSuQmCC';
 

@@ -7,8 +7,9 @@ import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 /**
  * Helper function to configure KaiGen provider settings via WordPress admin.
  * @param page
+ * @param provider
  */
-async function configureKaiGenProvider( page: any ) {
+async function configureKaiGenProvider( page: any, provider = 'openai' ) {
 	// Navigate to the KaiGen settings page
 	await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
 
@@ -31,14 +32,14 @@ async function configureKaiGenProvider( page: any ) {
 			.locator( 'option' )
 			.allTextContents();
 
-		const hasOpenAI = options.some( ( option ) =>
-			option.toLowerCase().includes( 'openai' )
+		const hasProvider = options.some( ( option ) =>
+			option.toLowerCase().includes( provider.toLowerCase() )
 		);
 
-		if ( hasOpenAI ) {
-			await providerSelect.selectOption( 'openai' );
+		if ( hasProvider ) {
+			await providerSelect.selectOption( provider );
 			await page.waitForSelector(
-				'input[name="kaigen_provider_api_keys[openai]"]',
+				`input[name="kaigen_provider_api_keys[${ provider }]"]`,
 				{
 					timeout: 5000,
 				}
@@ -48,10 +49,14 @@ async function configureKaiGenProvider( page: any ) {
 
 	// Set the API key after selecting the provider
 	const apiKeyField = page.locator(
-		'input[name="kaigen_provider_api_keys[openai]"]'
+		`input[name="kaigen_provider_api_keys[${ provider }]"]`
 	);
 	if ( ( await apiKeyField.count() ) > 0 ) {
-		await apiKeyField.fill( 'sk-test-e2e-key-1234567890' );
+		await apiKeyField.fill(
+			'xai' === provider
+				? 'xai-test-e2e-key-1234567890'
+				: 'sk-test-e2e-key-1234567890'
+		);
 	}
 
 	// Set quality settings
@@ -685,6 +690,67 @@ test.describe( 'KaiGen Image Generation', () => {
 		expect( initialAlt ).not.toBe(
 			'A tiny test image with a simple green checkmark icon.'
 		);
+	} );
+
+	/**
+	 * Test alt text generation for an uploaded image using xAI.
+	 */
+	test( 'should generate alt text for an uploaded image with xAI', async ( {
+		admin,
+		editor,
+		page,
+	} ) => {
+		await configureKaiGenProvider( page, 'xai' );
+		await admin.createNewPost( { showWelcomeGuide: false } );
+
+		await editor.insertBlock( { name: 'core/image' } );
+
+		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
+		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
+
+		const kaiGenButton = editor.canvas.locator(
+			'.kaigen-placeholder-button'
+		);
+		await expect( kaiGenButton ).toBeVisible( { timeout: 10000 } );
+		await kaiGenButton.click();
+
+		const modal = page.locator( '.components-modal__screen-overlay' );
+		await expect( modal ).toBeVisible( { timeout: 10000 } );
+
+		const promptInput = page.locator(
+			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
+		);
+		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+		await promptInput.fill( 'A tiny green checkmark icon' );
+
+		const generateButton = page.getByRole( 'button', {
+			name: 'Generate Image',
+		} );
+		await expect( generateButton ).toBeVisible( { timeout: 5000 } );
+		await generateButton.click();
+
+		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
+
+		const insertedImage = imageBlock.locator( 'img' );
+		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+
+		await openKaiGenPanel( page, editor );
+		const altButton = page.getByRole( 'button', {
+			name: 'Generate Alt Text',
+		} );
+		await expect( altButton ).toBeVisible( { timeout: 10000 } );
+		await altButton.click();
+
+		const successNotice = page.locator( '.components-snackbar__content', {
+			hasText: 'Alt text generated.',
+		} );
+		await expect( successNotice ).toBeVisible( { timeout: 15000 } );
+
+		await expect
+			.poll( async () => insertedImage.getAttribute( 'alt' ), {
+				timeout: 15000,
+			} )
+			.toBe( 'A tiny test image with a simple green checkmark icon.' );
 	} );
 
 	/**
