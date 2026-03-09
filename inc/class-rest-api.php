@@ -133,6 +133,17 @@ final class Rest_API {
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+
+		// Register the prompt variant generation endpoint.
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/generate-prompt-variants',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'handle_generate_prompt_variants_request' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -300,6 +311,36 @@ final class Rest_API {
 	}
 
 	/**
+	 * Generates prompt variants based on a prompt.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return \WP_REST_Response|WP_Error The response or error.
+	 */
+	public function handle_generate_prompt_variants_request( $request ) {
+		$prompt = sanitize_textarea_field( (string) $request->get_param( 'prompt' ) );
+		if ( '' === $prompt ) {
+			return new WP_Error( 'invalid_prompt', 'Prompt is required.', [ 'status' => 400 ] );
+		}
+
+		$provider = sanitize_text_field( (string) $request->get_param( 'provider' ) );
+		if ( '' === $provider ) {
+			$provider = kaigen_provider_manager()->get_active_provider_id();
+		}
+
+		$generator = $this->get_prompt_variant_generator( $provider );
+		if ( is_wp_error( $generator ) ) {
+			return $generator;
+		}
+
+		$result = $generator->generate( $prompt );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
 	 * Saves generation metadata on the post when available.
 	 *
 	 * @param int             $attachment_id The attachment ID.
@@ -371,6 +412,36 @@ final class Rest_API {
 
 		if ( ! in_array( Alt_Text_Generator_Core::class, class_implements( $class ), true ) ) {
 			return new WP_Error( 'invalid_provider', 'Alt text generator class is invalid.', [ 'status' => 400 ] );
+		}
+
+		return new $class();
+	}
+
+	/**
+	 * Resolves a prompt variant generator for the selected provider.
+	 *
+	 * @param string $provider The provider key.
+	 * @return Prompt_Variant_Generator_Core|WP_Error Generator instance or error.
+	 */
+	private function get_prompt_variant_generator( $provider ) {
+		$provider = strtolower( trim( (string) $provider ) );
+		$active   = kaigen_provider_manager()->get_active_provider_id();
+
+		if ( '' === $active || $provider !== $active ) {
+			return new WP_Error( 'invalid_provider', 'Prompt variant generator is not available for the selected provider.', [ 'status' => 400 ] );
+		}
+
+		$class = kaigen_provider_manager()->get_active_prompt_variant_generator_class();
+		if ( '' === $class ) {
+			return new WP_Error( 'invalid_provider', 'Prompt variant generator class not found.', [ 'status' => 400 ] );
+		}
+
+		if ( ! class_exists( $class ) ) {
+			return new WP_Error( 'invalid_provider', 'Prompt variant generator class not found.', [ 'status' => 400 ] );
+		}
+
+		if ( ! in_array( Prompt_Variant_Generator_Core::class, class_implements( $class ), true ) ) {
+			return new WP_Error( 'invalid_provider', 'Prompt variant generator class is invalid.', [ 'status' => 400 ] );
 		}
 
 		return new $class();

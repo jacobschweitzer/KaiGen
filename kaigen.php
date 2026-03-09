@@ -36,6 +36,7 @@ require_once __DIR__ . '/inc/class-image-provider.php';
 require_once __DIR__ . '/inc/class-provider-manager.php';
 require_once __DIR__ . '/inc/class-admin.php';
 require_once __DIR__ . '/inc/alt-text/class-alt-text-generator-core.php';
+require_once __DIR__ . '/inc/prompt-variants/class-prompt-variant-generator-core.php';
 
 // Load REST API functionality.
 require_once __DIR__ . '/inc/class-rest-api.php';

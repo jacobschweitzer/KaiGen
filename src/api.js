@@ -13,11 +13,16 @@
  * @param {string}   [options.moderation]          - Moderation level: 'auto' or 'low' (for GPT Image-1 only).
  * @param {string}   [options.style]               - Style parameter: 'natural' or 'vivid' (for GPT Image-1 only).
  * @param {string}   [options.quality]             - Quality level: 'low', 'medium', or 'high'.
+ * @param {string}   [options.promptOverride]      - Optional prompt override for the generation request.
+ * @param {string}   [options.altPrompt]           - Optional prompt to use for the image alt text.
  * @param {Function} [options.onEstimatedTime]     - Callback to receive estimated time in seconds.
  * @return {Promise<void>} A promise that resolves when the image generation is complete.
  */
 export const generateImage = async ( prompt, callback, options = {} ) => {
 	try {
+		const promptForRequest = options.promptOverride || prompt;
+		const altPrompt = options.altPrompt || prompt;
+
 		// Get the provider setting from editor settings
 		const provider = wp.data
 			.select( 'core/editor' )
@@ -38,7 +43,7 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 		}
 
 		const data = {
-			prompt,
+			prompt: promptForRequest,
 			provider,
 		};
 
@@ -160,7 +165,7 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 				// This is a WordPress media library attachment with a valid ID
 				callback( {
 					url: response.url,
-					alt: prompt,
+					alt: altPrompt,
 					id: response.id, // Use the actual WordPress media ID
 					caption: '',
 				} );
@@ -169,7 +174,7 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 				// Create an object without an ID to prevent 404 errors
 				callback( {
 					url: response.url,
-					alt: prompt,
+					alt: altPrompt,
 					caption: '',
 					// Omit the id property completely
 				} );
@@ -233,6 +238,39 @@ export const generateAltText = async (
 		throw new Error(
 			error.message ||
 				'An unknown error occurred while generating alt text'
+		);
+	}
+};
+
+/**
+ * Generates prompt variants for the Best-of workflow.
+ *
+ * @param {string} prompt   - The base prompt.
+ * @param {string} provider - The selected provider ID.
+ * @return {Promise<Object>} Prompt variant response.
+ */
+export const generatePromptVariants = async ( prompt, provider ) => {
+	try {
+		const data = {
+			prompt,
+			provider,
+		};
+
+		const response = await wp.apiFetch( {
+			path: '/kaigen/v1/generate-prompt-variants',
+			method: 'POST',
+			data,
+		} );
+
+		if ( response && response.code && response.message ) {
+			throw new Error( response.message );
+		}
+
+		return response;
+	} catch ( error ) {
+		throw new Error(
+			error.message ||
+				'An unknown error occurred while generating prompt variants'
 		);
 	}
 };

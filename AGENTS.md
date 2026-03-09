@@ -11,12 +11,14 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 
 ## Build/Test Commands
 - Build: `npm run build`
+- Always run `npm run build` after ANY change to JS or other build inputs (especially `src/`) so the user can test immediately. Do not skip this.
 - Lint JavaScript: `npm run lint:js`
 - Fix JavaScript: `npm run lint:js:fix` (auto-fixes issues where possible)
 - Lint CSS: `npm run lint:css`
 - Lint PHP: `npm run lint:php` (requires `composer install` first)
 - Fix PHP: `npm run lint:php:fix` (auto-fixes issues where possible)
 - Format code: `npm run format`
+- Always run `npm run lint:js` after ANY change to JS so the user can test immediately.
 - After any changeset that is ready to commit, run the relevant tests and linters (see `tests/AGENTS.md` and `tests/e2e/AGENTS.md` for specifics). If tests pass, run linters based on what changed:
   - PHP changes: `npm run lint:php`
   - CSS changes: `npm run lint:css`
@@ -33,6 +35,7 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 - Sanitize user inputs with WordPress functions like `sanitize_text_field()`
 - Escape outputs with `esc_attr()`, `esc_html()`, etc.
 - Use hooks/filters for provider integration; avoid provider-specific code in base files.
+- Do not reference specific providers or model IDs in JS; pass capabilities via editor settings from PHP and have JS read them.
 - Do not change AI model identifiers (image or alt-text) without explicit user approval.
 - When creating a PR, keep the title and description plain text without markdown or special formatting.
 
