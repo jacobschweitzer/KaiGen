@@ -232,7 +232,16 @@ class Image_Provider_XAI extends Image_Provider {
 	 * @return int Estimated time in seconds.
 	 */
 	public function get_estimated_generation_time( $quality_setting = '', $additional_params = [] ) {
-		return 30;
+		$source_image_urls = $additional_params['source_image_urls'] ?? [];
+		$source_image_url  = $additional_params['source_image_url'] ?? null;
+
+		if ( $source_image_url ) {
+			$source_image_urls[] = $source_image_url;
+		}
+
+		$has_source_image = ! empty( array_filter( $source_image_urls ) );
+
+		return $has_source_image ? 30 : 10;
 	}
 
 	/**
