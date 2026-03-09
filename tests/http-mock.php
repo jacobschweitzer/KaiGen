@@ -263,18 +263,35 @@ add_filter(
 				$body_data = json_decode( $args['body'], true );
 			}
 
-			$image_payload = $body_data['image'] ?? null;
-			if (
-				! is_array( $image_payload ) ||
-				empty( $image_payload['url'] ) ||
-				! is_string( $image_payload['url'] )
-			) {
+			$image_payload             = $body_data['image'] ?? null;
+			$images_payload            = $body_data['images'] ?? null;
+			$has_valid_single_image    = is_array( $image_payload ) &&
+				! empty( $image_payload['url'] ) &&
+				is_string( $image_payload['url'] );
+			$has_valid_multiple_images = is_array( $images_payload ) &&
+				! empty( $images_payload ) &&
+				count( $images_payload ) <= 3;
+
+			if ( $has_valid_multiple_images ) {
+				foreach ( $images_payload as $payload_image ) {
+					if (
+						! is_array( $payload_image ) ||
+						empty( $payload_image['url'] ) ||
+						! is_string( $payload_image['url'] )
+					) {
+						$has_valid_multiple_images = false;
+						break;
+					}
+				}
+			}
+
+			if ( ! $has_valid_single_image && ! $has_valid_multiple_images ) {
 				return [
 					'headers'  => [ 'content-type' => 'application/json' ],
 					'body'     => wp_json_encode(
 						[
 							'error' => [
-								'message' => 'Failed to deserialize the JSON body into the target type: image: expected object with url',
+								'message' => 'Failed to deserialize the JSON body into the target type: expected image object or images array with up to 3 urls',
 								'type'    => 'invalid_request_error',
 								'code'    => 'invalid_request_error',
 							],

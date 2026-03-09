@@ -617,7 +617,9 @@ test.describe( 'KaiGen Image Generation', () => {
 			name: 'Reference Images',
 		} );
 		await expect( referenceToggle ).toBeVisible( { timeout: 5000 } );
-		await referenceToggle.click();
+		await referenceToggle.evaluate( ( button: HTMLButtonElement ) =>
+			button.click()
+		);
 
 		const referenceThumbnails = page.locator(
 			'.kaigen-modal-reference-image'

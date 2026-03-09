@@ -76,7 +76,11 @@ class Image_Provider_XAI extends Image_Provider {
 			array_unshift( $source_image_urls, $source_image_url );
 		}
 
-		$source_image_urls = array_values( array_unique( array_filter( $source_image_urls ) ) );
+		$source_image_urls = array_slice(
+			array_values( array_unique( array_filter( $source_image_urls ) ) ),
+			0,
+			3
+		);
 		$has_source_image  = ! empty( $source_image_urls );
 
 		$endpoint = $has_source_image ? self::IMAGE_EDIT_API_BASE_URL : self::API_BASE_URL;
@@ -87,14 +91,27 @@ class Image_Provider_XAI extends Image_Provider {
 		];
 
 		if ( $has_source_image ) {
-			$image_data = $this->get_image_data( $source_image_urls[0] );
-			if ( is_wp_error( $image_data ) ) {
-				return $image_data;
+			$images = [];
+
+			foreach ( $source_image_urls as $image_url ) {
+				$image_data = $this->get_image_data( $image_url );
+				if ( is_wp_error( $image_data ) ) {
+					return $image_data;
+				}
+
+				$images[] = [
+					'url'  => $this->build_data_url( $image_url, $image_data ),
+					'type' => 'image_url',
+				];
 			}
 
-			$body['image'] = [
-				'url' => $this->build_data_url( $source_image_urls[0], $image_data ),
-			];
+			if ( 1 === count( $images ) ) {
+				$body['image'] = [
+					'url' => $images[0]['url'],
+				];
+			} else {
+				$body['images'] = $images;
+			}
 		}
 
 		if ( ! empty( $additional_params['aspect_ratio'] ) ) {
@@ -226,7 +243,7 @@ class Image_Provider_XAI extends Image_Provider {
 	 * @return int The maximum number of reference images.
 	 */
 	public function get_max_reference_images( $quality_setting = '', $additional_params = [] ) {
-		return 1;
+		return 3;
 	}
 
 	/**
