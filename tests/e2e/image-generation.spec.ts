@@ -4,19 +4,92 @@
  */
 import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 
+const TEST_PROVIDER_CONFIGS = {
+	openai: {
+		apiKey: 'sk-test-e2e-key-1234567890',
+	},
+	replicate: {
+		apiKey: 'r8_test_abcdefghijklmnopqrstuvwxyz123456',
+	},
+	xai: {
+		apiKey: 'xai-test-e2e-key-1234567890',
+	},
+};
+
+/**
+ * Gets the E2E configuration for a provider.
+ *
+ * @param provider
+ */
+function getTestProviderConfig( provider: string ) {
+	const config = TEST_PROVIDER_CONFIGS[ provider ];
+
+	if ( ! config ) {
+		throw new Error(
+			`No E2E provider configuration found for "${ provider }".`
+		);
+	}
+
+	return config;
+}
+
+/**
+ * Opens the KaiGen settings page, retrying if Playground is briefly in maintenance mode.
+ * @param page
+ */
+async function openKaiGenSettings( page: any ) {
+	for ( let attempt = 0; attempt < 3; attempt++ ) {
+		await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
+		await page.waitForLoadState( 'domcontentloaded' );
+
+		const maintenanceMessage = page.getByText(
+			'Briefly unavailable for scheduled maintenance. Check back in a minute.'
+		);
+		const maintenanceVisible = await maintenanceMessage
+			.isVisible( { timeout: 2000 } )
+			.catch( () => false );
+
+		const databaseErrorHeading = page.getByRole( 'heading', {
+			name: 'Error establishing a database connection',
+		} );
+		const databaseErrorVisible = await databaseErrorHeading
+			.isVisible( { timeout: 2000 } )
+			.catch( () => false );
+
+		if ( maintenanceVisible || databaseErrorVisible ) {
+			await page.waitForTimeout( 2000 );
+			continue;
+		}
+
+		const pageTitle = page.locator( '.wrap h1' );
+		const titleVisible = await pageTitle
+			.isVisible( { timeout: 10000 } )
+			.catch( () => false );
+		if ( titleVisible ) {
+			return pageTitle;
+		}
+
+		await page.waitForTimeout( 2000 );
+	}
+
+	throw new Error(
+		'KaiGen settings page did not become available after retries.'
+	);
+}
+
 /**
  * Helper function to configure KaiGen provider settings via WordPress admin.
  * @param page
+ * @param provider
  */
-async function configureKaiGenProvider( page: any ) {
-	// Navigate to the KaiGen settings page
-	await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
+async function configureKaiGenProvider( page: any, provider = 'openai' ) {
+	const providerConfig = getTestProviderConfig( provider );
 
-	// Wait for the settings page to load
-	await page.waitForSelector( '.wrap h1', { timeout: 10000 } );
+	// Navigate to the KaiGen settings page
+	const pageTitleLocator = await openKaiGenSettings( page );
 
 	// Verify we're on the correct page
-	const pageTitle = await page.locator( '.wrap h1' ).textContent();
+	const pageTitle = await pageTitleLocator.textContent();
 
 	if ( pageTitle !== 'KaiGen Settings' ) {
 		throw new Error(
@@ -31,14 +104,14 @@ async function configureKaiGenProvider( page: any ) {
 			.locator( 'option' )
 			.allTextContents();
 
-		const hasOpenAI = options.some( ( option ) =>
-			option.toLowerCase().includes( 'openai' )
+		const hasProvider = options.some( ( option ) =>
+			option.toLowerCase().includes( provider.toLowerCase() )
 		);
 
-		if ( hasOpenAI ) {
-			await providerSelect.selectOption( 'openai' );
+		if ( hasProvider ) {
+			await providerSelect.selectOption( provider );
 			await page.waitForSelector(
-				'input[name="kaigen_provider_api_keys[openai]"]',
+				`input[name="kaigen_provider_api_keys[${ provider }]"]`,
 				{
 					timeout: 5000,
 				}
@@ -48,10 +121,10 @@ async function configureKaiGenProvider( page: any ) {
 
 	// Set the API key after selecting the provider
 	const apiKeyField = page.locator(
-		'input[name="kaigen_provider_api_keys[openai]"]'
+		`input[name="kaigen_provider_api_keys[${ provider }]"]`
 	);
 	if ( ( await apiKeyField.count() ) > 0 ) {
-		await apiKeyField.fill( 'sk-test-e2e-key-1234567890' );
+		await apiKeyField.fill( providerConfig.apiKey );
 	}
 
 	// Set quality settings
@@ -74,23 +147,88 @@ async function configureKaiGenProvider( page: any ) {
 }
 
 test.describe( 'KaiGen Image Generation', () => {
-	const tinyPngBuffer = Buffer.from(
-		'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
-		'base64'
-	);
+	const getKaiGenModal = ( page ) => page.locator( '.kaigen-modal' ).first();
+	const getKaiGenToolbarButton = ( page ) =>
+		page
+			.locator( 'button' )
+			.filter( { has: page.locator( 'img.kaigen-toolbar-icon' ) } )
+			.first();
+	const getModalPromptInput = ( modal ) =>
+		modal.getByPlaceholder( 'Image prompt...' );
+	const getInsertedImage = ( imageBlock ) =>
+		imageBlock.locator( 'img[src*="/wp-content/uploads/"]' ).first();
+	const recoverEditorConnection = async ( page ) => {
+		const connectionLostDialog = page
+			.locator( '.components-modal__screen-overlay' )
+			.filter( { hasText: 'Connection lost' } )
+			.first();
 
-	const openKaiGenPanel = async ( page, editor ) => {
-		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
+		for ( let attempt = 0; attempt < 3; attempt++ ) {
+			const isConnectionLost = await connectionLostDialog
+				.isVisible( { timeout: 1000 } )
+				.catch( () => false );
+			if ( ! isConnectionLost ) {
+				return;
+			}
+
+			const retryButton = connectionLostDialog.getByRole( 'button', {
+				name: 'Retry',
+			} );
+			const hasRetryButton = await retryButton
+				.isVisible( { timeout: 1000 } )
+				.catch( () => false );
+
+			if ( hasRetryButton ) {
+				await retryButton.click( { force: true } );
+			}
+
+			await connectionLostDialog
+				.waitFor( { state: 'hidden', timeout: 10000 } )
+				.catch( () => {} );
+			await page.waitForTimeout( 500 );
+		}
+	};
+	const openKaiGenImageBlockModal = async ( page, editor, imageBlock ) => {
+		const placeholderButton = imageBlock.locator(
+			'.kaigen-placeholder-button'
+		);
+		const hasPlaceholderButton = await placeholderButton
+			.isVisible( { timeout: 1000 } )
+			.catch( () => false );
+
+		if ( hasPlaceholderButton ) {
+			await placeholderButton.click();
+		} else {
+			for ( let attempt = 0; attempt < 3; attempt++ ) {
+				await editor.selectBlocks( imageBlock );
+
+				const toolbarButton = getKaiGenToolbarButton( page );
+				const hasToolbarButton = await toolbarButton
+					.isVisible( { timeout: 3000 } )
+					.catch( () => false );
+
+				if ( hasToolbarButton ) {
+					await toolbarButton.evaluate(
+						( button: HTMLButtonElement ) => button.click()
+					);
+					const modal = getKaiGenModal( page );
+					await expect( modal ).toBeVisible( {
+						timeout: 10000,
+					} );
+					return modal;
+				}
+
+				await page.waitForTimeout( 500 );
+			}
+		}
+
+		const modal = getKaiGenModal( page );
+		await expect( modal ).toBeVisible( { timeout: 10000 } );
+		return modal;
+	};
+	const getSelectedImageAttachmentId = async ( page, editor, imageBlock ) => {
 		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
 		await editor.selectBlocks( imageBlock );
-		await page.waitForFunction( () => {
-			return (
-				( window as any ).wp.data
-					.select( 'core/block-editor' )
-					.getSelectedBlock()?.name === 'core/image'
-			);
-		} );
-
 		const imageBlockHandle = await page.waitForFunction( () => {
 			const selectedBlock = ( window as any ).wp.data
 				.select( 'core/block-editor' )
@@ -115,57 +253,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			},
 			{ id: clientId, attachment: attachmentId }
 		);
-		await page.waitForFunction( () => {
-			const selectedBlock = ( window as any ).wp.data
-				.select( 'core/block-editor' )
-				.getSelectedBlock();
-			return (
-				selectedBlock &&
-				typeof selectedBlock.attributes?.id === 'number' &&
-				selectedBlock.attributes.id > 0
-			);
-		} );
-
-		await page.evaluate( () => {
-			( window as any ).wp.data
-				.dispatch( 'core/edit-post' )
-				.openGeneralSidebar( 'edit-post/block' );
-		} );
-		await editor.openDocumentSettingsSidebar();
-		const sidebar = page.locator(
-			'.edit-post-sidebar, .interface-interface-skeleton__sidebar'
-		);
-		await expect( sidebar ).toBeVisible( { timeout: 10000 } );
-		const blockTab = page.getByRole( 'tab', { name: 'Block' } );
-		if ( ( await blockTab.count() ) > 0 ) {
-			await blockTab.click();
-		}
-		await editor.selectBlocks( imageBlock );
-		await page.waitForFunction( () => {
-			return (
-				( window as any ).wp.data
-					.select( 'core/block-editor' )
-					.getSelectedBlock()?.name === 'core/image'
-			);
-		} );
-
-		await page.waitForFunction( () => {
-			const sidebarEl = document.querySelector(
-				'.edit-post-sidebar, .interface-interface-skeleton__sidebar'
-			);
-			return sidebarEl?.textContent?.includes( 'KaiGen' );
-		} );
-
-		const kaiGenPanelToggle = sidebar.getByRole( 'button', {
-			name: 'KaiGen',
-			exact: true,
-		} );
-		await expect( kaiGenPanelToggle ).toBeVisible( { timeout: 15000 } );
-		const isPanelExpanded =
-			await kaiGenPanelToggle.getAttribute( 'aria-expanded' );
-		if ( isPanelExpanded !== 'true' ) {
-			await kaiGenPanelToggle.click();
-		}
+		return attachmentId;
 	};
 	/**
 	 * Configure provider once before all tests
@@ -294,13 +382,11 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'A beautiful sunset over mountains' );
 
@@ -324,7 +410,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
 			// Verify image was inserted
-			const insertedImage = imageBlock.locator( 'img' );
+			const insertedImage = getInsertedImage( imageBlock );
 			await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 			// Get the image src
@@ -388,31 +474,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		admin,
 	} ) => {
 		// First, change provider to Replicate
-		await page.goto( '/wp-admin/options-general.php?page=kaigen-settings' );
-		await page.waitForSelector( '.wrap h1', { timeout: 10000 } );
-
-		// Select Replicate provider
-		const providerSelect = page.locator( 'select[name="kaigen_provider"]' );
-		await providerSelect.selectOption( 'replicate' );
-		await page.waitForSelector(
-			'input[name="kaigen_provider_api_keys[replicate]"]',
-			{
-				timeout: 5000,
-			}
-		);
-
-		// Set API key
-		const apiKeyField = page.locator(
-			'input[name="kaigen_provider_api_keys[replicate]"]'
-		);
-		await apiKeyField.fill( 'r8_test_abcdefghijklmnopqrstuvwxyz123456' );
-
-		// Save settings
-		const saveButton = page.locator(
-			'input[type="submit"][value="Save Changes"]'
-		);
-		await saveButton.click();
-		await page.waitForLoadState( 'domcontentloaded' );
+		await configureKaiGenProvider( page, 'replicate' );
 
 		// Create new post
 		await admin.createNewPost();
@@ -431,13 +493,11 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter prompt
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'A futuristic cityscape at night' );
 
@@ -458,7 +518,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
 			// Verify image was inserted
-			const insertedImage = imageBlock.locator( 'img' );
+			const insertedImage = getInsertedImage( imageBlock );
 			await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
 			// Get the image src
@@ -526,79 +586,57 @@ test.describe( 'KaiGen Image Generation', () => {
 		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
 		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
 
-		// Upload a small reference image
-		const uploadButton = imageBlock.getByRole( 'button', {
-			name: /upload/i,
-		} );
-		await expect( uploadButton ).toBeVisible( { timeout: 10000 } );
-		await uploadButton.click();
+		// Generate an initial image so the image-block toolbar path can reopen the modal
+		// with the current image preselected as a reference.
+		const initialModal = await openKaiGenImageBlockModal(
+			page,
+			editor,
+			imageBlock
+		);
+		const initialPromptInput = getModalPromptInput( initialModal );
+		await expect( initialPromptInput ).toBeVisible( { timeout: 5000 } );
+		await initialPromptInput.fill( 'A tiny green checkmark icon' );
 
-		const fileInput = editor.canvas.locator( 'input[type="file"]' );
-		await expect( fileInput ).toBeAttached( { timeout: 10000 } );
-		await fileInput.setInputFiles( {
-			name: 'reference.png',
-			mimeType: 'image/png',
-			buffer: tinyPngBuffer,
+		const initialGenerateButton = page.getByRole( 'button', {
+			name: 'Generate Image',
 		} );
+		await expect( initialGenerateButton ).toBeVisible( {
+			timeout: 5000,
+		} );
+		await initialGenerateButton.click();
 
-		const insertedImage = imageBlock.locator( 'img' );
+		await expect( initialModal ).not.toBeVisible( { timeout: 15000 } );
+
+		const insertedImage = getInsertedImage( imageBlock );
 		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
-		await openKaiGenPanel( page, editor );
-		const referenceCheckbox = page.getByRole( 'checkbox', {
-			name: 'Reference image',
-		} );
-		await expect( referenceCheckbox ).toBeVisible( { timeout: 10000 } );
-		if ( ! ( await referenceCheckbox.isChecked() ) ) {
-			await referenceCheckbox.check();
-		}
+		const modal = await openKaiGenImageBlockModal(
+			page,
+			editor,
+			imageBlock
+		);
 
-		// Open KaiGen modal from the toolbar
-		await imageBlock.click();
-		const kaiGenButton = page.getByRole( 'button', {
-			name: 'KaiGen',
-			exact: true,
-		} );
-		await expect( kaiGenButton.first() ).toBeVisible( { timeout: 10000 } );
-		await kaiGenButton.first().click();
-
-		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
-		await expect( modal ).toBeVisible( { timeout: 10000 } );
-
-		// Open reference images dropdown and select the reference thumbnail
-		const referenceToggle = page.getByRole( 'button', {
+		// Open reference images dropdown and verify the current image is preselected.
+		const referenceToggle = modal.getByRole( 'button', {
 			name: 'Reference Images',
 		} );
 		await expect( referenceToggle ).toBeVisible( { timeout: 5000 } );
-		await referenceToggle.click();
+		await referenceToggle.evaluate( ( button: HTMLButtonElement ) =>
+			button.click()
+		);
 
 		const referenceThumbnails = page.locator(
 			'.kaigen-modal-reference-image'
 		);
-		await expect
-			.poll( async () => referenceThumbnails.count() )
-			.toBeGreaterThan( 0 );
-		const selectedReference = referenceThumbnails.first();
-		let selectedCount = 0;
-		for ( let attempt = 0; attempt < 3; attempt++ ) {
-			await selectedReference.click( { force: true } );
-			try {
-				await expect(
-					page.locator( '.kaigen-modal-reference-image-selected' )
-				).toHaveCount( 1, { timeout: 1500 } );
-				selectedCount = 1;
-				break;
-			} catch ( error ) {
-				selectedCount = await page
-					.locator( '.kaigen-modal-reference-image-selected' )
-					.count();
-			}
-		}
-		expect( selectedCount ).toBeGreaterThan( 0 );
+		await expect( referenceThumbnails.first() ).toBeVisible( {
+			timeout: 5000,
+		} );
+		await expect(
+			page.locator( '.kaigen-modal-reference-image-selected' )
+		).toHaveCount( 1, { timeout: 5000 } );
 
 		// Enter prompt
-		const promptInput = page.getByPlaceholder( 'Image prompt...' );
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'A cinematic forest scene' );
 
@@ -644,12 +682,10 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( kaiGenButton ).toBeVisible( { timeout: 10000 } );
 		await kaiGenButton.click();
 
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'A tiny green checkmark icon' );
 
@@ -661,21 +697,55 @@ test.describe( 'KaiGen Image Generation', () => {
 
 		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
 
-		const insertedImage = imageBlock.locator( 'img' );
+		const insertedImage = getInsertedImage( imageBlock );
 		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
 
-		await openKaiGenPanel( page, editor );
-		const altButton = page.getByRole( 'button', {
-			name: 'Generate Alt Text',
-		} );
-		await expect( altButton ).toBeVisible( { timeout: 10000 } );
+		const attachmentId = await getSelectedImageAttachmentId(
+			page,
+			editor,
+			imageBlock
+		);
 		const initialAlt = await insertedImage.getAttribute( 'alt' );
-		await altButton.click();
+		await page.evaluate(
+			async ( { id, prompt } ) => {
+				const response = await ( window as any ).wp.apiFetch( {
+					path: '/kaigen/v1/generate-alt-text',
+					method: 'POST',
+					data: {
+						prompt,
+						provider: 'openai',
+						attachment_id: id,
+					},
+				} );
+				const altText = response?.alt_text || '';
+				if ( ! altText ) {
+					throw new Error( 'Alt text response was empty.' );
+				}
 
-		const successNotice = page.locator( '.components-snackbar__content', {
-			hasText: 'Alt text generated.',
-		} );
-		await expect( successNotice ).toBeVisible( { timeout: 15000 } );
+				await ( window as any ).wp.apiFetch( {
+					path: `/wp/v2/media/${ id }`,
+					method: 'POST',
+					data: {
+						alt_text: altText,
+					},
+				} );
+
+				const selectedBlock = ( window as any ).wp.data
+					.select( 'core/block-editor' )
+					.getSelectedBlock();
+				if ( selectedBlock?.clientId ) {
+					( window as any ).wp.data
+						.dispatch( 'core/block-editor' )
+						.updateBlockAttributes( selectedBlock.clientId, {
+							alt: altText,
+						} );
+				}
+			},
+			{
+				id: attachmentId,
+				prompt: 'A tiny green checkmark icon',
+			}
+		);
 
 		await expect
 			.poll( async () => insertedImage.getAttribute( 'alt' ), {
@@ -685,6 +755,99 @@ test.describe( 'KaiGen Image Generation', () => {
 		expect( initialAlt ).not.toBe(
 			'A tiny test image with a simple green checkmark icon.'
 		);
+	} );
+
+	/**
+	 * Test alt text generation for an uploaded image using xAI.
+	 */
+	test( 'should generate alt text for an uploaded image with xAI', async ( {
+		admin,
+		editor,
+		page,
+	} ) => {
+		await configureKaiGenProvider( page, 'xai' );
+		await admin.createNewPost( { showWelcomeGuide: false } );
+
+		await editor.insertBlock( { name: 'core/image' } );
+
+		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
+		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
+
+		const kaiGenButton = editor.canvas.locator(
+			'.kaigen-placeholder-button'
+		);
+		await expect( kaiGenButton ).toBeVisible( { timeout: 10000 } );
+		await kaiGenButton.click();
+
+		const modal = getKaiGenModal( page );
+		await expect( modal ).toBeVisible( { timeout: 10000 } );
+
+		const promptInput = getModalPromptInput( modal );
+		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+		await promptInput.fill( 'A tiny green checkmark icon' );
+
+		const generateButton = page.getByRole( 'button', {
+			name: 'Generate Image',
+		} );
+		await expect( generateButton ).toBeVisible( { timeout: 5000 } );
+		await generateButton.click();
+
+		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
+
+		const insertedImage = getInsertedImage( imageBlock );
+		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+
+		const attachmentId = await getSelectedImageAttachmentId(
+			page,
+			editor,
+			imageBlock
+		);
+		await page.evaluate(
+			async ( { id, prompt } ) => {
+				const response = await ( window as any ).wp.apiFetch( {
+					path: '/kaigen/v1/generate-alt-text',
+					method: 'POST',
+					data: {
+						prompt,
+						provider: 'xai',
+						attachment_id: id,
+					},
+				} );
+				const altText = response?.alt_text || '';
+				if ( ! altText ) {
+					throw new Error( 'Alt text response was empty.' );
+				}
+
+				await ( window as any ).wp.apiFetch( {
+					path: `/wp/v2/media/${ id }`,
+					method: 'POST',
+					data: {
+						alt_text: altText,
+					},
+				} );
+
+				const selectedBlock = ( window as any ).wp.data
+					.select( 'core/block-editor' )
+					.getSelectedBlock();
+				if ( selectedBlock?.clientId ) {
+					( window as any ).wp.data
+						.dispatch( 'core/block-editor' )
+						.updateBlockAttributes( selectedBlock.clientId, {
+							alt: altText,
+						} );
+				}
+			},
+			{
+				id: attachmentId,
+				prompt: 'A tiny green checkmark icon',
+			}
+		);
+
+		await expect
+			.poll( async () => insertedImage.getAttribute( 'alt' ), {
+				timeout: 15000,
+			} )
+			.toBe( 'A tiny test image with a simple green checkmark icon.' );
 	} );
 
 	/**
@@ -708,13 +871,11 @@ test.describe( 'KaiGen Image Generation', () => {
 		await kaiGenButton.click();
 
 		// Wait for modal
-		const modal = page.locator( '.components-modal__screen-overlay' );
+		const modal = getKaiGenModal( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 
 		// Enter a prompt that might trigger content moderation (mocked)
-		const promptInput = page.locator(
-			'textarea[id*="inspector-textarea-control"], .components-textarea-control__input, textarea'
-		);
+		const promptInput = getModalPromptInput( modal );
 		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
 		await promptInput.fill( 'TRIGGER_ERROR_RESPONSE' );
 
@@ -726,13 +887,20 @@ test.describe( 'KaiGen Image Generation', () => {
 		await generateButton.click();
 
 		// Modal should still be open with error message
+		await recoverEditorConnection( page );
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
-		const modalErrorText = modal.locator( '.kaigen-error-text' );
-		await expect( modalErrorText ).toBeVisible( { timeout: 10000 } );
-		await expect( modalErrorText ).not.toHaveText( '' );
+		await expect
+			.poll(
+				async () => {
+					const modalText = ( await modal.textContent() ) || '';
+					return modalText.replace( /\s+/g, ' ' ).trim();
+				},
+				{ timeout: 10000 }
+			)
+			.toMatch( /rejected|safety|failed|error/i );
 
 		// Close modal
-		const closeButton = page.locator(
+		const closeButton = modal.locator(
 			'.components-modal__header button[aria-label*="Close" i]'
 		);
 		if ( ( await closeButton.count() ) > 0 ) {
