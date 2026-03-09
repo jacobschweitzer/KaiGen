@@ -4,6 +4,35 @@
  */
 import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 
+const TEST_PROVIDER_CONFIGS = {
+	openai: {
+		apiKey: 'sk-test-e2e-key-1234567890',
+	},
+	replicate: {
+		apiKey: 'r8_test_abcdefghijklmnopqrstuvwxyz123456',
+	},
+	xai: {
+		apiKey: 'xai-test-e2e-key-1234567890',
+	},
+};
+
+/**
+ * Gets the E2E configuration for a provider.
+ *
+ * @param provider
+ */
+function getTestProviderConfig( provider: string ) {
+	const config = TEST_PROVIDER_CONFIGS[ provider ];
+
+	if ( ! config ) {
+		throw new Error(
+			`No E2E provider configuration found for "${ provider }".`
+		);
+	}
+
+	return config;
+}
+
 /**
  * Opens the KaiGen settings page, retrying if Playground is briefly in maintenance mode.
  * @param page
@@ -54,6 +83,8 @@ async function openKaiGenSettings( page: any ) {
  * @param provider
  */
 async function configureKaiGenProvider( page: any, provider = 'openai' ) {
+	const providerConfig = getTestProviderConfig( provider );
+
 	// Navigate to the KaiGen settings page
 	const pageTitleLocator = await openKaiGenSettings( page );
 
@@ -93,11 +124,7 @@ async function configureKaiGenProvider( page: any, provider = 'openai' ) {
 		`input[name="kaigen_provider_api_keys[${ provider }]"]`
 	);
 	if ( ( await apiKeyField.count() ) > 0 ) {
-		await apiKeyField.fill(
-			'xai' === provider
-				? 'xai-test-e2e-key-1234567890'
-				: 'sk-test-e2e-key-1234567890'
-		);
+		await apiKeyField.fill( providerConfig.apiKey );
 	}
 
 	// Set quality settings
@@ -447,30 +474,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		admin,
 	} ) => {
 		// First, change provider to Replicate
-		await openKaiGenSettings( page );
-
-		// Select Replicate provider
-		const providerSelect = page.locator( 'select[name="kaigen_provider"]' );
-		await providerSelect.selectOption( 'replicate' );
-		await page.waitForSelector(
-			'input[name="kaigen_provider_api_keys[replicate]"]',
-			{
-				timeout: 5000,
-			}
-		);
-
-		// Set API key
-		const apiKeyField = page.locator(
-			'input[name="kaigen_provider_api_keys[replicate]"]'
-		);
-		await apiKeyField.fill( 'r8_test_abcdefghijklmnopqrstuvwxyz123456' );
-
-		// Save settings
-		const saveButton = page.locator(
-			'input[type="submit"][value="Save Changes"]'
-		);
-		await saveButton.click();
-		await page.waitForLoadState( 'domcontentloaded' );
+		await configureKaiGenProvider( page, 'replicate' );
 
 		// Create new post
 		await admin.createNewPost();
