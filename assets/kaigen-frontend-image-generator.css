@@ -1,0 +1,44 @@
+.kaigen-frontend-generator-ui {
+	max-width: 100%;
+}
+
+.kaigen-frontend-prompt {
+	width: 100%;
+	max-width: 32rem;
+	min-height: 8rem;
+	display: block;
+}
+
+.kaigen-frontend-submit {
+	margin-top: 0.75rem;
+}
+
+.kaigen-frontend-status {
+	margin-top: 0.75rem;
+}
+
+.kaigen-frontend-generated-images {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 1rem;
+	margin-top: 1rem;
+}
+
+.kaigen-frontend-generated-image-item {
+	margin: 0;
+}
+
+.kaigen-frontend-generated-image-item img {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: 0.5rem;
+}
+
+.kaigen-frontend-generated-image-item figcaption {
+	margin-top: 0.5rem;
+	font-size: 0.9rem;
+	line-height: 1.4;
+	word-break: break-word;
+}

@@ -39,3 +39,4 @@ require_once __DIR__ . '/inc/alt-text/class-alt-text-generator-core.php';
 
 // Load REST API functionality.
 require_once __DIR__ . '/inc/class-rest-api.php';
+require_once __DIR__ . '/inc/class-frontend-block.php';

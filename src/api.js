@@ -37,10 +37,16 @@ export const generateImage = async ( prompt, callback, options = {} ) => {
 			);
 		}
 
+		const postId = wp.data.select( 'core/editor' )?.getCurrentPostId?.();
+
 		const data = {
 			prompt,
 			provider,
 		};
+
+		if ( Number.isInteger( postId ) && postId > 0 ) {
+			data.post_id = postId;
+		}
 
 		if (
 			options.sourceImageUrls &&
@@ -206,10 +212,16 @@ export const generateAltText = async (
 	attachmentId = null
 ) => {
 	try {
+		const postId = wp.data.select( 'core/editor' )?.getCurrentPostId?.();
+
 		const data = {
 			prompt,
 			provider,
 		};
+
+		if ( Number.isInteger( postId ) && postId > 0 ) {
+			data.post_id = postId;
+		}
 
 		if ( promptStructured ) {
 			data.prompt_structured = promptStructured;

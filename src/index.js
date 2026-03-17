@@ -7,3 +7,5 @@ import './components/AIImageToolbar';
 import './filters/registerFormatType';
 import './filters/addMediaUploadFilter';
 import './filters/addBlockEditFilter';
+
+import './blocks/frontendImageGeneratorBlock';

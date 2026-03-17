@@ -123,6 +123,28 @@ final class Rest_API {
 			]
 		);
 
+		// Register the frontend image generation endpoint.
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/frontend-generate-image',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'handle_frontend_generate_request' ],
+				'permission_callback' => [ $this, 'check_frontend_permission' ],
+			]
+		);
+
+		// Register endpoint to fetch current user images for a post.
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/user-post-images',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'get_user_post_images' ],
+				'permission_callback' => [ $this, 'check_frontend_permission' ],
+			]
+		);
+
 		// Register the alt text generation endpoint.
 		register_rest_route(
 			self::API_NAMESPACE,
@@ -142,6 +164,15 @@ final class Rest_API {
 	 */
 	public function check_permission() {
 		return current_user_can( 'edit_posts' );
+	}
+
+	/**
+	 * Checks if the current user has permission to use frontend generation.
+	 *
+	 * @return bool
+	 */
+	public function check_frontend_permission() {
+		return is_user_logged_in() && current_user_can( 'upload_files' );
 	}
 
 	/**
@@ -178,12 +209,158 @@ final class Rest_API {
 					$request,
 					$provider_id,
 					$model,
-					$generation_time_seconds
+					$generation_time_seconds,
+					absint( $request->get_param( 'post_id' ) ),
+					get_current_user_id()
 				);
 			}
 		}
 
 		return $response;
+	}
+
+
+	/**
+	 * Handles frontend image generation for logged in users.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_frontend_generate_request( $request ) {
+		$prompt = sanitize_textarea_field( (string) $request->get_param( 'prompt' ) );
+		if ( '' === $prompt ) {
+			return new WP_Error( 'invalid_prompt', 'Prompt is required.', [ 'status' => 400 ] );
+		}
+
+		$post_id = absint( $request->get_param( 'post_id' ) );
+		if ( ! $post_id || ! get_post( $post_id ) ) {
+			return new WP_Error( 'invalid_post', 'A valid post is required.', [ 'status' => 400 ] );
+		}
+
+		$provider_id = kaigen_provider_manager()->get_active_provider_id();
+		if ( empty( $provider_id ) ) {
+			return new WP_Error( 'invalid_provider', 'No active provider configured.', [ 'status' => 400 ] );
+		}
+
+		$additional_params = $this->get_additional_params( $request );
+		$model             = $this->get_provider_model( $provider_id, $additional_params );
+		if ( is_wp_error( $model ) ) {
+			return $model;
+		}
+
+		$generation_start      = microtime( true );
+		$response              = $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
+		$generation_time_total = microtime( true ) - $generation_start;
+
+		if ( $response instanceof \WP_REST_Response ) {
+			$response_data = $response->get_data();
+			if ( ! empty( $response_data['id'] ) ) {
+				$this->maybe_save_generation_meta(
+					absint( $response_data['id'] ),
+					$request,
+					$provider_id,
+					$model,
+					$generation_time_total,
+					$post_id,
+					get_current_user_id()
+				);
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Gets all generated images for current user scoped to a post.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return \WP_REST_Response|WP_Error
+	 */
+	public function get_user_post_images( $request ) {
+		$post_id = absint( $request->get_param( 'post_id' ) );
+		if ( ! $post_id || ! get_post( $post_id ) ) {
+			return new WP_Error( 'invalid_post', 'A valid post is required.', [ 'status' => 400 ] );
+		}
+
+		$user_id        = get_current_user_id();
+		$indexed_images = get_post_meta( $post_id, 'kaigen_user_generated_images', true );
+		$attachment_ids = [];
+
+		if ( is_array( $indexed_images ) ) {
+			uasort(
+				$indexed_images,
+				static function ( $left, $right ) {
+					$left_time  = isset( $left['generated_at'] ) ? strtotime( (string) $left['generated_at'] ) : 0;
+					$right_time = isset( $right['generated_at'] ) ? strtotime( (string) $right['generated_at'] ) : 0;
+					return $right_time <=> $left_time;
+				}
+			);
+
+			foreach ( $indexed_images as $image ) {
+				$attachment_id = isset( $image['attachment_id'] ) ? absint( $image['attachment_id'] ) : 0;
+				$image_user_id = isset( $image['user_id'] ) ? absint( $image['user_id'] ) : 0;
+
+				if ( $attachment_id <= 0 ) {
+					continue;
+				}
+
+				if ( $image_user_id > 0 && $image_user_id !== $user_id ) {
+					continue;
+				}
+
+				$attachment_ids[] = $attachment_id;
+			}
+		}
+
+		// Fall back to attachment metadata so older generated images still appear.
+		if ( empty( $attachment_ids ) ) {
+			$query = new \WP_Query(
+				[
+					'post_type'      => 'attachment',
+					'post_status'    => 'inherit',
+					'posts_per_page' => 100,
+					'fields'         => 'ids',
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'meta_query'     => [
+						'relation' => 'AND',
+						[
+							'key'   => 'kaigen_generated_user_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+							'value' => $user_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+						],
+						[
+							'key'   => 'kaigen_generated_post_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+							'value' => $post_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+						],
+					],
+				]
+			);
+
+			$attachment_ids = array_map( 'absint', $query->posts );
+		}
+
+		$images = [];
+		foreach ( $attachment_ids as $attachment_id ) {
+			$attachment = get_post( $attachment_id );
+			if ( ! $attachment || 'attachment' !== $attachment->post_type ) {
+				continue;
+			}
+
+			$url = wp_get_attachment_url( $attachment_id );
+			if ( ! $url ) {
+				continue;
+			}
+
+			$meta      = get_post_meta( $attachment_id, 'kaigen_generation_meta', true );
+			$images[] = [
+				'id'         => $attachment_id,
+				'url'        => $url,
+				'prompt'     => is_array( $meta ) && isset( $meta['prompt'] ) ? $meta['prompt'] : '',
+				'created_at' => get_post_time( 'c', true, $attachment ),
+			];
+		}
+
+		return new \WP_REST_Response( $images, 200 );
 	}
 
 	/**
@@ -309,7 +486,7 @@ final class Rest_API {
 	 * @param float           $generation_time_seconds The total generation time in seconds.
 	 * @return void
 	 */
-	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model, $generation_time_seconds = 0 ) {
+	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model, $generation_time_seconds = 0, $post_id = 0, $user_id = 0 ) {
 		if ( ! $attachment_id ) {
 			return;
 		}
@@ -322,6 +499,9 @@ final class Rest_API {
 		if ( ! in_array( $quality, [ 'low', 'medium', 'high' ], true ) ) {
 			$quality = Image_Provider::get_quality_setting();
 		}
+		$post_id = $post_id ? absint( $post_id ) : absint( $request->get_param( 'post_id' ) );
+		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+
 		$meta = [
 			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
 			'provider' => sanitize_text_field( $provider_id ),
@@ -343,7 +523,45 @@ final class Rest_API {
 			}
 		}
 
+		if ( $user_id > 0 ) {
+			$meta['generated_by_user_id'] = $user_id;
+			update_post_meta( $attachment_id, 'kaigen_generated_user_id', $user_id );
+		}
+
+		if ( $post_id > 0 ) {
+			$meta['generated_on_post_id'] = $post_id;
+			update_post_meta( $attachment_id, 'kaigen_generated_post_id', $post_id );
+			$this->link_generated_image_to_post( $post_id, $user_id, $attachment_id );
+		}
+
 		update_post_meta( $attachment_id, 'kaigen_generation_meta', $meta );
+	}
+
+	/**
+	 * Links generated image metadata to the parent post for reporting.
+	 *
+	 * @param int $post_id The post ID.
+	 * @param int $user_id The user ID.
+	 * @param int $attachment_id The attachment ID.
+	 * @return void
+	 */
+	private function link_generated_image_to_post( $post_id, $user_id, $attachment_id ) {
+		if ( $post_id <= 0 || $attachment_id <= 0 ) {
+			return;
+		}
+
+		$index = get_post_meta( $post_id, 'kaigen_user_generated_images', true );
+		if ( ! is_array( $index ) ) {
+			$index = [];
+		}
+
+		$index[ $attachment_id ] = [
+			'attachment_id' => $attachment_id,
+			'user_id'       => absint( $user_id ),
+			'generated_at'  => current_time( 'mysql' ),
+		];
+
+		update_post_meta( $post_id, 'kaigen_user_generated_images', $index );
 	}
 
 	/**
