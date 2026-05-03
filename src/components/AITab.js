@@ -1,7 +1,7 @@
 // This file contains the AITab React component used to generate AI images through a modal.
 
 import { useState } from '@wordpress/element';
-import { Button } from '@wordpress/components';
+import { Button, MenuItem } from '@wordpress/components';
 import GenerateImageModal from './GenerateImageModal';
 
 const kaiGenLogoBig = window.kaiGen?.logoUrl;
@@ -12,9 +12,18 @@ const kaiGenLogoBig = window.kaiGen?.logoUrl;
  * @param {Object}   props               - The properties object.
  * @param {Function} props.onSelect      - The callback function to handle the selected image.
  * @param {boolean}  props.shouldDisplay - Flag indicating whether to render the AITab.
+ * @param {string}   props.variant       - The UI variant to render.
+ * @param {Function} props.onClick       - Optional callback after clicking the control.
+ * @param {boolean}  props.renderModal   - Whether to render the modal from this component.
  * @return {JSX.Element|null} The rendered AITab component or null if not displayed.
  */
-const AITab = ( { onSelect, shouldDisplay } ) => {
+const AITab = ( {
+	onSelect,
+	shouldDisplay,
+	variant = 'placeholder',
+	onClick,
+	renderModal = true,
+} ) => {
 	const [ isModalOpen, setIsModalOpen ] = useState( false );
 
 	// Do not render the component if shouldDisplay is false.
@@ -22,11 +31,30 @@ const AITab = ( { onSelect, shouldDisplay } ) => {
 		return null;
 	}
 
-	return (
-		<>
-			{ /* KaiGen button for placeholder context (shown in editor canvas) */ }
+	const openModal = () => {
+		setIsModalOpen( true );
+		onClick?.();
+	};
+
+	const control =
+		variant === 'menu' ? (
+			<MenuItem
+				onClick={ openModal }
+				className="kaigen-menu-item-button"
+				icon={
+					<img
+						src={ kaiGenLogoBig }
+						alt=""
+						aria-hidden="true"
+						style={ { width: '24px', height: '24px' } }
+					/>
+				}
+			>
+				KaiGen
+			</MenuItem>
+		) : (
 			<Button
-				onClick={ () => setIsModalOpen( true ) }
+				onClick={ openModal }
 				className="kaigen-placeholder-button"
 				aria-label="KaiGen"
 			>
@@ -36,29 +64,19 @@ const AITab = ( { onSelect, shouldDisplay } ) => {
 					style={ { width: '48px', height: '48px' } }
 				/>
 			</Button>
+		);
 
-			{ /* KaiGen button for dropdown/popover context (styled as menu item) */ }
-			<button
-				type="button"
-				role="menuitem"
-				onClick={ () => setIsModalOpen( true ) }
-				className="components-button components-menu-item__button is-next-40px-default-size kaigen-menu-item-button"
-			>
-				<span className="components-menu-item__item">KaiGen</span>
-				<img
-					src={ kaiGenLogoBig }
-					alt=""
-					aria-hidden="true"
-					className="components-menu-items__item-icon has-icon-right"
-					style={ { width: '24px', height: '24px' } }
+	return (
+		<>
+			{ control }
+
+			{ renderModal && (
+				<GenerateImageModal
+					isOpen={ isModalOpen }
+					onClose={ () => setIsModalOpen( false ) }
+					onSelect={ onSelect }
 				/>
-			</button>
-
-			<GenerateImageModal
-				isOpen={ isModalOpen }
-				onClose={ () => setIsModalOpen( false ) }
-				onSelect={ onSelect }
-			/>
+			) }
 		</>
 	);
 };

@@ -157,6 +157,42 @@ test.describe( 'KaiGen Image Generation', () => {
 		modal.getByPlaceholder( 'Image prompt...' );
 	const getInsertedImage = ( imageBlock ) =>
 		imageBlock.locator( 'img[src*="/wp-content/uploads/"]' ).first();
+	const openKaiGenImageMenuModal = async (
+		page,
+		editor,
+		imageBlock,
+		buttonName
+	) => {
+		await imageBlock.click();
+		await editor.selectBlocks( imageBlock );
+
+		const addImageButton = page
+			.getByRole( 'button', {
+				name: buttonName,
+			} )
+			.first();
+		await expect( addImageButton ).toBeVisible( { timeout: 10000 } );
+		await addImageButton.click();
+
+		const aiGenerateMenuItem = page.getByRole( 'menuitem', {
+			name: /^KaiGen$/,
+		} );
+		await expect( aiGenerateMenuItem ).toHaveCount( 1 );
+		await expect( aiGenerateMenuItem ).toBeVisible();
+		await aiGenerateMenuItem.click();
+
+		await expect( aiGenerateMenuItem ).not.toBeVisible( {
+			timeout: 5000,
+		} );
+
+		const modal = getKaiGenModal( page );
+		await expect( modal ).toBeVisible( { timeout: 10000 } );
+		return modal;
+	};
+	const openKaiGenAddImageMenuModal = async ( page, editor, imageBlock ) =>
+		openKaiGenImageMenuModal( page, editor, imageBlock, /add image/i );
+	const openKaiGenReplaceMenuModal = async ( page, editor, imageBlock ) =>
+		openKaiGenImageMenuModal( page, editor, imageBlock, /replace/i );
 	const recoverEditorConnection = async ( page ) => {
 		const connectionLostDialog = page
 			.locator( '.components-modal__screen-overlay' )
@@ -228,6 +264,8 @@ test.describe( 'KaiGen Image Generation', () => {
 	};
 	const getSelectedImageAttachmentId = async ( page, editor, imageBlock ) => {
 		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
+		await imageBlock.click();
+		await imageBlock.click();
 		await editor.selectBlocks( imageBlock );
 		const imageBlockHandle = await page.waitForFunction( () => {
 			const selectedBlock = ( window as any ).wp.data
@@ -332,7 +370,8 @@ test.describe( 'KaiGen Image Generation', () => {
 			'.kaigen-placeholder-button'
 		);
 
-		// Verify the KaiGen button exists and is visible
+		// Verify the KaiGen button exists once and is visible.
+		await expect( aiGenerateButton ).toHaveCount( 1 );
 		await expect( aiGenerateButton ).toBeVisible( { timeout: 10000 } );
 		await expect( aiGenerateButton ).toBeEnabled();
 
@@ -349,6 +388,119 @@ test.describe( 'KaiGen Image Generation', () => {
 		expect( kaiGenData ).toBeTruthy();
 		expect( kaiGenData ).toHaveProperty( 'provider' );
 		expect( kaiGenData.provider ).toBe( 'openai' );
+	} );
+
+	/**
+	 * Test image generation through the image block Add image dropdown.
+	 */
+	test( 'should generate and insert image from Add image KaiGen menu item', async ( {
+		editor,
+		page,
+	} ) => {
+		await editor.insertBlock( { name: 'core/image' } );
+
+		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
+		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
+
+		const modal = await openKaiGenAddImageMenuModal(
+			page,
+			editor,
+			imageBlock
+		);
+
+		const promptInput = getModalPromptInput( modal );
+		await expect( promptInput ).toBeVisible( { timeout: 5000 } );
+		await promptInput.fill( 'A red kite flying over a beach' );
+
+		const generateButton = page.getByRole( 'button', {
+			name: 'Generate Image',
+		} );
+		await expect( generateButton ).toBeVisible( { timeout: 5000 } );
+		await generateButton.click();
+
+		await expect(
+			page.locator( '.kaigen-modal__progress [role="progressbar"]' )
+		).toBeVisible( { timeout: 5000 } );
+		await expect( modal ).not.toBeVisible( { timeout: 15000 } );
+
+		const insertedImage = getInsertedImage( imageBlock );
+		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+
+		const imageSrc = await insertedImage.getAttribute( 'src' );
+		expect( imageSrc ).toBeTruthy();
+
+		await expect
+			.poll(
+				async () =>
+					page.evaluate( () => {
+						const selectedBlock = ( window as any ).wp.data
+							.select( 'core/block-editor' )
+							.getSelectedBlock();
+
+						return (
+							Number( selectedBlock?.attributes?.id ) > 0 &&
+							( selectedBlock?.attributes?.url || '' ).includes(
+								'/wp-content/uploads/'
+							)
+						);
+					} ),
+				{ timeout: 10000 }
+			)
+			.toBe( true );
+	} );
+
+	/**
+	 * Test image generation through the image block Replace dropdown.
+	 */
+	test( 'should show KaiGen in Replace menu for existing image block', async ( {
+		editor,
+		page,
+	} ) => {
+		await editor.insertBlock( { name: 'core/image' } );
+
+		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
+		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
+
+		const initialModal = await openKaiGenAddImageMenuModal(
+			page,
+			editor,
+			imageBlock
+		);
+		const initialPromptInput = getModalPromptInput( initialModal );
+		await expect( initialPromptInput ).toBeVisible( { timeout: 5000 } );
+		await initialPromptInput.fill( 'A small red square icon' );
+
+		const generateButton = page.getByRole( 'button', {
+			name: 'Generate Image',
+		} );
+		await expect( generateButton ).toBeVisible( { timeout: 5000 } );
+		await generateButton.click();
+
+		await expect( initialModal ).not.toBeVisible( { timeout: 15000 } );
+
+		const insertedImage = getInsertedImage( imageBlock );
+		await expect( insertedImage ).toBeVisible( { timeout: 10000 } );
+
+		const replaceModal = await openKaiGenReplaceMenuModal(
+			page,
+			editor,
+			imageBlock
+		);
+		await expect( getModalPromptInput( replaceModal ) ).toBeVisible( {
+			timeout: 5000,
+		} );
+
+		const referenceToggle = replaceModal.getByRole( 'button', {
+			name: 'Reference Images',
+		} );
+		await expect( referenceToggle ).toBeVisible( { timeout: 5000 } );
+		await referenceToggle.evaluate( ( button: HTMLButtonElement ) =>
+			button.click()
+		);
+
+		await expect(
+			page.locator( '.kaigen-modal-reference-image-selected' )
+		).toHaveCount( 1, { timeout: 5000 } );
 	} );
 
 	/**
