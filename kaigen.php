@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants.
 define( 'KAIGEN_PLUGIN_FILE', __FILE__ );
+define( 'KAIGEN_VERSION', '0.2.11' );
 
 // Load base classes and interfaces.
 require_once __DIR__ . '/inc/class-image-handler.php';

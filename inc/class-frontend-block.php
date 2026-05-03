@@ -51,7 +51,7 @@ class Frontend_Block {
 			'kaigen-frontend-image-generator',
 			plugin_dir_url( __DIR__ ) . 'assets/kaigen-frontend-image-generator.js',
 			[],
-			file_exists( $script_path ) ? (string) filemtime( $script_path ) : '0.2.10',
+			file_exists( $script_path ) ? (string) filemtime( $script_path ) : KAIGEN_VERSION,
 			true
 		);
 
@@ -59,7 +59,7 @@ class Frontend_Block {
 			'kaigen-frontend-image-generator',
 			plugin_dir_url( __DIR__ ) . 'assets/kaigen-frontend-image-generator.css',
 			[],
-			file_exists( $style_path ) ? (string) filemtime( $style_path ) : '0.2.10'
+			file_exists( $style_path ) ? (string) filemtime( $style_path ) : KAIGEN_VERSION
 		);
 
 		register_block_type(
