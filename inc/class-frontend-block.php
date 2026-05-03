@@ -65,9 +65,9 @@ class Frontend_Block {
 		register_block_type(
 			'kaigen/frontend-image-generator',
 			[
-				'api_version'      => 2,
-				'uses_context'     => [ 'postId' ],
-				'attributes'       => [
+				'api_version'     => 2,
+				'uses_context'    => [ 'postId' ],
+				'attributes'      => [
 					'quality'           => [
 						'type'    => 'string',
 						'default' => 'medium',
@@ -77,8 +77,8 @@ class Frontend_Block {
 						'default' => __( 'Describe the image you want to create...', 'kaigen' ),
 					],
 				],
-				'render_callback'  => [ $this, 'render_block' ],
-				'supports'         => [
+				'render_callback' => [ $this, 'render_block' ],
+				'supports'        => [
 					'html' => false,
 				],
 			]
@@ -123,17 +123,17 @@ class Frontend_Block {
 			'kaigen-frontend-image-generator',
 			'kaigenFrontendData',
 			[
-				'generateImageUrl' => esc_url_raw( rest_url( 'kaigen/v1/frontend-generate-image' ) ),
-				'userImagesUrl'    => esc_url_raw( rest_url( 'kaigen/v1/user-post-images' ) ),
-				'nonce'            => wp_create_nonce( 'wp_rest' ),
-				'isLoggedIn'       => is_user_logged_in(),
-				'loginMessage'     => __( 'Please log in to generate images.', 'kaigen' ),
-				'genericError'     => __( 'Unable to generate an image right now.', 'kaigen' ),
-				'defaultPostId'    => $post_id,
-				'defaultQuality'   => $quality,
-				'buttonLabel'      => __( 'Generate Image', 'kaigen' ),
-				'placeholder'      => $prompt_instruction,
-				'yourImagesTitle'  => __( 'Your images for this post', 'kaigen' ),
+				'generateImageUrl'  => esc_url_raw( rest_url( 'kaigen/v1/frontend-generate-image' ) ),
+				'userImagesUrl'     => esc_url_raw( rest_url( 'kaigen/v1/user-post-images' ) ),
+				'nonce'             => wp_create_nonce( 'wp_rest' ),
+				'isLoggedIn'        => is_user_logged_in(),
+				'loginMessage'      => __( 'Please log in to generate images.', 'kaigen' ),
+				'genericError'      => __( 'Unable to generate an image right now.', 'kaigen' ),
+				'defaultPostId'     => $post_id,
+				'defaultQuality'    => $quality,
+				'buttonLabel'       => __( 'Generate Image', 'kaigen' ),
+				'placeholder'       => $prompt_instruction,
+				'yourImagesTitle'   => __( 'Your images for this post', 'kaigen' ),
 				'promptInstruction' => $prompt_instruction,
 			]
 		);

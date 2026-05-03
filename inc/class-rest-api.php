@@ -322,7 +322,7 @@ final class Rest_API {
 					'fields'         => 'ids',
 					'orderby'        => 'date',
 					'order'          => 'DESC',
-					'meta_query'     => [
+					'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Fallback for older generated images stored only in attachment metadata.
 						'relation' => 'AND',
 						[
 							'key'   => 'kaigen_generated_user_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
@@ -351,7 +351,7 @@ final class Rest_API {
 				continue;
 			}
 
-			$meta      = get_post_meta( $attachment_id, 'kaigen_generation_meta', true );
+			$meta     = get_post_meta( $attachment_id, 'kaigen_generation_meta', true );
 			$images[] = [
 				'id'         => $attachment_id,
 				'url'        => $url,
@@ -484,6 +484,8 @@ final class Rest_API {
 	 * @param string          $provider_id The provider ID.
 	 * @param string          $model The resolved model.
 	 * @param float           $generation_time_seconds The total generation time in seconds.
+	 * @param int             $post_id The related post ID.
+	 * @param int             $user_id The user ID.
 	 * @return void
 	 */
 	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model, $generation_time_seconds = 0, $post_id = 0, $user_id = 0 ) {
