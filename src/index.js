@@ -5,5 +5,6 @@ import './api';
 import './components/AITab';
 import './components/AIImageToolbar';
 import './filters/registerFormatType';
-import './filters/addMediaUploadFilter';
+import './filters/addMediaPlaceholderFilter';
+import './filters/addMediaReplaceFlowFilter';
 import './filters/addBlockEditFilter';

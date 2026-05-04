@@ -4,7 +4,7 @@
  * Description:       A plugin to generate images using AI.
  * Requires at least: 6.1
  * Requires PHP:      7.0
- * Version:           0.2.10
+ * Version:           0.2.11
  * Author:            Jacob Schweitzer
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants.
 define( 'KAIGEN_PLUGIN_FILE', __FILE__ );
+define( 'KAIGEN_VERSION', '0.2.11' );
 
 // Load base classes and interfaces.
 require_once __DIR__ . '/inc/class-image-handler.php';
