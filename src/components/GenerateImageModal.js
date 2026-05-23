@@ -7,8 +7,13 @@ import {
 	Modal,
 	Dropdown,
 	Dashicon,
+	SelectControl,
 } from '@wordpress/components';
-import { generateImage, fetchReferenceImages } from '../api';
+import {
+	generateImage,
+	fetchImageProviders,
+	fetchReferenceImages,
+} from '../api';
 import useGenerationProgress from '../hooks/useGenerationProgress';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
@@ -34,23 +39,39 @@ const GenerateImageModal = ( {
 	const [ error, setError ] = useState( null );
 	const [ referenceImages, setReferenceImages ] = useState( [] );
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
-	const [ aspectRatio, setAspectRatio ] = useState( '1:1' );
-	const [ quality, setQuality ] = useState( 'medium' );
+	const [ provider, setProvider ] = useState( 'auto' );
+	const [ orientation, setOrientation ] = useState( 'square' );
 	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
 	const editorSettings =
 		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
-	const defaultQuality = editorSettings.kaigen_quality || 'medium';
-	const referenceImageLimits =
-		editorSettings.kaigen_reference_image_limits || {};
+	const kaiGenSettings =
+		editorSettings.kaigen_settings || editorSettings.kaigen || {};
+	const providerOptions = kaiGenSettings.providers ||
+		editorSettings.kaigen_providers || [ { id: 'auto', name: 'Auto' } ];
+	const [ availableProviders, setAvailableProviders ] =
+		useState( providerOptions );
 	const maxRefs =
-		referenceImageLimits[ quality ] ?? referenceImageLimits.default ?? 16;
+		kaiGenSettings.reference_image_limits?.default ??
+		editorSettings.kaigen_reference_image_limits?.default ??
+		1;
 	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
 
 	useEffect( () => {
 		if ( isOpen ) {
 			fetchReferenceImages().then( setReferenceImages );
-			setQuality( defaultQuality );
+			fetchImageProviders().then( ( providers ) => {
+				setAvailableProviders( providers );
+				setProvider( ( currentProvider ) =>
+					providers.some(
+						( option ) => option.id === currentProvider
+					)
+						? currentProvider
+						: 'auto'
+				);
+			} );
+			setProvider( kaiGenSettings.provider || 'auto' );
+			setOrientation( kaiGenSettings.orientation || 'square' );
 
 			// Pre-select initial reference image if provided
 			if ( initialReferenceImage && initialReferenceImage.url ) {
@@ -59,7 +80,12 @@ const GenerateImageModal = ( {
 				setSelectedRefs( [] );
 			}
 		}
-	}, [ isOpen, initialReferenceImage, defaultQuality ] );
+	}, [
+		isOpen,
+		initialReferenceImage,
+		kaiGenSettings.provider,
+		kaiGenSettings.orientation,
+	] );
 
 	useEffect( () => {
 		setSelectedRefs( ( prev ) =>
@@ -96,22 +122,12 @@ const GenerateImageModal = ( {
 
 		const options = {};
 		if ( selectedRefs.length > 0 ) {
-			options.sourceImageUrls = selectedRefs.map( ( ref ) => ref.url );
 			options.sourceImageIds = selectedRefs
 				.map( ( ref ) => ref.id )
 				.filter( ( id ) => Number.isInteger( id ) && id > 0 );
 		}
-		if ( aspectRatio ) {
-			options.aspectRatio = aspectRatio;
-		}
-		if ( quality ) {
-			options.quality = quality;
-		}
-		options.onEstimatedTime = ( estimatedSecondsValue ) => {
-			if ( typeof estimatedSecondsValue === 'number' ) {
-				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
-			}
-		};
+		options.provider = provider;
+		options.orientation = orientation;
 
 		generateImage(
 			prompt.trim(),
@@ -136,7 +152,8 @@ const GenerateImageModal = ( {
 		setPrompt( '' );
 		setError( null );
 		setSelectedRefs( [] );
-		setQuality( defaultQuality );
+		setProvider( kaiGenSettings.provider || 'auto' );
+		setOrientation( kaiGenSettings.orientation || 'square' );
 		setEstimatedDurationMs( null );
 		onClose();
 	};
@@ -207,7 +224,7 @@ const GenerateImageModal = ( {
 						return (
 							<div className="kaigen-modal-dropdown-content-container">
 								<h4 className="kaigen-modal-dropdown-content-title">
-									Reference Images (up to { maxRefs })
+									Reference Images
 								</h4>
 								{ allImages.length > 0 ? (
 									<div className="kaigen-modal-reference-images-container">
@@ -325,23 +342,36 @@ const GenerateImageModal = ( {
 					renderContent={ () => (
 						<div className="kaigen-modal-dropdown-content-container">
 							<h4 className="kaigen-modal-dropdown-content-title">
-								Aspect Ratio
+								Provider
+							</h4>
+							<SelectControl
+								label="Provider"
+								hideLabelFromVision
+								value={ provider }
+								options={ availableProviders.map( ( opt ) => ( {
+									value: opt.id,
+									label: opt.name,
+								} ) ) }
+								onChange={ setProvider }
+							/>
+							<h4 className="kaigen-modal-dropdown-content-title">
+								Orientation
 							</h4>
 							<div className="kaigen-modal-aspect-ratio-container">
 								{ [
 									{
-										value: '1:1',
-										label: '1:1',
+										value: 'square',
+										label: 'Square',
 										title: 'Square',
 									},
 									{
-										value: '16:9',
-										label: '16:9',
+										value: 'landscape',
+										label: 'Landscape',
 										title: 'Landscape',
 									},
 									{
-										value: '9:16',
-										label: '9:16',
+										value: 'portrait',
+										label: 'Portrait',
 										title: 'Portrait',
 									},
 								].map( ( opt ) => (
@@ -349,18 +379,18 @@ const GenerateImageModal = ( {
 										type="button"
 										key={ opt.value }
 										onClick={ () =>
-											setAspectRatio( ( prev ) =>
+											setOrientation( ( prev ) =>
 												prev === opt.value
-													? null
+													? 'square'
 													: opt.value
 											)
 										}
 										aria-pressed={
-											aspectRatio === opt.value
+											orientation === opt.value
 										}
-										aria-label={ `${ opt.title } (${ opt.label })` }
+										aria-label={ opt.title }
 										className={ `kaigen-modal__aspect-ratio-button ${
-											aspectRatio === opt.value
+											orientation === opt.value
 												? 'kaigen-modal__aspect-ratio-button-selected'
 												: ''
 										}` }
@@ -368,7 +398,7 @@ const GenerateImageModal = ( {
 										<div className="kaigen-modal-aspect-ratio-icon-container">
 											<div
 												className={ `kaigen-modal-aspect-ratio-icon ${
-													aspectRatio === opt.value
+													orientation === opt.value
 														? 'kaigen-modal-aspect-ratio-icon-selected'
 														: ''
 												} kaigen-aspect-ratio-${ opt.value.replace(
@@ -380,32 +410,6 @@ const GenerateImageModal = ( {
 										<span className="kaigen-modal-aspect-ratio-label">
 											{ opt.label }
 										</span>
-									</button>
-								) ) }
-							</div>
-							<h4 className="kaigen-modal-dropdown-content-title">
-								Quality
-							</h4>
-							<div className="kaigen-modal-quality-container">
-								{ [
-									{ value: 'low', label: 'Low' },
-									{ value: 'medium', label: 'Medium' },
-									{ value: 'high', label: 'High' },
-								].map( ( opt ) => (
-									<button
-										type="button"
-										key={ opt.value }
-										onClick={ () =>
-											setQuality( opt.value )
-										}
-										aria-pressed={ quality === opt.value }
-										className={ `kaigen-modal__quality-button ${
-											quality === opt.value
-												? 'kaigen-modal__quality-button-selected'
-												: ''
-										}` }
-									>
-										{ opt.label }
 									</button>
 								) ) }
 							</div>
