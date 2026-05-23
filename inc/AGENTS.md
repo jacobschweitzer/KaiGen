@@ -15,7 +15,5 @@ See the root `AGENTS.md` for global conventions and tooling.
 
 ## Common Entry Points
 - Look for REST routes and AJAX handlers when changing API behavior.
-- Settings storage uses WordPress options (`get_option`, `update_option`).
 - When endpoints change, update the matching client calls in `src/api.js`.
 - If REST route paths or shapes change (`inc/class-rest-api.php`), update `src/api.js` and any `apiFetch` usage in `src/filters/addBlockEditFilter.js`.
-- If provider HTTP endpoints change (`inc/providers/*` or `inc/alt-text/*`), update `tests/http-mock.php` to keep E2E tests aligned.
