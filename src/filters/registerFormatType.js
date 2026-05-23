@@ -17,7 +17,6 @@ import { generateImage } from '../api'; // Import API function for image generat
 const FormatEditComponent = ( { value } ) => {
 	// Create state for generation state.
 	const [ isGenerating, setIsGenerating ] = useState( false ); // Indicates if an image is being generated.
-	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
 	// Retrieve the currently selected block.
 	const selectedBlock = useSelect(
@@ -50,20 +49,6 @@ const FormatEditComponent = ( { value } ) => {
 				return;
 			}
 
-			// Get the provider from editor settings
-			const provider = wp.data
-				.select( 'core/editor' )
-				?.getEditorSettings()?.kaigen_provider;
-			if ( ! provider ) {
-				wp.data
-					.dispatch( 'core/notices' )
-					.createErrorNotice(
-						'No AI provider configured. Please set one in the plugin settings.',
-						{ type: 'snackbar' }
-					);
-				return;
-			}
-
 			// Create a placeholder block to show that image generation is in progress.
 			const placeholderBlock = wp.blocks.createBlock( 'core/heading', {
 				content: 'Generating AI image...',
@@ -77,14 +62,12 @@ const FormatEditComponent = ( { value } ) => {
 			] );
 
 			setIsGenerating( true ); // Set generating state.
-			setEstimatedDurationMs( null );
 
 			// Call the API function to generate the image.
 			generateImage(
 				selectedText,
 				( result ) => {
 					setIsGenerating( false ); // Reset generating state.
-					setEstimatedDurationMs( null );
 
 					if ( result.error ) {
 						wp.data
@@ -122,13 +105,7 @@ const FormatEditComponent = ( { value } ) => {
 						] );
 					}
 				},
-				{
-					onEstimatedTime: ( estimatedSeconds ) => {
-						if ( typeof estimatedSeconds === 'number' ) {
-							setEstimatedDurationMs( estimatedSeconds * 1000 );
-						}
-					},
-				}
+				{}
 			);
 		}
 	}, [ selectedBlock, value.text, value.start, value.end, replaceBlocks ] );
@@ -143,7 +120,6 @@ const FormatEditComponent = ( { value } ) => {
 				isGenerating={ isGenerating }
 				onGenerateImage={ handleGenerateImage }
 				isTextSelected={ isTextSelected }
-				estimatedDurationMs={ estimatedDurationMs }
 			/>
 		</BlockControls>
 	);
