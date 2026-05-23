@@ -385,27 +385,17 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 	color: #555;
 }
 
-.kaigen-aspect-ratio-1-1 {
+.kaigen-aspect-ratio-square {
 	width: 30px;
 	height: 30px;
 }
 
-.kaigen-aspect-ratio-16-9 {
+.kaigen-aspect-ratio-landscape {
 	width: 34px;
 	height: 19px;
 }
 
-.kaigen-aspect-ratio-9-16 {
+.kaigen-aspect-ratio-portrait {
 	width: 19px;
-	height: 34px;
-}
-
-.kaigen-aspect-ratio-4-3 {
-	width: 34px;
-	height: 25px;
-}
-
-.kaigen-aspect-ratio-3-4 {
-	width: 25px;
 	height: 34px;
 }
