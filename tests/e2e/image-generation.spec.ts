@@ -111,7 +111,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			} )
 		);
 		expect( kaiGenSettings.providers ).toEqual( [
-			{ id: 'auto', name: 'Auto' },
+			{ id: 'auto', name: 'Auto', referenceImageLimit: 5 },
 		] );
 	} );
 
@@ -128,6 +128,11 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect(
 			modal.getByRole( 'button', { name: 'Reference Images' } )
 		).toBeVisible();
+		await modal.getByRole( 'button', { name: 'Reference Images' } ).click();
+		await expect(
+			page.getByRole( 'heading', { name: 'Reference Images' } )
+		).toBeVisible();
+		await expect( page.getByText( 'Limit 5' ) ).toBeVisible();
 
 		await modal.getByRole( 'button', { name: 'Settings' } ).click();
 		await expect(
