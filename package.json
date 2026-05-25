@@ -8,7 +8,6 @@
   "scripts": {
     "build": "wp-scripts build src/index.js",
     "build:main": "wp-scripts build src/index.js",
-    "build:admin": "wp-scripts build src/index.js",
     "format": "wp-scripts format",
     "lint:css": "wp-scripts lint-style",
     "lint:js": "wp-scripts lint-js",
