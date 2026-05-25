@@ -49,22 +49,7 @@ final class Image_Generation_Service {
 			add_filter( 'wp_ai_client_default_request_timeout', $timeout_filter );
 			do_action( 'kaigen_before_image_generation_request' );
 
-			$builder = $this->build_prompt( $prompt, $orientation, $provider );
-
-			$error = $this->attach_reference_images( $builder, $request->get_param( 'source_image_ids' ) );
-			if ( is_wp_error( $error ) ) {
-				return $error;
-			}
-
-			if ( ! $builder->is_supported_for_image_generation() ) {
-				return new WP_Error(
-					'image_generation_not_supported',
-					__( 'No configured WordPress AI provider supports this image generation request.', 'kaigen' ),
-					[ 'status' => 400 ]
-				);
-			}
-
-			$result = $builder->generate_image_result();
+			$result = $this->generate_image_result( $prompt, $orientation, $provider, $request->get_param( 'source_image_ids' ) );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
@@ -102,6 +87,98 @@ final class Image_Generation_Service {
 	 */
 	public function filter_image_generation_timeout() {
 		return self::IMAGE_GENERATION_TIMEOUT;
+	}
+
+	/**
+	 * Generates an image result and conditionally retries timeout-like failures with lower-level HTTP options.
+	 *
+	 * @param string $prompt The prompt text.
+	 * @param string $orientation The requested Core orientation.
+	 * @param string $provider The selected provider ID, or auto.
+	 * @param mixed  $source_image_ids Reference attachment IDs.
+	 * @return object|WP_Error AI image result, or error.
+	 * @throws \Throwable When a non-timeout image generation exception occurs.
+	 */
+	private function generate_image_result( $prompt, $orientation, $provider, $source_image_ids ) {
+		try {
+			$result = $this->generate_image_result_once( $prompt, $orientation, $provider, $source_image_ids );
+		} catch ( \Throwable $e ) {
+			if ( ! $this->is_retryable_timeout_error( $e ) ) {
+				throw $e;
+			}
+
+			$result = $e;
+		}
+
+		if ( ! $this->is_retryable_timeout_error( $result ) ) {
+			return $result;
+		}
+
+		$http_options = new Image_Generation_HTTP_Options( self::IMAGE_GENERATION_TIMEOUT );
+
+		try {
+			$http_options->register();
+			return $this->generate_image_result_once( $prompt, $orientation, $provider, $source_image_ids );
+		} finally {
+			$http_options->unregister();
+		}
+	}
+
+	/**
+	 * Generates an image result once.
+	 *
+	 * @param string $prompt The prompt text.
+	 * @param string $orientation The requested Core orientation.
+	 * @param string $provider The selected provider ID, or auto.
+	 * @param mixed  $source_image_ids Reference attachment IDs.
+	 * @return object|WP_Error AI image result, or error.
+	 */
+	private function generate_image_result_once( $prompt, $orientation, $provider, $source_image_ids ) {
+		$builder = $this->build_prompt( $prompt, $orientation, $provider );
+
+		$error = $this->attach_reference_images( $builder, $source_image_ids );
+		if ( is_wp_error( $error ) ) {
+			return $error;
+		}
+
+		if ( ! $builder->is_supported_for_image_generation() ) {
+			return new WP_Error(
+				'image_generation_not_supported',
+				__( 'No configured WordPress AI provider supports this image generation request.', 'kaigen' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		return $builder->generate_image_result();
+	}
+
+	/**
+	 * Checks whether an AI Client error is likely caused by a transport timeout.
+	 *
+	 * @param mixed $result AI Client result or error.
+	 * @return bool True when the result should be retried with lower-level HTTP options.
+	 */
+	private function is_retryable_timeout_error( $result ) {
+		if ( is_wp_error( $result ) ) {
+			$message = $result->get_error_message();
+			$code    = (string) $result->get_error_code();
+		} elseif ( $result instanceof \Throwable ) {
+			$message = $result->getMessage();
+			$code    = (string) $result->getCode();
+		} else {
+			return false;
+		}
+
+		$message = strtolower( $message );
+		$code    = strtolower( $code );
+
+		foreach ( [ 'timeout', 'timed out', 'operation timed out', 'curl error 28', 'low speed' ] as $needle ) {
+			if ( false !== strpos( $message, $needle ) || false !== strpos( $code, $needle ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
