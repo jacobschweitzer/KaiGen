@@ -30,9 +30,7 @@ define( 'KAIGEN_VERSION', '0.2.11' );
 
 // Load the small Core AI Client integration.
 require_once __DIR__ . '/inc/class-image-handler.php';
-require_once __DIR__ . '/inc/class-openai-image-generation-http-options.php';
+require_once __DIR__ . '/inc/class-image-generation-http-options.php';
 require_once __DIR__ . '/inc/class-image-generation-service.php';
 require_once __DIR__ . '/inc/class-admin.php';
 require_once __DIR__ . '/inc/class-rest-api.php';
-
-( new OpenAI_Image_Generation_HTTP_Options() )->register_hooks();
