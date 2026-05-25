@@ -47,3 +47,6 @@ build/index.js.map
 # Playwright
 /blob-report/
 *.map
+
+# VS Code settings
+.vscode/
