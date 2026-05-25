@@ -69,7 +69,6 @@ class Admin {
 		];
 
 		$settings['kaigen_settings'] = $kaigen_settings;
-		$settings['kaigen']          = $kaigen_settings;
 
 		return $settings;
 	}

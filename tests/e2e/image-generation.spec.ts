@@ -103,6 +103,12 @@ test.describe( 'KaiGen Image Generation', () => {
 					.select( 'core/editor' )
 					.getEditorSettings().kaigen_settings
 		);
+		const legacyKaiGenSettings = await page.evaluate(
+			() =>
+				( window as any ).wp.data
+					.select( 'core/editor' )
+					.getEditorSettings().kaigen
+		);
 
 		expect( kaiGenSettings ).toEqual(
 			expect.objectContaining( {
@@ -113,6 +119,7 @@ test.describe( 'KaiGen Image Generation', () => {
 		expect( kaiGenSettings.providers ).toEqual( [
 			{ id: 'auto', name: 'Auto', referenceImageLimit: 5 },
 		] );
+		expect( legacyKaiGenSettings ).toBeUndefined();
 	} );
 
 	test( 'modal only shows MVP controls', async ( { editor, page } ) => {

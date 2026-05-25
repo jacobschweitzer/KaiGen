@@ -42,8 +42,7 @@ const GenerateImageModal = ( {
 	const [ orientation, setOrientation ] = useState( 'square' );
 
 	const editorSettings = select( 'core/editor' )?.getEditorSettings() || {};
-	const kaiGenSettings =
-		editorSettings.kaigen_settings || editorSettings.kaigen || {};
+	const kaiGenSettings = editorSettings.kaigen_settings || {};
 	const availableProviders = kaiGenSettings.providers || [
 		{
 			id: 'auto',
