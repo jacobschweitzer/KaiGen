@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from '@wordpress/element'; // Import React hooks.
 import { BlockControls } from '@wordpress/block-editor'; // Import BlockControls from the block editor.
+import { createBlock } from '@wordpress/blocks'; // Import block factory.
 import { useSelect, useDispatch } from '@wordpress/data'; // Import necessary data hooks.
 import { registerFormatType } from '@wordpress/rich-text'; // Import registerFormatType.
 import AIImageToolbar from '../components/AIImageToolbar'; // Import the AIImageToolbar component.
@@ -31,7 +32,7 @@ const FormatEditComponent = ( { value } ) => {
 	 *
 	 * @return {void}
 	 */
-	const handleGenerateImage = useCallback( () => {
+	const handleGenerateImage = useCallback( async () => {
 		// This function manages image generation.
 		if ( selectedBlock && selectedBlock.name === 'core/paragraph' ) {
 			// Extract the currently selected text.
@@ -50,7 +51,7 @@ const FormatEditComponent = ( { value } ) => {
 			}
 
 			// Create a placeholder block to show that image generation is in progress.
-			const placeholderBlock = wp.blocks.createBlock( 'core/heading', {
+			const placeholderBlock = createBlock( 'core/heading', {
 				content: 'Generating AI image...',
 				level: 2,
 				className: 'kaigen-text-center',
@@ -63,50 +64,37 @@ const FormatEditComponent = ( { value } ) => {
 
 			setIsGenerating( true ); // Set generating state.
 
-			// Call the API function to generate the image.
-			generateImage(
-				selectedText,
-				( result ) => {
-					setIsGenerating( false ); // Reset generating state.
+			try {
+				const result = await generateImage( selectedText );
+				const blockAttributes = {
+					url: result.url,
+					alt: result.alt,
+					caption: '',
+				};
 
-					if ( result.error ) {
-						wp.data
-							.dispatch( 'core/notices' )
-							.createErrorNotice(
-								'Failed to generate image: ' + result.error,
-								{ type: 'snackbar' }
-							);
-						// Remove the placeholder block on error.
-						replaceBlocks( placeholderBlock.clientId, [] );
-					} else {
-						// Create a new image block with the image details
-						const blockAttributes = {
-							url: result.url,
-							alt: result.alt,
-							caption: '',
-						};
+				if (
+					result.id &&
+					typeof result.id === 'number' &&
+					result.id > 0
+				) {
+					blockAttributes.id = result.id;
+				}
 
-						// Only add ID attribute if it's a valid WordPress media ID
-						if (
-							result.id &&
-							typeof result.id === 'number' &&
-							result.id > 0
-						) {
-							blockAttributes.id = result.id;
-						}
-
-						const imageBlock = wp.blocks.createBlock(
-							'core/image',
-							blockAttributes
-						);
-						// Replace the placeholder with the new image block.
-						replaceBlocks( placeholderBlock.clientId, [
-							imageBlock,
-						] );
-					}
-				},
-				{}
-			);
+				const imageBlock = createBlock( 'core/image', blockAttributes );
+				replaceBlocks( placeholderBlock.clientId, [ imageBlock ] );
+			} catch ( error ) {
+				wp.data
+					.dispatch( 'core/notices' )
+					.createErrorNotice(
+						'Failed to generate image: ' +
+							( error.message ||
+								'An unknown error occurred while generating the image' ),
+						{ type: 'snackbar' }
+					);
+				replaceBlocks( placeholderBlock.clientId, [] );
+			} finally {
+				setIsGenerating( false );
+			}
 		}
 	}, [ selectedBlock, value.text, value.start, value.end, replaceBlocks ] );
 
