@@ -26,56 +26,41 @@ addFilter(
 			const normalizedBlockId = Number( props.attributes.id );
 			const hasValidId =
 				Number.isInteger( normalizedBlockId ) && normalizedBlockId > 0;
-			const [ hasInitialized, setHasInitialized ] = useState( false );
+			const [ isReferenceImage, setIsReferenceImage ] = useState( false );
 
-			// Destructure props for useEffect dependencies
-			const {
-				attributes: { kaigen_reference_image: referenceImage },
-				setAttributes,
-			} = props;
+			const { setAttributes } = props;
 
-			// Initialize block attribute from post meta on first load, but only if block attribute is not already set
 			useEffect( () => {
-				if ( ! hasValidId || hasInitialized ) {
+				if ( ! hasValidId ) {
+					setIsReferenceImage( false );
 					return;
 				}
 
-				// Only initialize if the block attribute is not explicitly set (undefined or null)
-				if ( referenceImage === undefined || referenceImage === null ) {
-					apiFetch( {
-						path: `/wp/v2/media/${ normalizedBlockId }`,
+				let isCurrent = true;
+
+				apiFetch( {
+					path: `/wp/v2/media/${ normalizedBlockId }`,
+				} )
+					.then( ( media ) => {
+						if ( ! isCurrent ) {
+							return;
+						}
+
+						setIsReferenceImage(
+							media?.meta?.kaigen_reference_image === true ||
+								media?.meta?.kaigen_reference_image === 1
+						);
 					} )
-						.then( ( media ) => {
-							if (
-								media &&
-								media.meta &&
-								typeof media.meta.kaigen_reference_image !==
-									'undefined'
-							) {
-								const metaValue =
-									media.meta.kaigen_reference_image ===
-										true ||
-									media.meta.kaigen_reference_image === 1;
-								setAttributes( {
-									kaigen_reference_image: metaValue,
-								} );
-							}
-							setHasInitialized( true );
-						} )
-						.catch( () => {
-							// Silently fail - default to false
-							setHasInitialized( true );
-						} );
-				} else {
-					setHasInitialized( true );
-				}
-			}, [
-				hasValidId,
-				normalizedBlockId,
-				referenceImage,
-				hasInitialized,
-				setAttributes,
-			] );
+					.catch( () => {
+						if ( isCurrent ) {
+							setIsReferenceImage( false );
+						}
+					} );
+
+				return () => {
+					isCurrent = false;
+				};
+			}, [ hasValidId, normalizedBlockId ] );
 
 			useEffect( () => {
 				if ( ! normalizedBlockId ) {
@@ -145,17 +130,11 @@ addFilter(
 							<PanelBody title="KaiGen" initialOpen={ false }>
 								<CheckboxControl
 									label="Reference image"
-									checked={
-										props.attributes
-											.kaigen_reference_image === true
-									}
+									checked={ isReferenceImage }
 									onChange={ async ( newValue ) => {
-										// Explicitly set to boolean true or false (not undefined)
 										const boolValue = newValue === true;
-										props.setAttributes( {
-											kaigen_reference_image: boolValue,
-										} );
-										setHasInitialized( true ); // Mark as initialized so we don't sync from meta again
+										const previousValue = isReferenceImage;
+										setIsReferenceImage( boolValue );
 
 										try {
 											await apiFetch( {
@@ -169,6 +148,9 @@ addFilter(
 												},
 											} );
 										} catch ( err ) {
+											setIsReferenceImage(
+												previousValue
+											);
 											dispatch(
 												'core/notices'
 											).createErrorNotice(
@@ -184,28 +166,6 @@ addFilter(
 					) }
 				</>
 			);
-		};
-	}
-);
-
-// Extend the core/image block to include the new attribute.
-addFilter(
-	'blocks.registerBlockType',
-	'kaigen/add-reference-image-attribute',
-	( settings, name ) => {
-		if ( name !== 'core/image' ) {
-			return settings;
-		}
-
-		return {
-			...settings,
-			attributes: {
-				...settings.attributes,
-				kaigen_reference_image: {
-					type: 'boolean',
-					default: false,
-				},
-			},
 		};
 	}
 );

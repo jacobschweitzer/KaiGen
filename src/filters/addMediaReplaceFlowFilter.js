@@ -34,14 +34,12 @@ addFilter(
 									? originalChildren( childProps )
 									: originalChildren }
 								<AITab
-									onSelect={ props.onSelect }
 									shouldDisplay={ shouldDisplay }
 									variant="menu"
 									onClick={ () => {
 										setIsModalOpen( true );
 										childProps?.onClose?.();
 									} }
-									renderModal={ false }
 								/>
 							</>
 						) }
