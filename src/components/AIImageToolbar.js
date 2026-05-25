@@ -10,16 +10,15 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
 /**
  * AIImageToolbar component for adding AI image generation or regeneration buttons.
  *
- * @param {Object}   props                       - Component properties.
- * @param {boolean}  props.isGenerating          - Indicates if an image is currently being generated.
- * @param {Function} props.onGenerateImage       - Callback to handle image generation.
- * @param {boolean}  [props.isRegenerating]      - Indicates if an image is being regenerated.
- * @param {Function} [props.onImageGenerated]    - Callback when image is generated (for regenerate).
- * @param {boolean}  [props.isImageBlock]        - Determines if the current block is an image block.
- * @param {boolean}  [props.isTextSelected]      - Determines if text is selected to trigger generation.
- * @param {Object}   [props.currentImage]        - The current image data for regeneration (url, id, alt).
- * @param {number}   [props.estimatedDurationMs] - Estimated time in milliseconds for progress tracking.
- * @return {JSX.Element|null} Returns the toolbar with the appropriate button or null if conditions are unmet.
+ * @param {Object}   props                    - Component properties.
+ * @param {boolean}  props.isGenerating       - Indicates if an image is currently being generated.
+ * @param {Function} props.onGenerateImage    - Callback to handle image generation.
+ * @param {boolean}  [props.isRegenerating]   - Indicates if an image is being regenerated.
+ * @param {Function} [props.onImageGenerated] - Callback when image is generated (for regenerate).
+ * @param {boolean}  [props.isImageBlock]     - Determines if the current block is an image block.
+ * @param {boolean}  [props.isTextSelected]   - Determines if text is selected to trigger generation.
+ * @param {Object}   [props.currentImage]     - The current image data for regeneration (url, id, alt).
+ * @return {JSX.Element|null} The toolbar button or null if conditions are unmet.
  */
 const AIImageToolbar = ( {
 	isGenerating,
@@ -29,13 +28,9 @@ const AIImageToolbar = ( {
 	isImageBlock,
 	isTextSelected,
 	currentImage,
-	estimatedDurationMs,
 } ) => {
 	const [ isModalOpen, setIsModalOpen ] = useState( false );
-	const progress = useGenerationProgress(
-		isGenerating || isRegenerating,
-		estimatedDurationMs
-	);
+	const progress = useGenerationProgress( isGenerating || isRegenerating );
 	const progressIcon = (
 		<span className="kaigen-progress-icon" aria-hidden="true">
 			<span className="kaigen-progress-icon__track">
