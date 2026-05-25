@@ -52,33 +52,24 @@ class Admin {
 			$settings = [];
 		}
 
-		$providers = [
-			[
-				'id'   => 'auto',
-				'name' => __( 'Auto', 'kaigen' ),
-			],
-		];
+		$providers = class_exists( Rest_API::class )
+			? Rest_API::get_instance()->get_image_provider_options()
+			: [
+				[
+					'id'   => 'auto',
+					'name' => __( 'Auto', 'kaigen' ),
+				],
+			];
 
 		$kaigen_settings = [
-			'provider'                          => 'auto',
-			'providers'                         => $providers,
-			'orientation'                       => 'square',
-			'estimated_generation_time_seconds' => 30,
-			'reference_image_limits'            => [
-				'default' => 1,
-			],
-			'is_ai_client_available'            => function_exists( 'wp_ai_client_prompt' ),
+			'provider'               => 'auto',
+			'providers'              => $providers,
+			'orientation'            => 'square',
+			'is_ai_client_available' => function_exists( 'wp_ai_client_prompt' ),
 		];
 
 		$settings['kaigen_settings'] = $kaigen_settings;
 		$settings['kaigen']          = $kaigen_settings;
-
-		// Legacy aliases keep older editor code paths harmless while the UI is simplified.
-		$settings['kaigen_provider']                          = 'auto';
-		$settings['kaigen_providers']                         = $providers;
-		$settings['kaigen_has_api_key']                       = true;
-		$settings['kaigen_estimated_generation_time_seconds'] = 30;
-		$settings['kaigen_reference_image_limits']            = [ 'default' => 1 ];
 
 		return $settings;
 	}
@@ -107,6 +98,14 @@ class Admin {
 			return;
 		}
 
+		$asset_file = plugin_dir_path( __DIR__ ) . 'build/index.asset.php';
+		$asset      = file_exists( $asset_file )
+			? include $asset_file
+			: [
+				'dependencies' => [ 'react', 'wp-api-fetch', 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-data', 'wp-element', 'wp-hooks', 'wp-rich-text' ],
+				'version'      => '1.0.0',
+			];
+
 		wp_enqueue_style(
 			'kaigen-admin',
 			plugin_dir_url( __DIR__ ) . 'assets/kaigen-admin.css',
@@ -117,8 +116,8 @@ class Admin {
 		wp_enqueue_script(
 			'kaigen-editor',
 			plugin_dir_url( __DIR__ ) . 'build/index.js',
-			[ 'wp-blocks', 'wp-element', 'wp-editor', 'wp-components', 'wp-i18n', 'wp-api-fetch' ],
-			'1.0.0',
+			$asset['dependencies'],
+			$asset['version'],
 			true
 		);
 
@@ -126,7 +125,6 @@ class Admin {
 			'kaigen-editor',
 			'kaiGen',
 			[
-				'nonce'   => wp_create_nonce( 'kaigen_nonce' ),
 				'logoUrl' => plugin_dir_url( __DIR__ ) . 'assets/KaiGen-logo-128x128.png',
 			]
 		);
