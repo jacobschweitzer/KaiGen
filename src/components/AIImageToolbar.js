@@ -18,7 +18,7 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
  * @param {boolean}  [props.isImageBlock]     - Determines if the current block is an image block.
  * @param {boolean}  [props.isTextSelected]   - Determines if text is selected to trigger generation.
  * @param {Object}   [props.currentImage]     - The current image data for regeneration (url, id, alt).
- * @return {JSX.Element|null} The toolbar button or null if conditions are unmet.
+ * @return {Object|null} The toolbar button or null if conditions are unmet.
  */
 const AIImageToolbar = ( {
 	isGenerating,

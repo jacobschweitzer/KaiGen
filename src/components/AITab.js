@@ -11,7 +11,7 @@ const kaiGenLogoBig = window.kaiGen?.logoUrl;
  * @param {boolean}  props.shouldDisplay - Flag indicating whether to render the AITab.
  * @param {string}   props.variant       - The UI variant to render.
  * @param {Function} props.onClick       - Callback after clicking the control.
- * @return {JSX.Element|null} The rendered AITab component or null if not displayed.
+ * @return {Object|null} The rendered AITab component or null if not displayed.
  */
 const AITab = ( { shouldDisplay, variant = 'placeholder', onClick } ) => {
 	// Do not render the component if shouldDisplay is false.

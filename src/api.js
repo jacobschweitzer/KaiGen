@@ -73,7 +73,7 @@ export const fetchReferenceImages = async () => {
 			method: 'GET',
 		} );
 		return Array.isArray( response ) ? response : [];
-	} catch ( error ) {
+	} catch {
 		// Silently fail and return empty array
 		return [];
 	}

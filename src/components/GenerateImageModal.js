@@ -23,7 +23,7 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
  * @param {Function} props.onClose                 - Callback when modal is closed.
  * @param {Function} props.onSelect                - Callback to handle the generated image.
  * @param {Object}   [props.initialReferenceImage] - Optional initial reference image to pre-select.
- * @return {JSX.Element|null} The rendered modal or null if not open.
+ * @return {Object|null} The rendered modal or null if not open.
  */
 const DEFAULT_REFERENCE_IMAGE_LIMIT = 5;
 

@@ -147,7 +147,7 @@ addFilter(
 													},
 												},
 											} );
-										} catch ( err ) {
+										} catch {
 											setIsReferenceImage(
 												previousValue
 											);
