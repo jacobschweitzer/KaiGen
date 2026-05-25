@@ -4,18 +4,17 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 
 const DEFAULT_DURATION_MS = 30000;
 
-const useGenerationProgress = ( isActive, expectedDurationMs ) => {
+/**
+ * Returns a 0-99 progress value while `isActive` is true.
+ * Increments linearly over a fixed 30-second window, capping at 99%.
+ *
+ * @param {boolean} isActive Whether a generation is in progress.
+ * @return {number} Progress percentage (0-99).
+ */
+const useGenerationProgress = ( isActive ) => {
 	const [ progress, setProgress ] = useState( 0 );
-	const durationRef = useRef( DEFAULT_DURATION_MS );
 	const startTimeRef = useRef( null );
 	const lastProgressRef = useRef( 0 );
-
-	useEffect( () => {
-		durationRef.current =
-			typeof expectedDurationMs === 'number' && expectedDurationMs > 0
-				? expectedDurationMs
-				: DEFAULT_DURATION_MS;
-	}, [ expectedDurationMs ] );
 
 	useEffect( () => {
 		if ( ! isActive ) {
@@ -34,7 +33,7 @@ const useGenerationProgress = ( isActive, expectedDurationMs ) => {
 		const interval = setInterval( () => {
 			const elapsed = Date.now() - startTimeRef.current;
 			const nextProgress = Math.min(
-				Math.floor( ( elapsed / durationRef.current ) * 100 ),
+				Math.floor( ( elapsed / DEFAULT_DURATION_MS ) * 100 ),
 				99
 			);
 			const clampedProgress = Math.max(
