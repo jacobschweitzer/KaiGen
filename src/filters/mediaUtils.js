@@ -16,9 +16,6 @@ export const getSelectedImageBlock = () => {
 	return selectedBlock?.name === 'core/image' ? selectedBlock : null;
 };
 
-export const hasKaiGenApiKey = () =>
-	wp.data.select( 'core/editor' )?.getEditorSettings()?.kaigen_has_api_key;
-
 export const getCurrentImage = ( selectedBlock ) => {
 	if ( ! selectedBlock?.attributes?.url ) {
 		return null;
@@ -39,5 +36,4 @@ export const shouldDisplayForSelectedImageBlock = (
 	isImageOnlyMedia( props.allowedTypes ) &&
 	! props.multiple &&
 	selectedBlock?.name === 'core/image' &&
-	( ! requireEmptyImage || ! selectedBlock?.attributes?.url ) &&
-	hasKaiGenApiKey();
+	( ! requireEmptyImage || ! selectedBlock?.attributes?.url );
