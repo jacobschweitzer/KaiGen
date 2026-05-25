@@ -31,11 +31,24 @@ final class Rest_API {
 	private const API_NAMESPACE = 'kaigen/v1';
 
 	/**
-	 * Fallback reference image limit when provider metadata does not expose one.
+	 * Fallback reference image limit.
 	 *
 	 * @var int
 	 */
 	private const DEFAULT_REFERENCE_IMAGE_LIMIT = 5;
+
+	/**
+	 * Provider-specific reference image limits.
+	 *
+	 * The AI Client currently exposes capabilities and supported options, but not
+	 * a stable per-model reference image count.
+	 *
+	 * @var array<string, int>
+	 */
+	private const PROVIDER_REFERENCE_IMAGE_LIMITS = [
+		'google' => 5,
+		'openai' => 5,
+	];
 
 	/**
 	 * Image generation service.
@@ -180,8 +193,7 @@ final class Rest_API {
 			);
 
 			foreach ( $registry->getRegisteredProviderIds() as $provider_id ) {
-				$models = $registry->findProviderModelsMetadataForSupport( $provider_id, $requirements );
-				if ( empty( $models ) ) {
+				if ( empty( $registry->findProviderModelsMetadataForSupport( $provider_id, $requirements ) ) ) {
 					continue;
 				}
 
@@ -189,7 +201,7 @@ final class Rest_API {
 				$providers[]    = [
 					'id'                  => $provider_id,
 					'name'                => $provider_class::metadata()->getName(),
-					'referenceImageLimit' => $this->get_provider_reference_image_limit( $provider_id, $models ),
+					'referenceImageLimit' => $this->get_provider_reference_image_limit( $provider_id ),
 				];
 			}
 		} catch ( \Throwable $e ) {
@@ -225,110 +237,25 @@ final class Rest_API {
 	 * Gets the maximum reference image count for a provider.
 	 *
 	 * @param string $provider_id Provider ID.
-	 * @param array  $models Provider model metadata.
 	 * @return int Reference image limit.
 	 */
-	private function get_provider_reference_image_limit( $provider_id, $models ) {
-		$limit = null;
-		foreach ( $models as $model ) {
-			$model_limit = $this->extract_reference_image_limit( $model );
-			if ( null === $model_limit ) {
-				continue;
-			}
-
-			$limit = null === $limit ? $model_limit : min( $limit, $model_limit );
-		}
-
+	private function get_provider_reference_image_limit( $provider_id ) {
 		/**
 		 * Filters a provider's maximum selectable reference image count.
 		 *
 		 * @param int    $limit Provider reference image limit.
 		 * @param string $provider_id Provider ID.
-		 * @param array  $models Provider model metadata.
+		 * @param array  $models Reserved for model metadata when exposed by the AI Client.
 		 */
 		$limit = apply_filters(
 			'kaigen_provider_reference_image_limit',
-			null === $limit ? self::DEFAULT_REFERENCE_IMAGE_LIMIT : $limit,
+			self::PROVIDER_REFERENCE_IMAGE_LIMITS[ $provider_id ] ?? self::DEFAULT_REFERENCE_IMAGE_LIMIT,
 			$provider_id,
-			$models
+			[]
 		);
 
 		$limit = absint( $limit );
 		return $limit > 0 ? $limit : self::DEFAULT_REFERENCE_IMAGE_LIMIT;
-	}
-
-	/**
-	 * Extracts a reference image limit from model metadata when exposed.
-	 *
-	 * @param mixed $metadata Model metadata.
-	 * @return int|null Reference image limit, or null when unavailable.
-	 */
-	private function extract_reference_image_limit( $metadata ) {
-		$data = $this->metadata_to_array( $metadata );
-		if ( empty( $data ) ) {
-			return null;
-		}
-
-		$limit_keys = [
-			'maxReferenceImages',
-			'max_reference_images',
-			'referenceImageLimit',
-			'reference_image_limit',
-			'maxSourceImages',
-			'max_source_images',
-			'sourceImageLimit',
-			'source_image_limit',
-			'maxInputImages',
-			'max_input_images',
-			'maxInputFiles',
-			'max_input_files',
-		];
-
-		foreach ( $limit_keys as $key ) {
-			if ( isset( $data[ $key ] ) && is_numeric( $data[ $key ] ) ) {
-				return absint( $data[ $key ] );
-			}
-		}
-
-		foreach ( $data as $value ) {
-			if ( is_array( $value ) || is_object( $value ) ) {
-				$limit = $this->extract_reference_image_limit( $value );
-				if ( null !== $limit ) {
-					return $limit;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Converts metadata objects to arrays for capability inspection.
-	 *
-	 * @param mixed $metadata Metadata value.
-	 * @return array Metadata array.
-	 */
-	private function metadata_to_array( $metadata ) {
-		if ( is_array( $metadata ) ) {
-			return $metadata;
-		}
-
-		if ( $metadata instanceof \JsonSerializable ) {
-			$serialized = $metadata->jsonSerialize();
-			return is_array( $serialized ) ? $serialized : [];
-		}
-
-		if ( is_object( $metadata ) && method_exists( $metadata, 'to_array' ) ) {
-			$serialized = $metadata->to_array();
-			return is_array( $serialized ) ? $serialized : [];
-		}
-
-		if ( is_object( $metadata ) && method_exists( $metadata, 'toArray' ) ) {
-			$serialized = $metadata->toArray();
-			return is_array( $serialized ) ? $serialized : [];
-		}
-
-		return [];
 	}
 
 	/**
