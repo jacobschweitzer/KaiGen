@@ -102,7 +102,7 @@ class Admin {
 		$asset      = file_exists( $asset_file )
 			? include $asset_file
 			: [
-				'dependencies' => [ 'react', 'wp-api-fetch', 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-data', 'wp-element', 'wp-hooks', 'wp-rich-text' ],
+				'dependencies' => [ 'react', 'wp-api-fetch', 'wp-block-editor', 'wp-components', 'wp-data', 'wp-element', 'wp-hooks' ],
 				'version'      => '1.0.0',
 			];
 

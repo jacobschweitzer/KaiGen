@@ -1,3 +1,5 @@
+import { select } from '@wordpress/data';
+
 export const isImageOnlyMedia = ( allowedTypes = [] ) => {
 	return (
 		allowedTypes.length > 0 &&
@@ -9,9 +11,7 @@ export const isImageOnlyMedia = ( allowedTypes = [] ) => {
 };
 
 export const getSelectedImageBlock = () => {
-	const selectedBlock = wp.data
-		.select( 'core/block-editor' )
-		.getSelectedBlock();
+	const selectedBlock = select( 'core/block-editor' ).getSelectedBlock();
 
 	return selectedBlock?.name === 'core/image' ? selectedBlock : null;
 };

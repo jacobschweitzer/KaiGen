@@ -5,6 +5,7 @@ import { useState, useEffect } from '@wordpress/element';
 import { BlockControls, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, CheckboxControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
+import { dispatch } from '@wordpress/data';
 import AIImageToolbar from '../components/AIImageToolbar';
 
 /**
@@ -119,11 +120,12 @@ addFilter(
 					} );
 				}
 
-				wp.data
-					.dispatch( 'core/notices' )
-					.createSuccessNotice( 'Image generated successfully!', {
+				dispatch( 'core/notices' ).createSuccessNotice(
+					'Image generated successfully!',
+					{
 						type: 'snackbar',
-					} );
+					}
+				);
 			};
 
 			return (
@@ -167,12 +169,12 @@ addFilter(
 												},
 											} );
 										} catch ( err ) {
-											wp.data
-												.dispatch( 'core/notices' )
-												.createErrorNotice(
-													'Failed to update reference image meta',
-													{ type: 'snackbar' }
-												);
+											dispatch(
+												'core/notices'
+											).createErrorNotice(
+												'Failed to update reference image meta',
+												{ type: 'snackbar' }
+											);
 										}
 									} }
 									help="Add to the list of reference images."

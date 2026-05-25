@@ -1,5 +1,7 @@
 // This file provides API functions for generating AI images.
 
+import apiFetch from '@wordpress/api-fetch';
+
 /**
  * Generates an AI image based on the given prompt and optional parameters.
  *
@@ -23,7 +25,7 @@ export const generateImage = async ( prompt, options = {} ) => {
 
 	let response;
 	try {
-		response = await wp.apiFetch( {
+		response = await apiFetch( {
 			path: '/kaigen/v1/generate-image',
 			method: 'POST',
 			data,
@@ -66,7 +68,7 @@ export const generateImage = async ( prompt, options = {} ) => {
  */
 export const fetchReferenceImages = async () => {
 	try {
-		const response = await wp.apiFetch( {
+		const response = await apiFetch( {
 			path: '/kaigen/v1/reference-images',
 			method: 'GET',
 		} );

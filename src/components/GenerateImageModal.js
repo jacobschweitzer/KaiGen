@@ -1,6 +1,7 @@
 // This file contains the GenerateImageModal component - a shared modal for AI image generation.
 
 import { useState, useEffect } from '@wordpress/element';
+import { select } from '@wordpress/data';
 import {
 	Button,
 	TextareaControl,
@@ -40,8 +41,7 @@ const GenerateImageModal = ( {
 	const [ provider, setProvider ] = useState( 'auto' );
 	const [ orientation, setOrientation ] = useState( 'square' );
 
-	const editorSettings =
-		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
+	const editorSettings = select( 'core/editor' )?.getEditorSettings() || {};
 	const kaiGenSettings =
 		editorSettings.kaigen_settings || editorSettings.kaigen || {};
 	const availableProviders = kaiGenSettings.providers || [
