@@ -76,3 +76,7 @@ jobs:
         run: npm run lint:php
         continue-on-error: false
 
+      - name: Run PHP tests
+        if: steps.changes.outputs.php == 'true'
+        run: npm run test:php
+        continue-on-error: false
