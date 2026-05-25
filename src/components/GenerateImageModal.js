@@ -9,11 +9,7 @@ import {
 	Dashicon,
 	SelectControl,
 } from '@wordpress/components';
-import {
-	generateImage,
-	fetchImageProviders,
-	fetchReferenceImages,
-} from '../api';
+import { generateImage, fetchReferenceImages } from '../api';
 import useGenerationProgress from '../hooks/useGenerationProgress';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
@@ -28,6 +24,8 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
  * @param {Object}   [props.initialReferenceImage] - Optional initial reference image to pre-select.
  * @return {JSX.Element|null} The rendered modal or null if not open.
  */
+const DEFAULT_REFERENCE_IMAGE_LIMIT = 5;
+
 const GenerateImageModal = ( {
 	isOpen,
 	onClose,
@@ -41,35 +39,31 @@ const GenerateImageModal = ( {
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
 	const [ provider, setProvider ] = useState( 'auto' );
 	const [ orientation, setOrientation ] = useState( 'square' );
-	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
 
 	const editorSettings =
 		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
 	const kaiGenSettings =
 		editorSettings.kaigen_settings || editorSettings.kaigen || {};
-	const providerOptions = kaiGenSettings.providers ||
-		editorSettings.kaigen_providers || [ { id: 'auto', name: 'Auto' } ];
-	const [ availableProviders, setAvailableProviders ] =
-		useState( providerOptions );
-	const maxRefs =
-		kaiGenSettings.reference_image_limits?.default ??
-		editorSettings.kaigen_reference_image_limits?.default ??
-		1;
-	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
+	const availableProviders = kaiGenSettings.providers || [
+		{
+			id: 'auto',
+			name: 'Auto',
+			referenceImageLimit: DEFAULT_REFERENCE_IMAGE_LIMIT,
+		},
+	];
+	const selectedProvider =
+		availableProviders.find( ( option ) => option.id === provider ) ||
+		availableProviders[ 0 ];
+	const referenceImageLimit =
+		Number.isInteger( selectedProvider?.referenceImageLimit ) &&
+		selectedProvider.referenceImageLimit > 0
+			? selectedProvider.referenceImageLimit
+			: DEFAULT_REFERENCE_IMAGE_LIMIT;
+	const progress = useGenerationProgress( isLoading );
 
 	useEffect( () => {
 		if ( isOpen ) {
 			fetchReferenceImages().then( setReferenceImages );
-			fetchImageProviders().then( ( providers ) => {
-				setAvailableProviders( providers );
-				setProvider( ( currentProvider ) =>
-					providers.some(
-						( option ) => option.id === currentProvider
-					)
-						? currentProvider
-						: 'auto'
-				);
-			} );
 			setProvider( kaiGenSettings.provider || 'auto' );
 			setOrientation( kaiGenSettings.orientation || 'square' );
 
@@ -88,10 +82,8 @@ const GenerateImageModal = ( {
 	] );
 
 	useEffect( () => {
-		setSelectedRefs( ( prev ) =>
-			prev.length > maxRefs ? prev.slice( 0, maxRefs ) : prev
-		);
-	}, [ maxRefs ] );
+		setSelectedRefs( ( prev ) => prev.slice( 0, referenceImageLimit ) );
+	}, [ referenceImageLimit ] );
 
 	/**
 	 * Handles Enter key press in textarea
@@ -111,13 +103,12 @@ const GenerateImageModal = ( {
 	 *
 	 * @return {void}
 	 */
-	const handleGenerate = () => {
+	const handleGenerate = async () => {
 		if ( ! prompt.trim() ) {
 			setError( 'Please enter a prompt for image generation.' );
 			return;
 		}
 		setIsLoading( true );
-		setEstimatedDurationMs( null );
 		setError( null );
 
 		const options = {};
@@ -129,20 +120,18 @@ const GenerateImageModal = ( {
 		options.provider = provider;
 		options.orientation = orientation;
 
-		generateImage(
-			prompt.trim(),
-			( media ) => {
-				if ( media.error ) {
-					setError( media.error );
-					setIsLoading( false );
-				} else {
-					onSelect( media );
-					setIsLoading( false );
-					handleClose();
-				}
-			},
-			options
-		);
+		try {
+			const media = await generateImage( prompt.trim(), options );
+			onSelect( media );
+			setIsLoading( false );
+			handleClose();
+		} catch ( generationError ) {
+			setError(
+				generationError.message ||
+					'An unknown error occurred while generating the image'
+			);
+			setIsLoading( false );
+		}
 	};
 
 	/**
@@ -154,7 +143,6 @@ const GenerateImageModal = ( {
 		setSelectedRefs( [] );
 		setProvider( kaiGenSettings.provider || 'auto' );
 		setOrientation( kaiGenSettings.orientation || 'square' );
-		setEstimatedDurationMs( null );
 		onClose();
 	};
 
@@ -226,6 +214,9 @@ const GenerateImageModal = ( {
 								<h4 className="kaigen-modal-dropdown-content-title">
 									Reference Images
 								</h4>
+								<p className="kaigen-modal-reference-limit">
+									Limit { referenceImageLimit }
+								</p>
 								{ allImages.length > 0 ? (
 									<div className="kaigen-modal-reference-images-container">
 										{ allImages.map( ( img, index ) => {
@@ -244,7 +235,8 @@ const GenerateImageModal = ( {
 																img.url
 														);
 													} else if (
-														prev.length < maxRefs
+														prev.length <
+														referenceImageLimit
 													) {
 														return [ ...prev, img ];
 													}
