@@ -1,0 +1,11 @@
+[features]
+hooks = true
+
+[[hooks.PostToolUse]]
+matcher = "^(Bash|apply_patch)$"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = '/bin/bash "$(git rev-parse --show-toplevel)/.codex/hooks/lint.sh"'
+timeout = 600
+statusMessage = "Running relevant KaiGen linters"
