@@ -49,7 +49,12 @@ final class Image_Generation_Service {
 			add_filter( 'wp_ai_client_default_request_timeout', $timeout_filter );
 			do_action( 'kaigen_before_image_generation_request' );
 
-			$result = $this->generate_image_result( $prompt, $orientation, $provider, $request->get_param( 'source_image_ids' ) );
+			$result = $this->generate_image_result(
+				$prompt,
+				$orientation,
+				$provider,
+				$request->get_param( 'source_image_ids' )
+			);
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
@@ -231,7 +236,7 @@ final class Image_Generation_Service {
 			}
 
 			if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
-				return new WP_Error( 'forbidden_reference', __( 'You do not have permission to use one of the reference images.', 'kaigen' ), [ 'status' => 403 ] );
+				return new WP_Error( 'forbidden_reference_file', __( 'You are not allowed to use that reference image.', 'kaigen' ), [ 'status' => 403 ] );
 			}
 
 			$file_path = get_attached_file( $attachment_id );

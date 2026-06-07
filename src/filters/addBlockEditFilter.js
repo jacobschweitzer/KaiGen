@@ -1,7 +1,7 @@
 // This file modifies the block editor for core/image blocks to include an AI image regeneration button.
 
 import { addFilter } from '@wordpress/hooks';
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import { BlockControls, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, CheckboxControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
@@ -28,6 +28,7 @@ addFilter(
 			const hasValidId =
 				Number.isInteger( normalizedBlockId ) && normalizedBlockId > 0;
 			const [ isReferenceImage, setIsReferenceImage ] = useState( false );
+			const referenceImageMetaRequestId = useRef( 0 );
 
 			const { setAttributes } = props;
 
@@ -38,12 +39,16 @@ addFilter(
 				}
 
 				let isCurrent = true;
+				const requestId = ++referenceImageMetaRequestId.current;
 
 				apiFetch( {
 					path: `/wp/v2/media/${ normalizedBlockId }`,
 				} )
 					.then( ( media ) => {
-						if ( ! isCurrent ) {
+						if (
+							! isCurrent ||
+							requestId !== referenceImageMetaRequestId.current
+						) {
 							return;
 						}
 
@@ -53,7 +58,10 @@ addFilter(
 						);
 					} )
 					.catch( () => {
-						if ( isCurrent ) {
+						if (
+							isCurrent &&
+							requestId === referenceImageMetaRequestId.current
+						) {
 							setIsReferenceImage( false );
 						}
 					} );
@@ -76,13 +84,14 @@ addFilter(
 			/**
 			 * Build current image object for the modal
 			 */
-			const currentImage = props.attributes.url
-				? {
-						url: props.attributes.url,
-						id: props.attributes.id,
-						alt: props.attributes.alt || '',
-				  }
-				: null;
+			const currentImage =
+				hasValidId && props.attributes.url
+					? {
+							url: props.attributes.url,
+							id: normalizedBlockId,
+							alt: props.attributes.alt || '',
+					  }
+					: null;
 			const isAvailable = isKaiGenAvailable();
 
 			/**
@@ -136,6 +145,7 @@ addFilter(
 									onChange={ async ( newValue ) => {
 										const boolValue = newValue === true;
 										const previousValue = isReferenceImage;
+										referenceImageMetaRequestId.current++;
 										setIsReferenceImage( boolValue );
 
 										try {
@@ -145,7 +155,7 @@ addFilter(
 												data: {
 													meta: {
 														kaigen_reference_image:
-															boolValue ? 1 : 0,
+															boolValue,
 													},
 												},
 											} );

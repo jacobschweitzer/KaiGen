@@ -3,6 +3,10 @@
 /* ===== MODAL HEADER STYLING ===== */
 
 /* Center the logo in KaiGen modal header */
+.kaigen-modal.components-modal__frame {
+	width: min(96vw, 980px);
+}
+
 .kaigen-modal .components-modal__header .components-modal__header-heading {
 	width: 100%;
 }
@@ -18,26 +22,84 @@
 	width: auto;
 }
 
-/* ===== INPUT CONTAINER ===== */
+/* ===== COMPOSER ===== */
 
-.kaigen-modal__input-container {
+.kaigen-modal__stage {
 	display: flex;
-	align-items: center;
-	gap: 8px;
+	flex-direction: column;
+	justify-content: flex-end;
+	min-height: 330px;
+}
+
+.kaigen-modal__reference-panel {
+	background: rgba(255, 255, 255, 0.92);
+	border: 1px solid transparent;
+	border-radius: 24px 24px 0 0;
+	box-shadow: none;
+	height: 0;
+	overflow: hidden;
+	padding: 0 16px;
+	transition:
+		height 0.16s ease,
+		padding 0.16s ease,
+		border-color 0.16s ease,
+		box-shadow 0.16s ease;
+}
+
+.kaigen-modal__reference-panel-visible {
+	border-color: #ddd;
+	border-bottom: 0;
+	box-shadow: 0 1px 10px rgba(0, 0, 0, 0.08);
+	height: 128px;
+	padding-bottom: 12px;
+	padding-top: 12px;
+}
+
+.kaigen-modal__composer {
+	background: #fff;
 	border: 1px solid #ddd;
-	border-radius: 8px;
-	padding: 8px;
+	border-radius: 24px;
+	box-shadow: 0 1px 10px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+}
+
+.kaigen-modal__reference-panel-visible + .kaigen-modal__composer {
+	border-radius: 0 0 24px 24px;
+}
+
+.kaigen-modal__prompt-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 12px;
+	padding: 14px 16px 8px;
+}
+
+.kaigen-modal__prompt-action {
+	padding-bottom: 2px;
 }
 
 /* ===== TEXTAREA ===== */
 
 .kaigen-modal__textarea-container {
 	flex: 1;
+	min-width: 0;
 }
 
 .kaigen-modal__textarea .components-textarea-control__input {
 	width: 100%;
+	min-height: 44px;
+	max-height: 180px;
 	resize: none;
+	border: none;
+	box-shadow: none;
+	outline: none;
+	overflow-y: auto;
+	padding: 8px 0;
+	font-size: 20px;
+	line-height: 1.45;
+}
+
+.kaigen-modal__textarea .components-textarea-control__input:focus {
 	border: none;
 	box-shadow: none;
 	outline: none;
@@ -46,32 +108,32 @@
 /* ===== BUTTONS ===== */
 
 .kaigen-modal__ref-button,
-.kaigen-modal__settings-button,
 .kaigen-modal__submit-button {
-	width: 40px;
-	height: 40px;
-	min-width: 40px;
-	padding: 0;
-	display: flex;
 	align-items: center;
+	border-radius: 999px;
+	display: inline-flex;
+	height: 48px;
 	justify-content: center;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	min-width: 48px;
+	padding: 0;
+	width: 48px;
 }
 
-.kaigen-modal__settings-button {
-	background: #f0f0f0;
+.kaigen-modal__ref-button {
+	background: #fff;
+	border: 1px solid #d6d9dd;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02);
+	height: 44px;
+	min-width: 44px;
+	width: 44px;
 }
 
 /* Reference button icon styling */
 .kaigen-modal__ref-button .dashicon {
-	font-size: 18px;
-}
-
-/* Settings button icon styling */
-.kaigen-modal__settings-button .dashicon {
-	color: #555;
-	font-size: 18px;
+	color: #1f2328;
+	font-size: 20px;
+	height: 20px;
+	width: 20px;
 }
 
 /* ===== SUBMIT BUTTON ===== */
@@ -81,9 +143,103 @@
 }
 
 .kaigen-modal__submit-button {
-	background: #007cba;
+	background: #3858e9;
+	border: 1px solid #3858e9;
 	color: #fff;
-	border: 1px solid #007cba;
+	margin-bottom: 2px;
+}
+
+.kaigen-modal__submit-button .dashicon {
+	font-size: 22px;
+	height: 22px;
+	width: 22px;
+}
+
+.kaigen-modal__submit-button:disabled {
+	background: #f0f0f0;
+	border-color: #e0e0e0;
+	color: #777;
+	opacity: 1;
+}
+
+/* ===== OPTIONS ===== */
+
+.kaigen-modal__options-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 8px 16px 14px 72px;
+}
+
+.kaigen-modal__provider-options {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.kaigen-modal__provider-button {
+	align-items: center;
+	background: #fff;
+	border: 1px solid #d6d9dd;
+	border-radius: 10px;
+	box-shadow: none;
+	color: #1f2328;
+	display: inline-flex;
+	font-size: 14px;
+	font-weight: 600;
+	gap: 8px;
+	height: 40px;
+	justify-content: center;
+	line-height: 1;
+	padding: 0 14px;
+}
+
+.kaigen-modal__provider-button.components-button.kaigen-modal__provider-button-icon-only {
+	border-radius: 999px;
+	height: 48px;
+	min-width: 48px;
+	padding: 0;
+	width: 48px;
+}
+
+.kaigen-modal__provider-button.components-button {
+	box-shadow: none;
+}
+
+.kaigen-modal__provider-button:focus,
+.kaigen-modal__provider-button:focus-visible,
+.kaigen-modal__provider-button.components-button:focus,
+.kaigen-modal__provider-button.components-button:focus-visible {
+	border-color: #3858e9;
+	box-shadow: 0 0 0 1px #3858e9;
+	outline: none;
+}
+
+.kaigen-modal__provider-button.components-button.kaigen-modal__provider-button-selected {
+	background: #3858e9;
+	border-color: #3858e9;
+	border-radius: 999px;
+	box-shadow: none;
+	color: #fff;
+	height: 48px;
+	width: 48px;
+}
+
+.kaigen-modal__provider-button.components-button.kaigen-modal__provider-button-selected:hover,
+.kaigen-modal__provider-button.components-button.kaigen-modal__provider-button-selected:focus,
+.kaigen-modal__provider-button.components-button.kaigen-modal__provider-button-selected:focus-visible {
+	color: #fff;
+}
+
+.kaigen-modal__provider-logo {
+	display: block;
+	height: 22px;
+	width: 22px;
+}
+
+.kaigen-modal__provider-button-selected .kaigen-modal__provider-logo {
+	filter: brightness(0) invert(1);
 }
 
 /* ===== GENERATION PROGRESS ===== */
@@ -146,37 +302,112 @@
 		height: 60px;
 	}
 
-	.kaigen-modal__input-container {
-		gap: 6px;
+	.kaigen-modal__prompt-row {
+		gap: 8px;
+		padding: 12px 12px 8px;
 	}
 
 	.kaigen-modal__ref-button,
-	.kaigen-modal__settings-button,
 	.kaigen-modal__submit-button {
 		width: 36px;
 		height: 36px;
 		min-width: 36px;
 	}
+
+	.kaigen-modal__textarea .components-textarea-control__input {
+		font-size: 16px;
+	}
+
+	.kaigen-modal__options-row {
+		padding: 8px 12px 12px;
+	}
 }
 
-.kaigen-modal__aspect-ratio-button {
-	cursor: pointer;
-	padding: 8px;
-	width: 75px;
-	height: 60px;
-	display: flex;
-	flex-direction: column;
+.kaigen-modal__aspect-ratio-toggle {
+	background: #f7f7f7;
+	border: 1px solid #d6d9dd;
+	border-radius: 999px;
+	color: #111;
+	display: inline-flex;
+	font-size: 13px;
+	font-weight: 500;
 	align-items: center;
+	gap: 8px;
+	height: 48px;
 	justify-content: center;
-	gap: 4px;
-	border-radius: 4px;
-	border: 1px solid #ccd0d4;
-	background: #fff;
+	min-width: 72px;
+	padding: 0 14px;
 }
 
-.kaigen-modal__aspect-ratio-button-selected {
-	border: 2px solid #007cba;
-	background: #f0f8ff;
+.kaigen-modal__ref-button.is-primary .dashicon {
+	color: #fff;
+}
+
+.kaigen-modal__aspect-ratio-menu {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 18px;
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+	min-width: 210px;
+	padding: 10px;
+}
+
+.kaigen-modal__aspect-ratio-menu-item {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	border-radius: 10px;
+	color: #666;
+	cursor: pointer;
+	display: grid;
+	font-size: 16px;
+	gap: 14px;
+	grid-template-columns: 34px 48px 1fr;
+	padding: 9px 10px;
+	text-align: left;
+	width: 100%;
+}
+
+.kaigen-modal__aspect-ratio-menu-item:hover,
+.kaigen-modal__aspect-ratio-menu-item-selected {
+	background: #f4f4f4;
+	color: #111;
+}
+
+.kaigen-modal__aspect-ratio-ratio {
+	font-weight: 600;
+}
+
+.kaigen-modal__aspect-ratio-name {
+	font-weight: 500;
+}
+
+.kaigen-modal-aspect-ratio-icon {
+	background: #c4c7ca;
+	border-radius: 3px;
+	display: inline-block;
+	height: 18px;
+	width: 18px;
+}
+
+.kaigen-modal__aspect-ratio-menu-item-selected .kaigen-modal-aspect-ratio-icon,
+.kaigen-modal__aspect-ratio-toggle .kaigen-modal-aspect-ratio-icon {
+	background: #111;
+}
+
+.kaigen-aspect-ratio-landscape {
+	height: 12px;
+	width: 26px;
+}
+
+.kaigen-aspect-ratio-portrait {
+	height: 26px;
+	width: 14px;
+}
+
+.kaigen-aspect-ratio-square {
+	height: 18px;
+	width: 18px;
 }
 
 /* ===== NEW STYLES ===== */
@@ -234,11 +465,13 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 }
 
 .kaigen-ref-button-selected {
-	background: #007cba;
+	border-color: #3858e9;
+	box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.18);
+	color: #3858e9;
 }
 
 .kaigen-ref-button-icon-selected {
-	color: #fff;
+	color: #3858e9;
 }
 
 .kaigen-text-center {
@@ -262,19 +495,22 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 
 .kaigen-modal-reference-images-container {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
-	max-height: 200px;
-	overflow-y: auto;
+	flex-wrap: nowrap;
+	gap: 10px;
+	height: 92px;
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 
 .kaigen-modal-reference-image {
-	width: 60px;
-	height: 60px;
+	width: 74px;
+	height: 74px;
+	flex: 0 0 auto;
+	align-self: center;
 	padding: 0;
 	margin: 0;
-	border: 3px solid transparent;
-	border-radius: 4px;
+	border: 2px solid transparent;
+	border-radius: 8px;
 	background: transparent;
 	cursor: pointer;
 	overflow: hidden;
@@ -291,7 +527,7 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 }
 
 .kaigen-modal-reference-image-selected {
-	border: 3px solid #007cba;
+	border-color: #3858e9;
 }
 
 .kaigen-modal-no-references {
@@ -299,48 +535,4 @@ button.components-button.components-menu-item__button.is-next-40px-default-size.
 	font-size: 13px;
 	margin: 0;
 	padding: 8px 0;
-}
-
-.kaigen-modal-aspect-ratio-container {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
-}
-
-.kaigen-modal-aspect-ratio-icon-container {
-	width: 40px;
-	height: 30px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.kaigen-modal-aspect-ratio-icon {
-	background: #e9eef0;
-	border: 1px solid #c3c4c7;
-	border-radius: 2px;
-}
-
-.kaigen-modal-aspect-ratio-icon-selected {
-	background: #007cba;
-}
-
-.kaigen-modal-aspect-ratio-label {
-	font-size: 11px;
-	color: #555;
-}
-
-.kaigen-aspect-ratio-square {
-	width: 30px;
-	height: 30px;
-}
-
-.kaigen-aspect-ratio-landscape {
-	width: 34px;
-	height: 19px;
-}
-
-.kaigen-aspect-ratio-portrait {
-	width: 19px;
-	height: 34px;
 }
