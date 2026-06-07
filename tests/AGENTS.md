@@ -12,6 +12,7 @@ See the root `AGENTS.md` for global conventions and tooling.
 - Output directory: `tests/test-results/` (generated artifacts)
 
 ## Running Tests
+- Run PHP unit tests: `npm run test:php`
 - Run all e2e tests: `npm run test:e2e`
 - Run single test: `npx playwright test tests/e2e/image-generation.spec.ts`
 - Debug: `npm run test:e2e:debug`

@@ -9,6 +9,7 @@
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/build/*</exclude-pattern>
+	<exclude-pattern>*/.phpunit.cache/*</exclude-pattern>
 	<exclude-pattern>*/tests/e2e/*</exclude-pattern>
 	<exclude-pattern>*/playwright/*</exclude-pattern>
 	<exclude-pattern>*.map</exclude-pattern>
@@ -44,6 +45,12 @@
 		<exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound"/>
 		<!-- Ignore interface prefix requirement -->
 		<exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedInterfaceFound"/>
+	</rule>
+	<rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+		<exclude-pattern>*/tests/php/*Test.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>*/tests/php/*Test.php</exclude-pattern>
 	</rule>
 
 	<!-- Rules: WordPress Extra -->
