@@ -108,11 +108,13 @@ addFilter(
 					props.setAttributes( {
 						url: result.url,
 						id: result.id,
+						alt: result.alt || '',
 					} );
 				} else {
 					props.setAttributes( {
 						url: result.url,
 						id: undefined,
+						alt: result.alt || '',
 					} );
 				}
 

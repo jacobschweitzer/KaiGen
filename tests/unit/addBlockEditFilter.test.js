@@ -16,4 +16,15 @@ describe( 'addBlockEditFilter', () => {
 			/const currentImage = props\.attributes\.url/
 		);
 	} );
+
+	it( 'updates alt text when replacing an existing image', () => {
+		const source = fs.readFileSync(
+			path.join( __dirname, '../../src/filters/addBlockEditFilter.js' ),
+			'utf8'
+		);
+
+		expect( source ).toMatch(
+			/props\.setAttributes\(\s*{\s*url: result\.url,\s*id: result\.id,\s*alt: result\.alt \|\| '',\s*}\s*\)/
+		);
+	} );
 } );
