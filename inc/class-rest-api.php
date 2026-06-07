@@ -173,19 +173,12 @@ final class Rest_API {
 	 * @return array Provider options.
 	 */
 	public function get_image_provider_options() {
-		$providers = [
-			[
-				'id'                  => 'auto',
-				'name'                => __( 'Auto', 'kaigen' ),
-				'referenceImageLimit' => self::DEFAULT_REFERENCE_IMAGE_LIMIT,
-			],
-		];
-
 		if ( ! class_exists( AiClient::class ) || ! class_exists( ModelRequirements::class ) || ! class_exists( CapabilityEnum::class ) ) {
-			return $providers;
+			return [];
 		}
 
 		try {
+			$providers    = [];
 			$registry     = AiClient::defaultRegistry();
 			$requirements = new ModelRequirements(
 				[ CapabilityEnum::imageGeneration() ],
@@ -205,21 +198,30 @@ final class Rest_API {
 				];
 			}
 		} catch ( \Throwable $e ) {
-			return $providers;
+			return [];
+		}
+
+		if ( empty( $providers ) ) {
+			return [];
 		}
 
 		$provider_limits = array_filter(
 			array_map(
 				function ( $provider ) {
-					return 'auto' !== $provider['id'] ? absint( $provider['referenceImageLimit'] ?? 0 ) : 0;
+					return absint( $provider['referenceImageLimit'] ?? 0 );
 				},
 				$providers
 			)
 		);
 
-		if ( ! empty( $provider_limits ) ) {
-			$providers[0]['referenceImageLimit'] = min( $provider_limits );
-		}
+		array_unshift(
+			$providers,
+			[
+				'id'                  => 'auto',
+				'name'                => __( 'Auto', 'kaigen' ),
+				'referenceImageLimit' => ! empty( $provider_limits ) ? min( $provider_limits ) : self::DEFAULT_REFERENCE_IMAGE_LIMIT,
+			]
+		);
 
 		return array_values(
 			array_reduce(

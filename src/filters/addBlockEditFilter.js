@@ -7,6 +7,7 @@ import { PanelBody, CheckboxControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { dispatch } from '@wordpress/data';
 import AIImageToolbar from '../components/AIImageToolbar';
+import { isKaiGenAvailable } from '../utils/kaigenSettings';
 
 /**
  * Enhances the core/image block with an AI image regeneration button.
@@ -82,6 +83,7 @@ addFilter(
 						alt: props.attributes.alt || '',
 				  }
 				: null;
+			const isAvailable = isKaiGenAvailable();
 
 			/**
 			 * Handles the generated image result from the modal.
@@ -116,7 +118,7 @@ addFilter(
 			return (
 				<>
 					<BlockEdit { ...props } />
-					{ props.attributes.url && (
+					{ props.attributes.url && isAvailable && (
 						<BlockControls>
 							<AIImageToolbar
 								onImageGenerated={ handleImageGenerated }
@@ -125,7 +127,7 @@ addFilter(
 							/>
 						</BlockControls>
 					) }
-					{ hasValidId && (
+					{ hasValidId && isAvailable && (
 						<InspectorControls>
 							<PanelBody title="KaiGen" initialOpen={ false }>
 								<CheckboxControl

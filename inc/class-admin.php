@@ -54,12 +54,7 @@ class Admin {
 
 		$providers = class_exists( Rest_API::class )
 			? Rest_API::get_instance()->get_image_provider_options()
-			: [
-				[
-					'id'   => 'auto',
-					'name' => __( 'Auto', 'kaigen' ),
-				],
-			];
+			: [];
 
 		$kaigen_settings = [
 			'provider'               => 'auto',

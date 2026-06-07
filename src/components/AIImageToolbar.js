@@ -4,6 +4,7 @@ import { useState } from '@wordpress/element';
 import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
 import GenerateImageModal from './GenerateImageModal';
 import useGenerationProgress from '../hooks/useGenerationProgress';
+import { isKaiGenAvailable } from '../utils/kaigenSettings';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
 
@@ -31,6 +32,11 @@ const AIImageToolbar = ( {
 } ) => {
 	const [ isModalOpen, setIsModalOpen ] = useState( false );
 	const progress = useGenerationProgress( isGenerating || isRegenerating );
+
+	if ( ! isKaiGenAvailable() ) {
+		return null;
+	}
+
 	const progressIcon = (
 		<span className="kaigen-progress-icon" aria-hidden="true">
 			<span className="kaigen-progress-icon__track">

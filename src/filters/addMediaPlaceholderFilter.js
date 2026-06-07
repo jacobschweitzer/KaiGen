@@ -8,6 +8,7 @@ import {
 	getSelectedImageBlock,
 	shouldDisplayForSelectedImageBlock,
 } from './mediaUtils';
+import { isKaiGenAvailable } from '../utils/kaigenSettings';
 
 addFilter(
 	'editor.MediaPlaceholder',
@@ -16,11 +17,10 @@ addFilter(
 		return ( props ) => {
 			const [ isModalOpen, setIsModalOpen ] = useState( false );
 			const selectedBlock = getSelectedImageBlock();
-			const shouldDisplay = shouldDisplayForSelectedImageBlock(
-				props,
-				selectedBlock,
-				{ requireEmptyImage: true }
-			);
+			const shouldDisplay =
+				shouldDisplayForSelectedImageBlock( props, selectedBlock, {
+					requireEmptyImage: true,
+				} ) && isKaiGenAvailable();
 			const kaiGenButton = (
 				<AITab
 					shouldDisplay={ shouldDisplay }
