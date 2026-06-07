@@ -1,44 +1,45 @@
 {
-  "name": "kaigen",
-  "version": "0.2.11",
-  "description": "A plugin to generate images using AI.",
-  "author": "Jacob Schweitzer",
-  "license": "GPL-2.0-or-later",
-  "main": "build/index.js",
-  "scripts": {
-    "build": "wp-scripts build src/index.js",
-    "build:main": "wp-scripts build src/index.js",
-    "format": "wp-scripts format",
-    "lint:css": "wp-scripts lint-style",
-    "lint:js": "wp-scripts lint-js",
-    "lint:js:fix": "wp-scripts lint-js --fix",
-    "lint:php": "composer exec phpcs",
-    "lint:php:fix": "composer exec phpcbf",
-    "test:php": "composer exec phpunit",
-    "packages-update": "wp-scripts packages-update",
-    "plugin-zip": "wp-scripts plugin-zip",
-    "start": "wp-scripts start src/index.js",
-    "test:unit": "wp-scripts test-unit-js",
-    "playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
-    "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --project=chromium --reporter=github",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.57.0",
-    "@types/node": "^20.17.10",
-    "@wordpress/e2e-test-utils-playwright": "^1.46.0",
-    "@wordpress/scripts": "^32.2.0",
-    "@wp-playground/cli": "^3.1.35",
-    "dotenv": "^17.4.2"
-  },
-  "dependencies": {
-    "@wordpress/api-fetch": "^7.46.0",
-    "@wordpress/block-editor": "^15.19.0",
-    "@wordpress/components": "^33.1.0",
-    "@wordpress/data": "^10.46.0",
-    "@wordpress/element": "^6.46.0",
-    "@wordpress/hooks": "^4.46.0"
-  }
+	"name": "kaigen",
+	"version": "0.2.11",
+	"description": "A plugin to generate images using AI.",
+	"author": "Jacob Schweitzer",
+	"license": "GPL-2.0-or-later",
+	"main": "build/index.js",
+	"scripts": {
+		"build": "wp-scripts build src/index.js",
+		"build:main": "wp-scripts build src/index.js",
+		"format": "wp-scripts format",
+		"lint:css": "wp-scripts lint-style",
+		"lint:js": "wp-scripts lint-js",
+		"lint:js:fix": "wp-scripts lint-js --fix",
+		"lint:php": "composer exec phpcs",
+		"lint:php:fix": "composer exec phpcbf",
+		"test:php": "composer exec phpunit",
+		"packages-update": "wp-scripts packages-update",
+		"plugin-zip": "wp-scripts plugin-zip",
+		"start": "wp-scripts start src/index.js",
+		"test:unit": "wp-scripts test-unit-js",
+		"playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
+		"test:e2e": "node scripts/run-e2e.js",
+		"test:e2e:ci": "node scripts/run-e2e.js --project=chromium --reporter=github",
+		"test:e2e:debug": "node scripts/run-e2e.js --debug",
+		"test:e2e:launcher": "node --test scripts/run-e2e.test.js",
+		"test:e2e:ui": "node scripts/run-e2e.js --ui"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.57.0",
+		"@types/node": "^20.17.10",
+		"@wordpress/e2e-test-utils-playwright": "^1.46.0",
+		"@wordpress/scripts": "^32.2.0",
+		"@wp-playground/cli": "^3.1.35",
+		"dotenv": "^17.4.2"
+	},
+	"dependencies": {
+		"@wordpress/api-fetch": "^7.46.0",
+		"@wordpress/block-editor": "^15.19.0",
+		"@wordpress/components": "^33.1.0",
+		"@wordpress/data": "^10.46.0",
+		"@wordpress/element": "^6.46.0",
+		"@wordpress/hooks": "^4.46.0"
+	}
 }

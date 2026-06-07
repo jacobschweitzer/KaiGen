@@ -14,9 +14,54 @@ test.describe( 'KaiGen Image Generation', () => {
 		page
 			.getByLabel( 'Editor settings' )
 			.getByRole( 'button', { name: 'KaiGen' } );
+	const ensureLoggedIn = async ( page ) => {
+		const response = await page.request.post( '/wp-login.php', {
+			failOnStatusCode: true,
+			form: {
+				log: process.env.WP_USERNAME || 'admin',
+				pwd: process.env.WP_PASSWORD || 'password',
+			},
+		} );
+		await response.dispose();
+		await page.goto( '/wp-admin/' );
+		if ( page.url().includes( 'wp-login.php' ) ) {
+			throw new Error( 'WordPress login failed.' );
+		}
+	};
+	const dismissEditorModals = async ( page ) => {
+		for ( let attempts = 0; attempts < 3; attempts++ ) {
+			const overlay = page
+				.locator( '.components-modal__screen-overlay' )
+				.first();
+			if (
+				! ( await overlay
+					.isVisible( { timeout: 1000 } )
+					.catch( () => false ) )
+			) {
+				return;
+			}
+			const closeButton = overlay.getByRole( 'button', {
+				name: 'Close',
+			} );
+			if (
+				await closeButton
+					.isVisible( { timeout: 1000 } )
+					.catch( () => false )
+			) {
+				await closeButton
+					.click( { force: true, timeout: 1000 } )
+					.catch( () => {} );
+				await overlay
+					.waitFor( { state: 'hidden', timeout: 3000 } )
+					.catch( () => {} );
+				continue;
+			}
+			await page.keyboard.press( 'Escape' );
+		}
+	};
 
 	const openImageBlockSettingsTab = async ( page ) => {
-		await page.keyboard.press( 'Escape' );
+		await dismissEditorModals( page );
 
 		const settingsTab = page
 			.locator( '.block-editor-block-inspector__tabs button' )
@@ -67,6 +112,7 @@ test.describe( 'KaiGen Image Generation', () => {
 
 	test.beforeEach( async ( { admin, page } ) => {
 		test.setTimeout( 60000 );
+		await ensureLoggedIn( page );
 		await admin.createNewPost( { showWelcomeGuide: false } );
 		if (
 			! page.url().includes( 'post-new.php' ) &&
@@ -80,6 +126,7 @@ test.describe( 'KaiGen Image Generation', () => {
 			timeout: 15000,
 			state: 'attached',
 		} );
+		await dismissEditorModals( page );
 	} );
 
 	test( 'shows KaiGen on empty image blocks and exposes MVP editor settings', async ( {
@@ -114,10 +161,13 @@ test.describe( 'KaiGen Image Generation', () => {
 			expect.objectContaining( {
 				provider: 'auto',
 				orientation: 'square',
+				is_ai_client_available: true,
 			} )
 		);
 		expect( kaiGenSettings.providers ).toEqual( [
 			{ id: 'auto', name: 'Auto', referenceImageLimit: 5 },
+			{ id: 'e2e-alpha', name: 'E2E Alpha', referenceImageLimit: 5 },
+			{ id: 'e2e-beta', name: 'E2E Beta', referenceImageLimit: 5 },
 		] );
 		expect( legacyKaiGenSettings ).toBeUndefined();
 	} );
@@ -130,30 +180,37 @@ test.describe( 'KaiGen Image Generation', () => {
 
 		const modal = await openKaiGenModal( page, editor, imageBlock );
 		await expect(
-			modal.getByPlaceholder( 'Image prompt...' )
+			modal.getByPlaceholder( 'Type to imagine' )
 		).toBeVisible();
 		await expect(
 			modal.getByRole( 'button', { name: 'Reference Images' } )
 		).toBeVisible();
 		await modal.getByRole( 'button', { name: 'Reference Images' } ).click();
-		await expect(
-			page.getByRole( 'heading', { name: 'Reference Images' } )
-		).toBeVisible();
-		await expect( page.getByText( 'Limit 5' ) ).toBeVisible();
+		await expect( page.getByText( /No reference images/i ) ).toBeVisible();
 
-		await modal.getByRole( 'button', { name: 'Settings' } ).click();
+		const providerOptions = modal.getByRole( 'radiogroup', {
+			name: 'Provider',
+		} );
+		await expect( providerOptions ).toBeVisible();
 		await expect(
-			page.getByRole( 'heading', { name: 'Provider' } )
+			providerOptions.getByRole( 'radio', { name: 'Auto' } )
+		).toHaveAttribute( 'aria-checked', 'true' );
+		await expect(
+			providerOptions.getByRole( 'radio', { name: 'E2E Alpha' } )
 		).toBeVisible();
-		await expect( page.getByLabel( 'Provider' ) ).toHaveValue( 'auto' );
 		await expect(
-			page.getByRole( 'button', { name: 'Square' } )
+			providerOptions.getByRole( 'radio', { name: 'E2E Beta' } )
+		).toBeVisible();
+
+		await modal.getByRole( 'button', { name: 'Aspect Ratio' } ).click();
+		await expect(
+			page.getByRole( 'menuitemradio', { name: /1:1.*Square/i } )
 		).toBeVisible();
 		await expect(
-			page.getByRole( 'button', { name: 'Landscape' } )
+			page.getByRole( 'menuitemradio', { name: /16:9.*Wide/i } )
 		).toBeVisible();
 		await expect(
-			page.getByRole( 'button', { name: 'Portrait' } )
+			page.getByRole( 'menuitemradio', { name: /9:16.*Vertical/i } )
 		).toBeVisible();
 
 		await expect( page.getByText( 'Quality' ) ).toHaveCount( 0 );
@@ -223,7 +280,6 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect( referenceImageCheckbox ).toBeVisible( {
 			timeout: 10000,
 		} );
-		await referenceImageCheckbox.check();
 
 		const attachmentId = await page.evaluate( () => {
 			const selectedBlock = ( window as any ).wp.data
@@ -231,6 +287,16 @@ test.describe( 'KaiGen Image Generation', () => {
 				.getSelectedBlock();
 			return Number( selectedBlock?.attributes?.id );
 		} );
+
+		const markResponsePromise = page.waitForResponse(
+			( response ) =>
+				response
+					.url()
+					.includes( `/wp-json/wp/v2/media/${ attachmentId }` ) &&
+				response.request().method() === 'POST'
+		);
+		await referenceImageCheckbox.check();
+		expect( ( await markResponsePromise ).ok() ).toBe( true );
 
 		await expect
 			.poll(
@@ -254,5 +320,42 @@ test.describe( 'KaiGen Image Generation', () => {
 		expect(
 			referenceImages.some( ( image ) => image.id === attachmentId )
 		).toBe( true );
+		await expect( referenceImageCheckbox ).toBeChecked();
+
+		const unmarkResponsePromise = page.waitForResponse(
+			( response ) =>
+				response
+					.url()
+					.includes( `/wp-json/wp/v2/media/${ attachmentId }` ) &&
+				response.request().method() === 'POST'
+		);
+		await referenceImageCheckbox.uncheck();
+		expect( ( await unmarkResponsePromise ).ok() ).toBe( true );
+		await expect( referenceImageCheckbox ).not.toBeChecked();
+
+		await expect
+			.poll(
+				async () =>
+					page.evaluate( async ( id ) => {
+						const response = await ( window as any ).wp.apiFetch( {
+							path: `/wp/v2/media/${ id }`,
+						} );
+						return response?.meta?.kaigen_reference_image;
+					}, attachmentId ),
+				{ timeout: 10000 }
+			)
+			.toBe( false );
+
+		const updatedReferenceImages = await page.evaluate( async () =>
+			( window as any ).wp.apiFetch( {
+				path: '/kaigen/v1/reference-images',
+			} )
+		);
+
+		expect(
+			updatedReferenceImages.some(
+				( image ) => image.id === attachmentId
+			)
+		).toBe( false );
 	} );
 } );

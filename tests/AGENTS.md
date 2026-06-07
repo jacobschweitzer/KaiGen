@@ -16,5 +16,6 @@ See the root `AGENTS.md` for global conventions and tooling.
 - Run all e2e tests: `npm run test:e2e`
 - Run single test: `npx playwright test tests/e2e/image-generation.spec.ts`
 - Debug: `npm run test:e2e:debug`
-- When multiple agents may run Playwright at the same time, each agent must use a unique Playground port to avoid sharing or stealing another agent's service. Prefix commands with `PLAYGROUND_PORT=<free-port>` (for example, `PLAYGROUND_PORT=9411 npm run test:e2e`).
-- Do not kill port `9400` or a running Playground server unless you started it in the current agent session. If a port is busy, choose a different `PLAYGROUND_PORT`.
+- E2E npm scripts choose a free Playground port automatically.
+- To attach Playwright to a manually started Playground server, set both `PLAYGROUND_PORT=<port>` and `PLAYWRIGHT_SKIP_WEBSERVER=1`.
+- Do not kill port `9400` or a running Playground server unless you started it in the current agent session. For manual Playground debugging, choose a different `PLAYGROUND_PORT` if your preferred port is busy.
