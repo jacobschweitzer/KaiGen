@@ -18,6 +18,7 @@
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start src/index.js",
+    "test:unit": "wp-scripts test-unit-js",
     "playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --project=chromium --reporter=github",
