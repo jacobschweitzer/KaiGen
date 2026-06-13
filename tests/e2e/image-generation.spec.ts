@@ -91,21 +91,32 @@ test.describe( 'KaiGen Image Generation', () => {
 	};
 
 	const openKaiGenModal = async ( page, editor, imageBlock ) => {
-		const placeholderButton = imageBlock.locator(
-			'.kaigen-placeholder-button'
-		);
-		if (
-			await placeholderButton
-				.isVisible( { timeout: 1000 } )
-				.catch( () => false )
-		) {
-			await placeholderButton.click();
-		} else {
-			await editor.selectBlocks( imageBlock );
-			await getKaiGenToolbarButton( page ).click();
-		}
-
 		const modal = getKaiGenModal( page );
+		const openModal = async () => {
+			await dismissEditorModals( page );
+			const placeholderButton = imageBlock.locator(
+				'.kaigen-placeholder-button'
+			);
+			if (
+				await placeholderButton
+					.isVisible( { timeout: 1000 } )
+					.catch( () => false )
+			) {
+				await placeholderButton.click();
+			} else {
+				await editor.selectBlocks( imageBlock );
+				await getKaiGenToolbarButton( page ).click();
+			}
+		};
+
+		await openModal();
+		if (
+			! ( await modal
+				.isVisible( { timeout: 3000 } )
+				.catch( () => false ) )
+		) {
+			await openModal();
+		}
 		await expect( modal ).toBeVisible( { timeout: 10000 } );
 		return modal;
 	};
@@ -182,27 +193,46 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect(
 			modal.getByPlaceholder( 'Type to imagine' )
 		).toBeVisible();
-		await expect(
-			modal.getByRole( 'button', { name: 'Reference Images' } )
-		).toBeVisible();
-		await modal.getByRole( 'button', { name: 'Reference Images' } ).click();
-		await expect( page.getByText( /No reference images/i ) ).toBeVisible();
-
-		const providerOptions = modal.getByRole( 'radiogroup', {
-			name: 'Provider',
+		const referenceToggle = modal.getByRole( 'button', {
+			name: 'Reference Images',
 		} );
-		await expect( providerOptions ).toBeVisible();
+		await expect( referenceToggle ).toBeVisible();
+		await referenceToggle.click();
+		await expect( referenceToggle ).toHaveCSS(
+			'background-color',
+			'rgb(56, 88, 233)'
+		);
+		await expect( page.getByText( /No reference images/i ) ).toBeVisible();
+		await page.keyboard.press( 'Escape' );
+
+		const providerToggle = modal.getByRole( 'button', {
+			name: /^Provider:/,
+		} );
+		await expect( providerToggle ).toBeVisible();
+		await providerToggle.click();
+		await expect( providerToggle ).toHaveCSS(
+			'background-color',
+			'rgb(56, 88, 233)'
+		);
 		await expect(
-			providerOptions.getByRole( 'radio', { name: 'Auto' } )
+			page.getByRole( 'menuitemradio', { name: 'Auto' } )
 		).toHaveAttribute( 'aria-checked', 'true' );
 		await expect(
-			providerOptions.getByRole( 'radio', { name: 'E2E Alpha' } )
+			page.getByRole( 'menuitemradio', { name: 'E2E Alpha' } )
 		).toBeVisible();
 		await expect(
-			providerOptions.getByRole( 'radio', { name: 'E2E Beta' } )
+			page.getByRole( 'menuitemradio', { name: 'E2E Beta' } )
 		).toBeVisible();
+		await page.keyboard.press( 'Escape' );
 
-		await modal.getByRole( 'button', { name: 'Aspect Ratio' } ).click();
+		const aspectRatioToggle = modal.getByRole( 'button', {
+			name: /^Aspect ratio:/,
+		} );
+		await aspectRatioToggle.click();
+		await expect( aspectRatioToggle ).toHaveCSS(
+			'background-color',
+			'rgb(56, 88, 233)'
+		);
 		await expect(
 			page.getByRole( 'menuitemradio', { name: /1:1.*Square/i } )
 		).toBeVisible();
