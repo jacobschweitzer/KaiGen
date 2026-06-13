@@ -12,7 +12,8 @@ const playgroundPort = process.env.PLAYGROUND_PORT || '9400';
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 export default defineConfig( {
-	testDir: './tests',
+	testDir: './tests/e2e',
+	testMatch: '**/*.spec.ts',
 	snapshotDir: './tests/__snapshots__',
 	outputDir: './tests/test-results',
 

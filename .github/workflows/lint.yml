@@ -49,7 +49,7 @@ jobs:
         if: steps.changes.outputs.php == 'true'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
+          php-version: '8.1'
           tools: composer
           coverage: none
 
@@ -75,4 +75,3 @@ jobs:
         if: steps.changes.outputs.php == 'true'
         run: npm run lint:php
         continue-on-error: false
-

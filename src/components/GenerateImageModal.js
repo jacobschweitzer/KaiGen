@@ -1,6 +1,6 @@
 // This file contains the GenerateImageModal component - a shared modal for AI image generation.
 
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import {
 	Button,
 	TextareaControl,
@@ -10,8 +10,55 @@ import {
 } from '@wordpress/components';
 import { generateImage, fetchReferenceImages } from '../api';
 import useGenerationProgress from '../hooks/useGenerationProgress';
+import {
+	DEFAULT_REFERENCE_IMAGE_LIMIT,
+	getKaiGenSettings,
+	isKaiGenAvailable,
+} from '../utils/kaigenSettings';
 
 const kaiGenLogo = window.kaiGen?.logoUrl;
+
+const PROVIDER_LOGOS = {
+	google: '/wp-content/plugins/ai-provider-for-google/assets/images/google.svg',
+	openai: '/wp-content/plugins/ai-provider-for-openai/assets/images/openai.svg',
+};
+
+const getProviderLogo = ( option ) => {
+	const providerKey = `${ option.id } ${ option.name }`.toLowerCase();
+
+	if ( providerKey.includes( 'google' ) ) {
+		return PROVIDER_LOGOS.google;
+	}
+
+	if ( providerKey.includes( 'openai' ) ) {
+		return PROVIDER_LOGOS.openai;
+	}
+
+	return null;
+};
+
+const ASPECT_RATIO_OPTIONS = [
+	{
+		value: 'square',
+		ratio: '1:1',
+		label: 'Square',
+	},
+	{
+		value: 'landscape',
+		ratio: '16:9',
+		label: 'Wide',
+	},
+	{
+		value: 'portrait',
+		ratio: '9:16',
+		label: 'Vertical',
+	},
+];
+
+const getReferenceImageId = ( image ) => {
+	const imageId = Number( image?.id );
+	return Number.isInteger( imageId ) && imageId > 0 ? imageId : null;
+};
 
 /**
  * GenerateImageModal component - shared modal for generating AI images.
@@ -21,7 +68,7 @@ const kaiGenLogo = window.kaiGen?.logoUrl;
  * @param {Function} props.onClose                 - Callback when modal is closed.
  * @param {Function} props.onSelect                - Callback to handle the generated image.
  * @param {Object}   [props.initialReferenceImage] - Optional initial reference image to pre-select.
- * @return {JSX.Element|null} The rendered modal or null if not open.
+ * @return {Object|null} The rendered modal or null if not open.
  */
 const GenerateImageModal = ( {
 	isOpen,
@@ -34,38 +81,75 @@ const GenerateImageModal = ( {
 	const [ error, setError ] = useState( null );
 	const [ referenceImages, setReferenceImages ] = useState( [] );
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
-	const [ aspectRatio, setAspectRatio ] = useState( '1:1' );
-	const [ quality, setQuality ] = useState( 'medium' );
-	const [ estimatedDurationMs, setEstimatedDurationMs ] = useState( null );
+	const [ generatedImage, setGeneratedImage ] = useState( null );
+	const [ provider, setProvider ] = useState( 'auto' );
+	const [ orientation, setOrientation ] = useState( 'square' );
+	const textareaContainerRef = useRef( null );
 
-	const editorSettings =
-		wp.data.select( 'core/editor' )?.getEditorSettings() || {};
-	const defaultQuality = editorSettings.kaigen_quality || 'medium';
-	const referenceImageLimits =
-		editorSettings.kaigen_reference_image_limits || {};
-	const maxRefs =
-		referenceImageLimits[ quality ] ?? referenceImageLimits.default ?? 16;
-	const progress = useGenerationProgress( isLoading, estimatedDurationMs );
+	const kaiGenSettings = getKaiGenSettings();
+	const availableProviders = kaiGenSettings.providers || [];
+	const selectableProviders = availableProviders.filter(
+		( opt ) => opt.id !== 'auto'
+	);
+	const hasProviderChoices = selectableProviders.length > 1;
+	const selectedProvider =
+		availableProviders.find( ( option ) => option.id === provider ) ||
+		availableProviders[ 0 ];
+	const selectedProviderLogo = selectedProvider
+		? getProviderLogo( selectedProvider )
+		: null;
+	const selectedAspectRatio =
+		ASPECT_RATIO_OPTIONS.find(
+			( option ) => option.value === orientation
+		) || ASPECT_RATIO_OPTIONS[ 0 ];
+	const referenceImageLimit =
+		Number.isInteger( selectedProvider?.referenceImageLimit ) &&
+		selectedProvider.referenceImageLimit > 0
+			? selectedProvider.referenceImageLimit
+			: DEFAULT_REFERENCE_IMAGE_LIMIT;
+	const initialReferenceImageId = getReferenceImageId(
+		initialReferenceImage
+	);
+	const progress = useGenerationProgress( isLoading );
 
 	useEffect( () => {
 		if ( isOpen ) {
 			fetchReferenceImages().then( setReferenceImages );
-			setQuality( defaultQuality );
+			setProvider( kaiGenSettings.provider || 'auto' );
+			setOrientation( kaiGenSettings.orientation || 'square' );
+			setGeneratedImage(
+				initialReferenceImage?.url ? initialReferenceImage : null
+			);
 
-			// Pre-select initial reference image if provided
-			if ( initialReferenceImage && initialReferenceImage.url ) {
+			if ( initialReferenceImageId ) {
 				setSelectedRefs( [ initialReferenceImage ] );
 			} else {
 				setSelectedRefs( [] );
 			}
 		}
-	}, [ isOpen, initialReferenceImage, defaultQuality ] );
+	}, [
+		isOpen,
+		initialReferenceImage,
+		initialReferenceImageId,
+		kaiGenSettings.provider,
+		kaiGenSettings.orientation,
+	] );
 
 	useEffect( () => {
-		setSelectedRefs( ( prev ) =>
-			prev.length > maxRefs ? prev.slice( 0, maxRefs ) : prev
-		);
-	}, [ maxRefs ] );
+		setSelectedRefs( ( prev ) => prev.slice( 0, referenceImageLimit ) );
+	}, [ referenceImageLimit ] );
+
+	useEffect( () => {
+		const textarea =
+			textareaContainerRef.current?.querySelector( 'textarea' );
+
+		if ( ! textarea ) {
+			return;
+		}
+
+		textarea.style.height = 'auto';
+		textarea.style.height = `${ textarea.scrollHeight }px`;
+	}, [ prompt, isOpen ] );
 
 	/**
 	 * Handles Enter key press in textarea
@@ -85,48 +169,40 @@ const GenerateImageModal = ( {
 	 *
 	 * @return {void}
 	 */
-	const handleGenerate = () => {
+	const handleGenerate = async () => {
 		if ( ! prompt.trim() ) {
 			setError( 'Please enter a prompt for image generation.' );
 			return;
 		}
 		setIsLoading( true );
-		setEstimatedDurationMs( null );
 		setError( null );
 
 		const options = {};
 		if ( selectedRefs.length > 0 ) {
-			options.sourceImageUrls = selectedRefs.map( ( ref ) => ref.url );
-			options.sourceImageIds = selectedRefs
-				.map( ( ref ) => ref.id )
-				.filter( ( id ) => Number.isInteger( id ) && id > 0 );
-		}
-		if ( aspectRatio ) {
-			options.aspectRatio = aspectRatio;
-		}
-		if ( quality ) {
-			options.quality = quality;
-		}
-		options.onEstimatedTime = ( estimatedSecondsValue ) => {
-			if ( typeof estimatedSecondsValue === 'number' ) {
-				setEstimatedDurationMs( estimatedSecondsValue * 1000 );
-			}
-		};
+			const sourceImageIds = selectedRefs
+				.map( getReferenceImageId )
+				.filter( Boolean );
 
-		generateImage(
-			prompt.trim(),
-			( media ) => {
-				if ( media.error ) {
-					setError( media.error );
-					setIsLoading( false );
-				} else {
-					onSelect( media );
-					setIsLoading( false );
-					handleClose();
-				}
-			},
-			options
-		);
+			if ( sourceImageIds.length > 0 ) {
+				options.sourceImageIds = sourceImageIds;
+			}
+		}
+		options.provider = provider;
+		options.orientation = orientation;
+
+		try {
+			const media = await generateImage( prompt.trim(), options );
+			setGeneratedImage( media );
+			setSelectedRefs( getReferenceImageId( media ) ? [ media ] : [] );
+			onSelect( media );
+			setIsLoading( false );
+		} catch ( generationError ) {
+			setError(
+				generationError.message ||
+					'An unknown error occurred while generating the image'
+			);
+			setIsLoading( false );
+		}
 	};
 
 	/**
@@ -136,14 +212,268 @@ const GenerateImageModal = ( {
 		setPrompt( '' );
 		setError( null );
 		setSelectedRefs( [] );
-		setQuality( defaultQuality );
-		setEstimatedDurationMs( null );
+		setGeneratedImage( null );
+		setProvider( kaiGenSettings.provider || 'auto' );
+		setOrientation( kaiGenSettings.orientation || 'square' );
 		onClose();
 	};
 
-	if ( ! isOpen ) {
+	if ( ! isOpen || ! isKaiGenAvailable() ) {
 		return null;
 	}
+
+	const allReferenceImages = [
+		generatedImage,
+		initialReferenceImageId ? initialReferenceImage : null,
+		...referenceImages,
+	].filter( ( img, index, images ) => {
+		const imageId = getReferenceImageId( img );
+
+		if ( ! imageId ) {
+			return false;
+		}
+
+		return (
+			images.findIndex(
+				( candidate ) => getReferenceImageId( candidate ) === imageId
+			) === index
+		);
+	} );
+
+	const handleImageToggle = ( img ) => {
+		const imageId = getReferenceImageId( img );
+		if ( ! imageId ) {
+			return;
+		}
+
+		setSelectedRefs( ( prev ) => {
+			const isSelected = prev.some(
+				( selected ) => getReferenceImageId( selected ) === imageId
+			);
+
+			if ( isSelected ) {
+				return prev.filter(
+					( selected ) => getReferenceImageId( selected ) !== imageId
+				);
+			} else if ( prev.length < referenceImageLimit ) {
+				return [ ...prev, img ];
+			}
+
+			return prev;
+		} );
+	};
+
+	const referenceImagesDropdown = (
+		<Dropdown
+			popoverProps={ {
+				placement: 'top-start',
+				focusOnMount: true,
+			} }
+			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
+				<Button
+					className={ `kaigen-modal__ref-button ${
+						isDropdownOpen ? 'is-primary' : ''
+					} ${
+						selectedRefs.length > 0
+							? 'kaigen-ref-button-selected'
+							: ''
+					}` }
+					onClick={ onToggle }
+					aria-expanded={ isDropdownOpen }
+					aria-label="Reference Images"
+				>
+					<Dashicon
+						icon="format-image"
+						className={
+							selectedRefs.length > 0
+								? 'kaigen-ref-button-icon-selected'
+								: ''
+						}
+					/>
+				</Button>
+			) }
+			renderContent={ () => (
+				<div className="kaigen-modal__reference-menu" role="menu">
+					{ allReferenceImages.length > 0 ? (
+						<div className="kaigen-modal-reference-images-container">
+							{ allReferenceImages.map( ( img, index ) => {
+								const imageId = getReferenceImageId( img );
+								const isSelected = selectedRefs.some(
+									( selected ) =>
+										getReferenceImageId( selected ) ===
+										imageId
+								);
+
+								return (
+									<button
+										type="button"
+										key={ imageId || `initial-${ index }` }
+										onClick={ () =>
+											handleImageToggle( img )
+										}
+										className={ `kaigen-modal-reference-image ${
+											isSelected
+												? 'kaigen-modal-reference-image-selected'
+												: ''
+										}` }
+										role="menuitemcheckbox"
+										aria-checked={ isSelected }
+										aria-label={
+											img.alt || 'Select reference image'
+										}
+									>
+										<img
+											src={ img.thumbnail_url || img.url }
+											alt={ img.alt || '' }
+										/>
+									</button>
+								);
+							} ) }
+						</div>
+					) : (
+						<p className="kaigen-modal-no-references">
+							No reference images. Mark images in the Media
+							Library to use them here.
+						</p>
+					) }
+				</div>
+			) }
+		/>
+	);
+
+	const aspectRatioDropdown = (
+		<Dropdown
+			popoverProps={ {
+				placement: 'top-start',
+				focusOnMount: true,
+			} }
+			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
+				<Button
+					className={ `kaigen-modal__aspect-ratio-toggle ${
+						isDropdownOpen ? 'is-primary' : ''
+					}` }
+					onClick={ onToggle }
+					aria-expanded={ isDropdownOpen }
+					aria-label={ `Aspect ratio: ${ selectedAspectRatio.ratio } ${ selectedAspectRatio.label }` }
+				>
+					<span
+						className={ `kaigen-modal-aspect-ratio-icon kaigen-aspect-ratio-${ selectedAspectRatio.value }` }
+					></span>
+				</Button>
+			) }
+			renderContent={ ( { onClose: closeDropdown } ) => (
+				<div className="kaigen-modal__aspect-ratio-menu" role="menu">
+					{ ASPECT_RATIO_OPTIONS.map( ( opt ) => (
+						<button
+							type="button"
+							key={ opt.value }
+							className={ `kaigen-modal__aspect-ratio-menu-item ${
+								orientation === opt.value
+									? 'kaigen-modal__aspect-ratio-menu-item-selected'
+									: ''
+							}` }
+							onClick={ () => {
+								setOrientation( opt.value );
+								closeDropdown();
+							} }
+							role="menuitemradio"
+							aria-checked={ orientation === opt.value }
+						>
+							<span
+								className={ `kaigen-modal-aspect-ratio-icon kaigen-aspect-ratio-${ opt.value }` }
+							></span>
+							<span className="kaigen-modal__aspect-ratio-ratio">
+								{ opt.ratio }
+							</span>
+							<span className="kaigen-modal__aspect-ratio-name">
+								{ opt.label }
+							</span>
+						</button>
+					) ) }
+				</div>
+			) }
+		/>
+	);
+
+	const providerDropdown = hasProviderChoices && (
+		<Dropdown
+			popoverProps={ {
+				placement: 'top-end',
+				focusOnMount: true,
+			} }
+			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
+				<Button
+					className={ `kaigen-modal__provider-toggle ${
+						isDropdownOpen ? 'is-primary' : ''
+					}` }
+					onClick={ onToggle }
+					aria-expanded={ isDropdownOpen }
+					aria-label={ `Provider: ${
+						selectedProvider?.name || 'Auto'
+					}` }
+				>
+					{ selectedProviderLogo && (
+						<img
+							src={ selectedProviderLogo }
+							alt=""
+							aria-hidden="true"
+							className="kaigen-modal__provider-logo"
+						/>
+					) }
+					<span
+						className={ `kaigen-modal__provider-toggle-label ${
+							selectedProviderLogo
+								? 'kaigen-modal__provider-toggle-label-hidden'
+								: ''
+						}` }
+					>
+						{ selectedProvider?.name || 'Auto' }
+					</span>
+					<Dashicon
+						icon="arrow-down-alt2"
+						className="kaigen-modal__provider-toggle-icon"
+					/>
+				</Button>
+			) }
+			renderContent={ ( { onClose: closeDropdown } ) => (
+				<div className="kaigen-modal__provider-menu" role="menu">
+					{ availableProviders.map( ( opt ) => {
+						const providerLogo = getProviderLogo( opt );
+
+						return (
+							<button
+								type="button"
+								key={ opt.id }
+								className={ `kaigen-modal__provider-menu-item ${
+									provider === opt.id
+										? 'kaigen-modal__provider-menu-item-selected'
+										: ''
+								}` }
+								onClick={ () => {
+									setProvider( opt.id );
+									closeDropdown();
+								} }
+								role="menuitemradio"
+								aria-checked={ provider === opt.id }
+							>
+								<span className="kaigen-modal__provider-menu-icon">
+									{ providerLogo && (
+										<img
+											src={ providerLogo }
+											alt=""
+											aria-hidden="true"
+											className="kaigen-modal__provider-logo"
+										/>
+									) }
+								</span>
+								<span>{ opt.name }</span>
+							</button>
+						);
+					} ) }
+				</div>
+			) }
+		/>
+	);
 
 	return (
 		<Modal
@@ -163,255 +493,57 @@ const GenerateImageModal = ( {
 			{ /* Display error message if present. */ }
 			{ error && <p className="kaigen-error-text">{ error }</p> }
 
-			{ /* Horizontal layout container */ }
-			<div className="kaigen-modal__input-container">
-				{ /* Left: Reference Images Button */ }
-				<Dropdown
-					popoverProps={ {
-						placement: 'bottom-start',
-						focusOnMount: true,
-					} }
-					renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
-						<Button
-							className={ `kaigen-modal__ref-button ${
-								selectedRefs.length > 0
-									? 'kaigen-ref-button-selected'
-									: ''
-							}` }
-							onClick={ onToggle }
-							aria-expanded={ isDropdownOpen }
-							aria-label="Reference Images"
-						>
-							<Dashicon
-								icon="format-image"
-								className={
-									selectedRefs.length > 0
-										? 'kaigen-ref-button-icon-selected'
-										: ''
-								}
-							/>
-						</Button>
-					) }
-					renderContent={ () => {
-						// Combine initial reference image with library images, avoiding duplicates
-						const allImages = initialReferenceImage
-							? [
-									initialReferenceImage,
-									...referenceImages.filter(
-										( img ) =>
-											img.id !== initialReferenceImage.id
-									),
-							  ]
-							: referenceImages;
-
-						return (
-							<div className="kaigen-modal-dropdown-content-container">
-								<h4 className="kaigen-modal-dropdown-content-title">
-									Reference Images (up to { maxRefs })
-								</h4>
-								{ allImages.length > 0 ? (
-									<div className="kaigen-modal-reference-images-container">
-										{ allImages.map( ( img, index ) => {
-											const handleImageToggle = () => {
-												setSelectedRefs( ( prev ) => {
-													const isSelected =
-														prev.some(
-															( s ) =>
-																s.url ===
-																img.url
-														);
-													if ( isSelected ) {
-														return prev.filter(
-															( s ) =>
-																s.url !==
-																img.url
-														);
-													} else if (
-														prev.length < maxRefs
-													) {
-														return [ ...prev, img ];
-													}
-													return prev;
-												} );
-											};
-
-											return (
-												<button
-													type="button"
-													key={
-														img.id ||
-														`initial-${ index }`
-													}
-													onClick={
-														handleImageToggle
-													}
-													className={ `kaigen-modal-reference-image ${
-														selectedRefs.some(
-															( s ) =>
-																s.url ===
-																img.url
-														)
-															? 'kaigen-modal-reference-image-selected'
-															: ''
-													}` }
-													aria-label={
-														img.alt ||
-														'Select reference image'
-													}
-												>
-													<img
-														src={
-															img.thumbnail_url ||
-															img.url
-														}
-														alt={ img.alt || '' }
-													/>
-												</button>
-											);
-										} ) }
-									</div>
-								) : (
-									<p className="kaigen-modal-no-references">
-										No reference images. Mark images in the
-										Media Library to use them here.
-									</p>
-								) }
-							</div>
-						);
-					} }
-				/>
-
-				{ /* Center: Prompt Textarea */ }
-				<div className="kaigen-modal__textarea-container">
-					<TextareaControl
-						className="kaigen-modal__textarea"
-						placeholder="Image prompt..."
-						value={ prompt }
-						onChange={ setPrompt }
-						onKeyDown={ handleKeyPress }
-						rows={ 2 }
-					/>
-				</div>
-
-				{ /* Submit button - only shown when there's a prompt */ }
-				{ prompt.trim() && (
-					<Button
-						className="kaigen-modal__submit-button"
-						variant="primary"
-						onClick={ handleGenerate }
-						disabled={ isLoading || ! prompt.trim() }
-						aria-label="Generate Image"
-					>
-						<Dashicon icon="admin-appearance" />
-					</Button>
+			<div
+				className={ `kaigen-modal__stage ${
+					generatedImage?.url ? 'has-generated-image' : ''
+				}` }
+			>
+				{ generatedImage?.url && (
+					<div className="kaigen-modal__generated-preview">
+						<img
+							src={ generatedImage.url }
+							alt={ generatedImage.alt || '' }
+						/>
+					</div>
 				) }
 
-				{ /* Right: Settings Button */ }
-				<Dropdown
-					popoverProps={ {
-						placement: 'bottom-end',
-						focusOnMount: true,
-					} }
-					renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
-						<Button
-							className="kaigen-modal__settings-button"
-							onClick={ onToggle }
-							aria-expanded={ isDropdownOpen }
-							aria-label="Settings"
-						>
-							<Dashicon icon="admin-generic" />
-						</Button>
-					) }
-					renderContent={ () => (
-						<div className="kaigen-modal-dropdown-content-container">
-							<h4 className="kaigen-modal-dropdown-content-title">
-								Aspect Ratio
-							</h4>
-							<div className="kaigen-modal-aspect-ratio-container">
-								{ [
-									{
-										value: '1:1',
-										label: '1:1',
-										title: 'Square',
-									},
-									{
-										value: '16:9',
-										label: '16:9',
-										title: 'Landscape',
-									},
-									{
-										value: '9:16',
-										label: '9:16',
-										title: 'Portrait',
-									},
-								].map( ( opt ) => (
-									<button
-										type="button"
-										key={ opt.value }
-										onClick={ () =>
-											setAspectRatio( ( prev ) =>
-												prev === opt.value
-													? null
-													: opt.value
-											)
-										}
-										aria-pressed={
-											aspectRatio === opt.value
-										}
-										aria-label={ `${ opt.title } (${ opt.label })` }
-										className={ `kaigen-modal__aspect-ratio-button ${
-											aspectRatio === opt.value
-												? 'kaigen-modal__aspect-ratio-button-selected'
-												: ''
-										}` }
-									>
-										<div className="kaigen-modal-aspect-ratio-icon-container">
-											<div
-												className={ `kaigen-modal-aspect-ratio-icon ${
-													aspectRatio === opt.value
-														? 'kaigen-modal-aspect-ratio-icon-selected'
-														: ''
-												} kaigen-aspect-ratio-${ opt.value.replace(
-													':',
-													'-'
-												) }` }
-											></div>
-										</div>
-										<span className="kaigen-modal-aspect-ratio-label">
-											{ opt.label }
-										</span>
-									</button>
-								) ) }
-							</div>
-							<h4 className="kaigen-modal-dropdown-content-title">
-								Quality
-							</h4>
-							<div className="kaigen-modal-quality-container">
-								{ [
-									{ value: 'low', label: 'Low' },
-									{ value: 'medium', label: 'Medium' },
-									{ value: 'high', label: 'High' },
-								].map( ( opt ) => (
-									<button
-										type="button"
-										key={ opt.value }
-										onClick={ () =>
-											setQuality( opt.value )
-										}
-										aria-pressed={ quality === opt.value }
-										className={ `kaigen-modal__quality-button ${
-											quality === opt.value
-												? 'kaigen-modal__quality-button-selected'
-												: ''
-										}` }
-									>
-										{ opt.label }
-									</button>
-								) ) }
-							</div>
+				<div className="kaigen-modal__composer">
+					<div className="kaigen-modal__prompt-row">
+						<div className="kaigen-modal__prompt-action">
+							{ referenceImagesDropdown }
+							{ aspectRatioDropdown }
 						</div>
-					) }
-				/>
+
+						<div
+							className="kaigen-modal__textarea-container"
+							ref={ textareaContainerRef }
+						>
+							<TextareaControl
+								className="kaigen-modal__textarea"
+								placeholder="Type to imagine"
+								value={ prompt }
+								onChange={ setPrompt }
+								onKeyDown={ handleKeyPress }
+								rows={ 1 }
+							/>
+						</div>
+
+						<div className="kaigen-modal__output-action">
+							{ providerDropdown }
+							<Button
+								className="kaigen-modal__submit-button"
+								variant={
+									prompt.trim() ? 'primary' : undefined
+								}
+								onClick={ handleGenerate }
+								disabled={ isLoading || ! prompt.trim() }
+								aria-label="Generate Image"
+							>
+								<Dashicon icon="admin-appearance" />
+							</Button>
+						</div>
+					</div>
+				</div>
 			</div>
 			{ isLoading && (
 				<div className="kaigen-modal__progress">

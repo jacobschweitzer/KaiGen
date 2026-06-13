@@ -33,6 +33,7 @@ vendor/
 build/index.js.map
 
 # Test results directory
+/.phpunit.cache/
 /tests/e2e/__snapshots__/
 /tests/e2e/test-results/
 /tests/test-results/
@@ -47,3 +48,9 @@ build/index.js.map
 # Playwright
 /blob-report/
 *.map
+
+# VS Code settings
+.vscode/
+
+# Codex
+.codex/

@@ -7,10 +7,13 @@
 
 namespace KaiGen;
 
-use WP_Error;
+use WP_REST_Server;
+use WordPress\AiClient\AiClient;
+use WordPress\AiClient\Providers\Models\DTO\ModelRequirements;
+use WordPress\AiClient\Providers\Models\Enums\CapabilityEnum;
 
 /**
- * Handles all REST API endpoints and functionality for the plugin.
+ * Handles REST API endpoints for the plugin.
  */
 final class Rest_API {
 	/**
@@ -28,16 +31,44 @@ final class Rest_API {
 	private const API_NAMESPACE = 'kaigen/v1';
 
 	/**
+	 * Fallback reference image limit.
+	 *
+	 * @var int
+	 */
+	private const DEFAULT_REFERENCE_IMAGE_LIMIT = 5;
+
+	/**
+	 * Provider-specific reference image limits.
+	 *
+	 * The AI Client currently exposes capabilities and supported options, but not
+	 * a stable per-model reference image count.
+	 *
+	 * @var array<string, int>
+	 */
+	private const PROVIDER_REFERENCE_IMAGE_LIMITS = [
+		'google' => 5,
+		'openai' => 5,
+	];
+
+	/**
+	 * Image generation service.
+	 *
+	 * @var Image_Generation_Service
+	 */
+	private $image_generation_service;
+
+	/**
 	 * Initialize the REST API functionality.
 	 */
 	private function __construct() {
-		$this->init_hooks();
+		$this->image_generation_service = new Image_Generation_Service();
+		add_action( 'rest_api_init', [ $this, 'register_routes' ] );
 	}
 
 	/**
-	 * Gets the singleton instance of the REST controller.
+	 * Gets the singleton instance of this class.
 	 *
-	 * @return Rest_API The singleton instance.
+	 * @return Rest_API The REST API instance.
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -47,734 +78,192 @@ final class Rest_API {
 	}
 
 	/**
-	 * Initialize WordPress hooks.
-	 */
-	private function init_hooks() {
-		add_action( 'rest_api_init', [ $this, 'register_routes' ] );
-	}
-
-	/**
-	 * Registers all REST API routes for the plugin.
+	 * Registers REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
-		// Register the image generation endpoint.
 		register_rest_route(
 			self::API_NAMESPACE,
 			'/generate-image',
 			[
-				'methods'             => 'POST',
+				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'handle_generate_request' ],
 				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'prompt'           => [
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					],
+					'provider'         => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_key',
+					],
+					'orientation'      => [
+						'type'              => 'string',
+						'required'          => false,
+						'enum'              => [ 'square', 'landscape', 'portrait' ],
+						'sanitize_callback' => 'sanitize_key',
+					],
+					'source_image_ids' => [
+						'type'     => 'array',
+						'required' => false,
+						'items'    => [
+							'type' => 'integer',
+						],
+					],
+				],
 			]
 		);
 
-		// Register the providers endpoint.
-		register_rest_route(
-			self::API_NAMESPACE,
-			'/providers',
-			[
-				'methods'             => 'GET',
-				'callback'            => [ $this, 'get_providers_with_keys' ],
-				'permission_callback' => [ $this, 'check_permission' ],
-			]
-		);
-
-		// Register the image-to-image providers endpoint.
-		register_rest_route(
-			self::API_NAMESPACE,
-			'/image-to-image-providers',
-			[
-				'methods'             => 'GET',
-				'callback'            => [ $this, 'get_image_to_image_providers' ],
-				'permission_callback' => [ $this, 'check_permission' ],
-			]
-		);
-
-		// Register the reference images endpoint.
 		register_rest_route(
 			self::API_NAMESPACE,
 			'/reference-images',
 			[
-				'methods'             => 'GET',
+				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_reference_images' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
 
-		// Register the estimated generation time endpoint.
 		register_rest_route(
 			self::API_NAMESPACE,
-			'/estimated-generation-time',
+			'/providers',
 			[
-				'methods'             => 'POST',
-				'callback'            => [ $this, 'get_estimated_generation_time' ],
-				'permission_callback' => [ $this, 'check_permission' ],
-			]
-		);
-
-		// Register the generation metadata endpoint.
-		register_rest_route(
-			self::API_NAMESPACE,
-			'/generation-meta',
-			[
-				'methods'             => 'GET',
-				'callback'            => [ $this, 'get_generation_meta' ],
-				'permission_callback' => [ $this, 'check_permission' ],
-			]
-		);
-
-		// Register the alt text generation endpoint.
-		register_rest_route(
-			self::API_NAMESPACE,
-			'/generate-alt-text',
-			[
-				'methods'             => 'POST',
-				'callback'            => [ $this, 'handle_generate_alt_text_request' ],
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_image_providers' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
 	}
 
 	/**
-	 * Checks if the current user has permission to access the endpoints.
+	 * Checks whether the current user can use KaiGen.
 	 *
 	 * @return bool Whether the user has permission.
 	 */
 	public function check_permission() {
-		return current_user_can( 'edit_posts' );
+		return current_user_can( 'upload_files' );
 	}
 
 	/**
-	 * Handles the request to generate an image.
+	 * Handles an image generation request through the WordPress AI Client.
 	 *
-	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response|WP_Error The response or error.
-	 */
-	public function handle_generate_request( $request ) {
-		// Get request parameters.
-		$prompt      = $request->get_param( 'prompt' );
-		$provider_id = $request->get_param( 'provider' );
-
-		// Get additional parameters with defaults.
-		$additional_params = $this->get_additional_params( $request );
-
-		// Get provider model.
-		$model = $this->get_provider_model( $provider_id, $additional_params );
-		if ( is_wp_error( $model ) ) {
-			return $model;
-		}
-
-		$generation_start = microtime( true );
-
-		// Handle retries for image generation.
-		$response                = $this->handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params );
-		$generation_time_seconds = microtime( true ) - $generation_start;
-
-		if ( $response instanceof \WP_REST_Response ) {
-			$response_data = $response->get_data();
-			if ( ! empty( $response_data['id'] ) ) {
-				$this->maybe_save_generation_meta(
-					absint( $response_data['id'] ),
-					$request,
-					$provider_id,
-					$model,
-					$generation_time_seconds
-				);
-			}
-		}
-
-		return $response;
-	}
-
-	/**
-	 * Gets the estimated generation time for a request.
-	 *
-	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response|WP_Error The response or error.
-	 */
-	public function get_estimated_generation_time( $request ) {
-		$provider_id = $request->get_param( 'provider' );
-		if ( empty( $provider_id ) ) {
-			return new WP_Error( 'invalid_provider', 'Provider is required.', [ 'status' => 400 ] );
-		}
-
-		$additional_params = $this->get_additional_params( $request );
-		$model             = $this->get_provider_model( $provider_id, $additional_params );
-		if ( is_wp_error( $model ) ) {
-			return $model;
-		}
-		$quality  = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
-		$provider = kaigen_provider_manager()->get_provider( $provider_id );
-
-		if ( ! $provider ) {
-			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}", [ 'status' => 400 ] );
-		}
-
-		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
-		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
-
-		$provider_class    = get_class( $provider );
-		$provider_instance = new $provider_class( $api_key, $model );
-		$estimated_time    = (int) $provider_instance->get_estimated_generation_time( $quality, $additional_params );
-
-		return new \WP_REST_Response(
-			[ 'estimated_time_seconds' => $estimated_time ],
-			200
-		);
-	}
-
-	/**
-	 * Gets the stored generation metadata for a post.
-	 *
-	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response|WP_Error The response or error.
-	 */
-	public function get_generation_meta( $request ) {
-		$attachment_id = absint( $request->get_param( 'attachment_id' ) );
-		if ( ! $attachment_id ) {
-			return new WP_Error( 'invalid_attachment_id', 'Attachment ID is required.', [ 'status' => 400 ] );
-		}
-
-		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
-			return new WP_Error( 'forbidden', 'You do not have permission to view this attachment.', [ 'status' => 403 ] );
-		}
-
-		$meta = get_post_meta( $attachment_id, 'kaigen_generation_meta', true );
-		if ( ! is_array( $meta ) ) {
-			$meta = [];
-		}
-
-		return new \WP_REST_Response( $meta, 200 );
-	}
-
-	/**
-	 * Generates alt text for an image based on a prompt.
-	 *
-	 * @param WP_REST_Request $request The request object.
+	 * @param \WP_REST_Request $request The request object.
 	 * @return \WP_REST_Response|WP_Error The response or error.
 	 */
-	public function handle_generate_alt_text_request( $request ) {
-		$prompt = sanitize_textarea_field( (string) $request->get_param( 'prompt' ) );
-
-		$provider = sanitize_text_field( (string) $request->get_param( 'provider' ) );
-		if ( '' === $provider ) {
-			return new WP_Error( 'invalid_provider', 'Provider is required.', [ 'status' => 400 ] );
-		}
-
-		$attachment_id = absint( $request->get_param( 'attachment_id' ) );
-		if ( ! $attachment_id ) {
-			return new WP_Error( 'missing_image', 'Image is required for alt text generation.', [ 'status' => 400 ] );
-		}
-
-		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
-			return new WP_Error( 'forbidden', 'You do not have permission to access this attachment.', [ 'status' => 403 ] );
-		}
-
-		$image_data = $this->get_attachment_data_url( $attachment_id );
-		if ( is_wp_error( $image_data ) ) {
-			return $image_data;
-		}
-
-		$structured = $this->sanitize_prompt_structured( $request->get_param( 'prompt_structured' ) );
-		$alt_prompt = $prompt;
-		if ( ! empty( $structured ) ) {
-			$alt_prompt = $prompt . "\nStructured details: " . wp_json_encode( $structured );
-		}
-
-		$generator = $this->get_alt_text_generator( $provider );
-		if ( is_wp_error( $generator ) ) {
-			return $generator;
-		}
-
-		$result = $generator->generate( $alt_prompt, $image_data );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		return new \WP_REST_Response(
-			[
-				'alt_text' => $result,
-			],
-			200
-		);
+	public function handle_generate_request( $request ) {
+		return $this->image_generation_service->generate_from_request( $request );
 	}
 
 	/**
-	 * Saves generation metadata on the post when available.
+	 * Gets configured image-capable providers when Core exposes them cleanly.
 	 *
-	 * @param int             $attachment_id The attachment ID.
-	 * @param WP_REST_Request $request The request object.
-	 * @param string          $provider_id The provider ID.
-	 * @param string          $model The resolved model.
-	 * @param float           $generation_time_seconds The total generation time in seconds.
-	 * @return void
+	 * @return \WP_REST_Response Provider options.
 	 */
-	private function maybe_save_generation_meta( $attachment_id, $request, $provider_id, $model, $generation_time_seconds = 0 ) {
-		if ( ! $attachment_id ) {
-			return;
-		}
-
-		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
-			return;
-		}
-
-		$quality = $request->get_param( 'quality' );
-		if ( ! in_array( $quality, [ 'low', 'medium', 'high' ], true ) ) {
-			$quality = Image_Provider::get_quality_setting();
-		}
-		$meta = [
-			'prompt'   => sanitize_text_field( (string) $request->get_param( 'prompt' ) ),
-			'provider' => sanitize_text_field( $provider_id ),
-			'quality'  => sanitize_text_field( $quality ),
-			'model'    => sanitize_text_field( $model ),
-		];
-		if ( $generation_time_seconds > 0 ) {
-			$meta['generation_time_seconds'] = round( (float) $generation_time_seconds, 2 );
-		}
-		$source_image_ids = $request->get_param( 'source_image_ids' );
-		if ( is_array( $source_image_ids ) ) {
-			$sanitized_ids = array_values(
-				array_filter(
-					array_map( 'absint', $source_image_ids )
-				)
-			);
-			if ( ! empty( $sanitized_ids ) ) {
-				$meta['reference_image_ids'] = $sanitized_ids;
-			}
-		}
-
-		update_post_meta( $attachment_id, 'kaigen_generation_meta', $meta );
+	public function get_image_providers() {
+		return rest_ensure_response( $this->get_image_provider_options() );
 	}
 
 	/**
-	 * Resolves an alt text generator for the selected provider.
+	 * Gets configured image-capable provider options.
 	 *
-	 * @param string $provider The provider key.
-	 * @return Alt_Text_Generator_Core|WP_Error Generator instance or error.
+	 * @return array Provider options.
 	 */
-	private function get_alt_text_generator( $provider ) {
-		$provider = strtolower( trim( (string) $provider ) );
-		$active   = kaigen_provider_manager()->get_active_provider_id();
-
-		if ( '' === $active || $provider !== $active ) {
-			return new WP_Error( 'invalid_provider', 'Alt text generator is not available for the selected provider.', [ 'status' => 400 ] );
-		}
-
-		$class = kaigen_provider_manager()->get_active_alt_text_generator_class();
-		if ( '' === $class ) {
-			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
-		}
-
-		if ( ! class_exists( $class ) ) {
-			return new WP_Error( 'invalid_provider', 'Alt text generator class not found.', [ 'status' => 400 ] );
-		}
-
-		if ( ! in_array( Alt_Text_Generator_Core::class, class_implements( $class ), true ) ) {
-			return new WP_Error( 'invalid_provider', 'Alt text generator class is invalid.', [ 'status' => 400 ] );
-		}
-
-		return new $class();
-	}
-
-	/**
-	 * Sanitizes a structured prompt into a safe array.
-	 *
-	 * @param mixed $structured The structured prompt data.
-	 * @return array Sanitized structured prompt.
-	 */
-	private function sanitize_prompt_structured( $structured ) {
-		if ( is_string( $structured ) ) {
-			$decoded = json_decode( $structured, true );
-			if ( is_array( $decoded ) ) {
-				$structured = $decoded;
-			}
-		}
-
-		if ( ! is_array( $structured ) ) {
+	public function get_image_provider_options() {
+		if ( ! class_exists( AiClient::class ) || ! class_exists( ModelRequirements::class ) || ! class_exists( CapabilityEnum::class ) ) {
 			return [];
 		}
 
-		$clean = [];
-		foreach ( $structured as $key => $phrases ) {
-			if ( ! is_array( $phrases ) ) {
-				continue;
-			}
-			$key               = sanitize_key( $key );
-			$sanitized_phrases = [];
-			foreach ( $phrases as $phrase ) {
-				if ( ! is_string( $phrase ) ) {
-					continue;
-				}
-				$phrase = sanitize_text_field( $phrase );
-				if ( '' !== $phrase ) {
-					$sanitized_phrases[] = $phrase;
-				}
-			}
-			if ( ! empty( $sanitized_phrases ) ) {
-				$clean[ $key ] = $sanitized_phrases;
-			}
-		}
-
-		return $clean;
-	}
-
-	/**
-	 * Builds a base64 data URL for an attachment image.
-	 *
-	 * @param int $attachment_id Attachment ID.
-	 * @return string|WP_Error Base64 data URL or error.
-	 */
-	private function get_attachment_data_url( $attachment_id ) {
-		$file_path = get_attached_file( $attachment_id );
-		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
-			$attachment_url = wp_get_attachment_url( $attachment_id );
-			if ( empty( $attachment_url ) ) {
-				return new WP_Error( 'missing_file', 'Attachment file not found.', [ 'status' => 404 ] );
-			}
-
-			$response = wp_remote_get(
-				$attachment_url,
-				[
-					'timeout' => 10,
-				]
+		try {
+			$providers    = [];
+			$registry     = AiClient::defaultRegistry();
+			$requirements = new ModelRequirements(
+				[ CapabilityEnum::imageGeneration() ],
+				[]
 			);
 
-			if ( is_wp_error( $response ) ) {
-				return new WP_Error( 'file_read_error', 'Unable to fetch attachment data.', [ 'status' => 500 ] );
-			}
-
-			$body         = wp_remote_retrieve_body( $response );
-			$content_type = wp_remote_retrieve_header( $response, 'content-type' );
-			$content_len  = wp_remote_retrieve_header( $response, 'content-length' );
-			if ( $content_len && (int) $content_len > 10 * 1024 * 1024 ) {
-				return new WP_Error( 'file_too_large', 'Attachment is too large for alt text generation.', [ 'status' => 400 ] );
-			}
-
-			if ( '' === $body ) {
-				return new WP_Error( 'file_read_error', 'Unable to read attachment data.', [ 'status' => 500 ] );
-			}
-
-			$mime = $content_type ? $content_type : 'image/jpeg';
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Needed for image data URL.
-			return 'data:' . $mime . ';base64,' . base64_encode( $body );
-		}
-
-		$max_size  = 10 * 1024 * 1024;
-		$file_size = filesize( $file_path );
-		if ( $file_size && $file_size > $max_size ) {
-			return new WP_Error( 'file_too_large', 'Attachment is too large for alt text generation.', [ 'status' => 400 ] );
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local file read for attachment data.
-		$contents = file_get_contents( $file_path );
-		if ( false === $contents ) {
-			return new WP_Error( 'file_read_error', 'Unable to read attachment data.', [ 'status' => 500 ] );
-		}
-
-		$filetype = wp_check_filetype( $file_path );
-		$mime     = $filetype['type'] ?? 'image/jpeg';
-
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Needed for image data URL.
-		return 'data:' . $mime . ';base64,' . base64_encode( $contents );
-	}
-
-	/**
-	 * Gets the model for a specific provider.
-	 *
-	 * @param string $provider_id The provider ID.
-	 * @param array  $additional_params Additional parameters.
-	 * @return string|WP_Error The model or error.
-	 */
-	private function get_provider_model( $provider_id, $additional_params = [] ) {
-		$provider = kaigen_provider_manager()->get_provider( $provider_id );
-		if ( ! $provider ) {
-			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}", [ 'status' => 400 ] );
-		}
-
-		$provider_models = get_option( 'kaigen_provider_models', [] );
-		$stored_model    = $provider_models[ $provider_id ] ?? '';
-		$quality         = $additional_params['quality'] ?? Image_Provider::get_quality_setting();
-
-		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
-		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
-
-		$provider_class    = get_class( $provider );
-		$provider_instance = new $provider_class( $api_key, $stored_model );
-		$model             = $provider_instance->get_model_for_request( $quality, $additional_params );
-
-		if ( empty( $model ) ) {
-			return new WP_Error( 'model_not_set', "No model set for provider: {$provider_id}", [ 'status' => 400 ] );
-		}
-
-		return $model;
-	}
-
-	/**
-	 * Gets additional parameters with defaults from the request.
-	 *
-	 * @param WP_REST_Request $request The request object.
-	 * @return array The parameters.
-	 */
-	private function get_additional_params( $request ) {
-		// Get saved quality settings.
-		$quality          = Image_Provider::get_quality_setting();
-		$quality_value    = 'hd' === $quality ? 100 : 80;
-		$quality_settings = get_option( 'kaigen_quality_settings', [] );
-		$style_value      = isset( $quality_settings['style'] ) ? $quality_settings['style'] : 'natural';
-		$quality_override = $request->get_param( 'quality' );
-		if ( in_array( $quality_override, [ 'low', 'medium', 'high' ], true ) ) {
-			$quality = $quality_override;
-		}
-
-		$defaults = [
-			'num_outputs'    => 1,
-			'aspect_ratio'   => '1:1',
-			'output_format'  => 'webp',
-			'output_quality' => $quality_value,
-		];
-
-		// Get the provider and model.
-		$provider_id     = $request->get_param( 'provider' );
-		$provider_models = get_option( 'kaigen_provider_models', [] );
-		$model           = $provider_models[ $provider_id ] ?? '';
-
-		$params = [];
-		foreach ( $defaults as $key => $default ) {
-			$params[ $key ] = $request->get_param( $key ) ?? $default;
-		}
-		$params['quality'] = $quality;
-
-		// Add source image URL if provided (single or array).
-		$source_image_urls = $request->get_param( 'source_image_urls' );
-		if ( ! empty( $source_image_urls ) ) {
-			$params['source_image_urls'] = $source_image_urls;
-		} else {
-			$source_image_url = $request->get_param( 'source_image_url' );
-			if ( ! empty( $source_image_url ) ) {
-				$params['source_image_url'] = $source_image_url;
-			}
-		}
-
-		// Add additional image URLs if provided (for multiple source images).
-		$additional_image_urls = $request->get_param( 'additional_image_urls' );
-		if ( ! empty( $additional_image_urls ) && is_array( $additional_image_urls ) ) {
-			$params['additional_image_urls'] = $additional_image_urls;
-		}
-
-		// Add mask URL if provided (for inpainting).
-		$mask_url = $request->get_param( 'mask_url' );
-		if ( ! empty( $mask_url ) ) {
-			$params['mask_url'] = $mask_url;
-		}
-
-		return $params;
-	}
-
-	/**
-	 * Handles image generation with retries and longer timeouts for slow providers.
-	 *
-	 * @param string $provider_id The provider ID.
-	 * @param string $prompt The generation prompt.
-	 * @param string $model The model to use.
-	 * @param array  $additional_params Additional parameters.
-	 * @return WP_REST_Response|WP_Error The response or error.
-	 * @throws \Exception When generation fails or times out.
-	 */
-	private function handle_generation_with_retries( $provider_id, $prompt, $model, $additional_params ) {
-		$max_retries = 15;
-		$retry_count = 0;
-		$delay       = 1;
-		$max_delay   = 20;
-
-		while ( $retry_count < $max_retries ) {
-			try {
-				$result = $this->make_provider_request( $provider_id, $prompt, $model, $additional_params );
-
-				if ( ! is_wp_error( $result ) ) {
-					// Handle completed status - this means the image was successfully generated and uploaded.
-					if ( isset( $result['status'] ) && 'completed' === $result['status'] ) {
-						// Check if we have a WordPress attachment ID.
-						if ( isset( $result['url'] ) && isset( $result['id'] ) && is_numeric( $result['id'] ) && $result['id'] > 0 ) {
-							// Format response for WordPress media.
-							$response_data = [
-								'url'    => $result['url'],
-								'id'     => intval( $result['id'] ),
-								'status' => 'completed',
-							];
-							return new \WP_REST_Response( $response_data, 200 );
-						}
-
-						// Handle direct URL response without WordPress attachment.
-						if ( isset( $result['url'] ) ) {
-							// Return the result without an ID.
-							$response_data = [
-								'url'    => $result['url'],
-								'status' => 'completed',
-							];
-							return new \WP_REST_Response( $response_data, 200 );
-						}
-					}
-
-					// Handle failed status with content filtering error.
-					if ( isset( $result['status'] ) && 'failed' === $result['status'] ) {
-						if ( isset( $result['error'] ) && strpos( $result['error'], 'flagged by safety filters' ) !== false ) {
-							return new WP_Error(
-								'content_filtered',
-								'The image was flagged by the provider\'s safety filters. Please modify your prompt and try again.',
-								[ 'status' => 400 ]
-							);
-						}
-
-						// Handle other failure cases.
-						$error_message = isset( $result['error'] ) ? $result['error'] : 'Unknown error occurred';
-						throw new \Exception( 'Generation failed: ' . $error_message );
-					}
-
-					// Check if we have a WordPress attachment ID.
-					if ( isset( $result['url'] ) && isset( $result['id'] ) && is_numeric( $result['id'] ) && $result['id'] > 0 ) {
-						// Format response for WordPress media.
-						$response_data = [
-							'url'    => $result['url'],
-							'id'     => intval( $result['id'] ),
-							'status' => 'completed',
-						];
-						return new \WP_REST_Response( $response_data, 200 );
-					}
-
-					// Handle direct URL response without WordPress attachment.
-					if ( isset( $result['url'] ) ) {
-						// Return the result without an ID.
-						$response_data = [
-							'url'    => $result['url'],
-							'status' => 'completed',
-						];
-						return new \WP_REST_Response( $response_data, 200 );
-					}
-
-					// Handle processing status.
-					if ( isset( $result['status'] ) && ( 'processing' === $result['status'] || 'starting' === $result['status'] ) ) {
-						throw new \Exception( 'Image still processing' );
-					}
-
-					throw new \Exception( 'Invalid response format or incomplete generation' );
-				}
-
-				// Handle errors that should not be retried - return immediately.
-				if ( in_array(
-					$result->get_error_code(),
-					[
-						'image_to_image_error',
-						'image_to_image_failed',
-						'model_error',
-						'image_download_failed',
-						'empty_image_data',
-						'replicate_validation_error',
-						'replicate_api_error',
-						'content_moderation',
-						'api_error',
-						'openai_error',
-						'max_retries_exceeded',
-						'invalid_api_key_format',
-					],
-					true
-				) ) {
-					return $result;
-				}
-
-				// Handle pending status.
-				if ( 'replicate_pending' === $result->get_error_code() ||
-					'processing' === $result->get_error_code() ) {
-					$error_data = $result->get_error_data();
-					if ( ! empty( $error_data['prediction_id'] ) ) {
-						$additional_params['prediction_id'] = $error_data['prediction_id'];
-					}
-					sleep( (int) $delay );
-					$delay = min( $delay * 1.5, $max_delay );
+			foreach ( $registry->getRegisteredProviderIds() as $provider_id ) {
+				if ( empty( $registry->findProviderModelsMetadataForSupport( $provider_id, $requirements ) ) ) {
 					continue;
 				}
 
-				throw new \Exception( $result->get_error_message() );
-
-			} catch ( \Exception $e ) {
-				++$retry_count;
-
-				if ( $retry_count >= $max_retries ) {
-					return new WP_Error(
-						'api_error',
-						'Failed after ' . $max_retries . ' attempts: ' . $e->getMessage(),
-						[ 'status' => 500 ]
-					);
-				}
-
-				$delay = min( $delay * 1.5, $max_delay );
-				sleep( (int) $delay );
+				$provider_class = $registry->getProviderClassName( $provider_id );
+				$providers[]    = [
+					'id'                  => $provider_id,
+					'name'                => $provider_class::metadata()->getName(),
+					'referenceImageLimit' => $this->get_provider_reference_image_limit( $provider_id ),
+				];
 			}
+		} catch ( \Throwable $e ) {
+			return [];
 		}
+
+		if ( empty( $providers ) ) {
+			return [];
+		}
+
+		$provider_limits = array_filter(
+			array_map(
+				function ( $provider ) {
+					return absint( $provider['referenceImageLimit'] ?? 0 );
+				},
+				$providers
+			)
+		);
+
+		array_unshift(
+			$providers,
+			[
+				'id'                  => 'auto',
+				'name'                => __( 'Auto', 'kaigen' ),
+				'referenceImageLimit' => ! empty( $provider_limits ) ? min( $provider_limits ) : self::DEFAULT_REFERENCE_IMAGE_LIMIT,
+			]
+		);
+
+		return array_values(
+			array_reduce(
+				$providers,
+				function ( $carry, $provider ) {
+					$carry[ $provider['id'] ] = $provider;
+					return $carry;
+				},
+				[]
+			)
+		);
 	}
 
 	/**
-	 * Makes the request to the provider.
+	 * Gets the maximum reference image count for a provider.
 	 *
-	 * @param string $provider_id The provider ID.
-	 * @param string $prompt The generation prompt.
-	 * @param string $model The model to use.
-	 * @param array  $additional_params Additional parameters.
-	 * @return array|WP_Error The result or error.
+	 * @param string $provider_id Provider ID.
+	 * @return int Reference image limit.
 	 */
-	private function make_provider_request( $provider_id, $prompt, $model, $additional_params ) {
-		$provider = kaigen_provider_manager()->get_provider( $provider_id );
-		if ( ! $provider ) {
-			return new WP_Error( 'invalid_provider', "Invalid provider: {$provider_id}" );
-		}
+	private function get_provider_reference_image_limit( $provider_id ) {
+		/**
+		 * Filters a provider's maximum selectable reference image count.
+		 *
+		 * @param int    $limit Provider reference image limit.
+		 * @param string $provider_id Provider ID.
+		 * @param array  $models Reserved for model metadata when exposed by the AI Client.
+		 */
+		$limit = apply_filters(
+			'kaigen_provider_reference_image_limit',
+			self::PROVIDER_REFERENCE_IMAGE_LIMITS[ $provider_id ] ?? self::DEFAULT_REFERENCE_IMAGE_LIMIT,
+			$provider_id,
+			[]
+		);
 
-		// Get API keys from options.
-		$api_keys = get_option( 'kaigen_provider_api_keys', [] );
-		$api_key  = isset( $api_keys[ $provider_id ] ) ? $api_keys[ $provider_id ] : '';
-
-		$provider_class    = get_class( $provider );
-		$provider_instance = new $provider_class( $api_key, $model );
-
-		return $provider_instance->generate_image( $prompt, $additional_params );
-	}
-
-	/**
-	 * Gets the list of providers with API keys.
-	 *
-	 * @return WP_REST_Response The response containing providers.
-	 */
-	public function get_providers_with_keys() {
-		try {
-			$providers = kaigen_admin()->get_active_providers();
-			return new \WP_REST_Response( $providers, 200 );
-		} catch ( \Exception $e ) {
-			return new \WP_REST_Response(
-				[ 'error' => 'Error fetching providers: ' . $e->getMessage() ],
-				500
-			);
-		}
-	}
-
-	/**
-	 * Gets the list of providers that support image-to-image generation.
-	 *
-	 * @return WP_REST_Response The response containing providers that support image-to-image.
-	 */
-	public function get_image_to_image_providers() {
-		try {
-			$image_to_image_providers = kaigen_provider_manager()->get_image_to_image_providers();
-			return new \WP_REST_Response( $image_to_image_providers, 200 );
-		} catch ( \Exception $e ) {
-			return new \WP_REST_Response(
-				[ 'error' => 'Error fetching image-to-image providers: ' . $e->getMessage() ],
-				500
-			);
-		}
+		$limit = absint( $limit );
+		return $limit > 0 ? $limit : self::DEFAULT_REFERENCE_IMAGE_LIMIT;
 	}
 
 	/**
 	 * Retrieves all images marked as reference images.
 	 *
-	 * @return WP_REST_Response The response containing reference images.
+	 * @return \WP_REST_Response The response containing reference images.
 	 */
 	public function get_reference_images() {
 		$query = new \WP_Query(
@@ -789,21 +278,19 @@ final class Rest_API {
 
 		$images = [];
 		foreach ( $query->posts as $post ) {
-			// Get thumbnail URL (150x150) for display.
 			$thumbnail     = wp_get_attachment_image_src( $post->ID, 'thumbnail' );
 			$thumbnail_url = $thumbnail ? $thumbnail[0] : wp_get_attachment_url( $post->ID );
 
 			$images[] = [
 				'id'            => $post->ID,
-				'url'           => wp_get_attachment_url( $post->ID ), // Full size for generation.
-				'thumbnail_url' => $thumbnail_url, // Thumbnail for display.
+				'url'           => wp_get_attachment_url( $post->ID ),
+				'thumbnail_url' => $thumbnail_url,
 				'alt'           => get_post_meta( $post->ID, '_wp_attachment_image_alt', true ),
 			];
 		}
 
-		return new \WP_REST_Response( $images, 200 );
+		return rest_ensure_response( $images );
 	}
 }
 
-// Initialize the REST API functionality.
-\KaiGen\Rest_API::get_instance();
+Rest_API::get_instance();
