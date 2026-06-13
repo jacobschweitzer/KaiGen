@@ -81,9 +81,9 @@ const GenerateImageModal = ( {
 	const [ error, setError ] = useState( null );
 	const [ referenceImages, setReferenceImages ] = useState( [] );
 	const [ selectedRefs, setSelectedRefs ] = useState( [] );
+	const [ generatedImage, setGeneratedImage ] = useState( null );
 	const [ provider, setProvider ] = useState( 'auto' );
 	const [ orientation, setOrientation ] = useState( 'square' );
-	const [ showReferenceImages, setShowReferenceImages ] = useState( false );
 	const textareaContainerRef = useRef( null );
 
 	const kaiGenSettings = getKaiGenSettings();
@@ -117,7 +117,9 @@ const GenerateImageModal = ( {
 			fetchReferenceImages().then( setReferenceImages );
 			setProvider( kaiGenSettings.provider || 'auto' );
 			setOrientation( kaiGenSettings.orientation || 'square' );
-			setShowReferenceImages( false );
+			setGeneratedImage(
+				initialReferenceImage?.url ? initialReferenceImage : null
+			);
 
 			if ( initialReferenceImageId ) {
 				setSelectedRefs( [ initialReferenceImage ] );
@@ -190,9 +192,10 @@ const GenerateImageModal = ( {
 
 		try {
 			const media = await generateImage( prompt.trim(), options );
+			setGeneratedImage( media );
+			setSelectedRefs( getReferenceImageId( media ) ? [ media ] : [] );
 			onSelect( media );
 			setIsLoading( false );
-			handleClose();
 		} catch ( generationError ) {
 			setError(
 				generationError.message ||
@@ -209,9 +212,9 @@ const GenerateImageModal = ( {
 		setPrompt( '' );
 		setError( null );
 		setSelectedRefs( [] );
+		setGeneratedImage( null );
 		setProvider( kaiGenSettings.provider || 'auto' );
 		setOrientation( kaiGenSettings.orientation || 'square' );
-		setShowReferenceImages( false );
 		onClose();
 	};
 
@@ -219,15 +222,23 @@ const GenerateImageModal = ( {
 		return null;
 	}
 
-	const allReferenceImages = initialReferenceImageId
-		? [
-				initialReferenceImage,
-				...referenceImages.filter(
-					( img ) =>
-						getReferenceImageId( img ) !== initialReferenceImageId
-				),
-		  ]
-		: referenceImages;
+	const allReferenceImages = [
+		generatedImage,
+		initialReferenceImageId ? initialReferenceImage : null,
+		...referenceImages,
+	].filter( ( img, index, images ) => {
+		const imageId = getReferenceImageId( img );
+
+		if ( ! imageId ) {
+			return false;
+		}
+
+		return (
+			images.findIndex(
+				( candidate ) => getReferenceImageId( candidate ) === imageId
+			) === index
+		);
+	} );
 
 	const handleImageToggle = ( img ) => {
 		const imageId = getReferenceImageId( img );
@@ -252,6 +263,84 @@ const GenerateImageModal = ( {
 		} );
 	};
 
+	const referenceImagesDropdown = (
+		<Dropdown
+			popoverProps={ {
+				placement: 'top-start',
+				focusOnMount: true,
+			} }
+			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
+				<Button
+					className={ `kaigen-modal__ref-button ${
+						isDropdownOpen ? 'is-primary' : ''
+					} ${
+						selectedRefs.length > 0
+							? 'kaigen-ref-button-selected'
+							: ''
+					}` }
+					onClick={ onToggle }
+					aria-expanded={ isDropdownOpen }
+					aria-label="Reference Images"
+				>
+					<Dashicon
+						icon="format-image"
+						className={
+							selectedRefs.length > 0
+								? 'kaigen-ref-button-icon-selected'
+								: ''
+						}
+					/>
+				</Button>
+			) }
+			renderContent={ () => (
+				<div className="kaigen-modal__reference-menu" role="menu">
+					{ allReferenceImages.length > 0 ? (
+						<div className="kaigen-modal-reference-images-container">
+							{ allReferenceImages.map( ( img, index ) => {
+								const imageId = getReferenceImageId( img );
+								const isSelected = selectedRefs.some(
+									( selected ) =>
+										getReferenceImageId( selected ) ===
+										imageId
+								);
+
+								return (
+									<button
+										type="button"
+										key={ imageId || `initial-${ index }` }
+										onClick={ () =>
+											handleImageToggle( img )
+										}
+										className={ `kaigen-modal-reference-image ${
+											isSelected
+												? 'kaigen-modal-reference-image-selected'
+												: ''
+										}` }
+										role="menuitemcheckbox"
+										aria-checked={ isSelected }
+										aria-label={
+											img.alt || 'Select reference image'
+										}
+									>
+										<img
+											src={ img.thumbnail_url || img.url }
+											alt={ img.alt || '' }
+										/>
+									</button>
+								);
+							} ) }
+						</div>
+					) : (
+						<p className="kaigen-modal-no-references">
+							No reference images. Mark images in the Media
+							Library to use them here.
+						</p>
+					) }
+				</div>
+			) }
+		/>
+	);
+
 	const aspectRatioDropdown = (
 		<Dropdown
 			popoverProps={ {
@@ -260,7 +349,9 @@ const GenerateImageModal = ( {
 			} }
 			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
 				<Button
-					className="kaigen-modal__aspect-ratio-toggle"
+					className={ `kaigen-modal__aspect-ratio-toggle ${
+						isDropdownOpen ? 'is-primary' : ''
+					}` }
 					onClick={ onToggle }
 					aria-expanded={ isDropdownOpen }
 					aria-label={ `Aspect ratio: ${ selectedAspectRatio.ratio } ${ selectedAspectRatio.label }` }
@@ -312,7 +403,9 @@ const GenerateImageModal = ( {
 			} }
 			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
 				<Button
-					className="kaigen-modal__provider-toggle"
+					className={ `kaigen-modal__provider-toggle ${
+						isDropdownOpen ? 'is-primary' : ''
+					}` }
 					onClick={ onToggle }
 					aria-expanded={ isDropdownOpen }
 					aria-label={ `Provider: ${
@@ -400,96 +493,24 @@ const GenerateImageModal = ( {
 			{ /* Display error message if present. */ }
 			{ error && <p className="kaigen-error-text">{ error }</p> }
 
-			<div className="kaigen-modal__stage">
-				<div
-					className={ `kaigen-modal__reference-panel ${
-						showReferenceImages
-							? 'kaigen-modal__reference-panel-visible'
-							: ''
-					}` }
-					aria-hidden={ ! showReferenceImages }
-				>
-					{ allReferenceImages.length > 0
-						? showReferenceImages && (
-								<div className="kaigen-modal-reference-images-container">
-									{ allReferenceImages.map(
-										( img, index ) => (
-											<button
-												type="button"
-												key={
-													getReferenceImageId(
-														img
-													) || `initial-${ index }`
-												}
-												onClick={ () =>
-													handleImageToggle( img )
-												}
-												className={ `kaigen-modal-reference-image ${
-													selectedRefs.some(
-														( selected ) =>
-															getReferenceImageId(
-																selected
-															) ===
-															getReferenceImageId(
-																img
-															)
-													)
-														? 'kaigen-modal-reference-image-selected'
-														: ''
-												}` }
-												aria-label={
-													img.alt ||
-													'Select reference image'
-												}
-											>
-												<img
-													src={
-														img.thumbnail_url ||
-														img.url
-													}
-													alt={ img.alt || '' }
-												/>
-											</button>
-										)
-									) }
-								</div>
-						  )
-						: showReferenceImages && (
-								<p className="kaigen-modal-no-references">
-									No reference images. Mark images in the
-									Media Library to use them here.
-								</p>
-						  ) }
-				</div>
+			<div
+				className={ `kaigen-modal__stage ${
+					generatedImage?.url ? 'has-generated-image' : ''
+				}` }
+			>
+				{ generatedImage?.url && (
+					<div className="kaigen-modal__generated-preview">
+						<img
+							src={ generatedImage.url }
+							alt={ generatedImage.alt || '' }
+						/>
+					</div>
+				) }
 
 				<div className="kaigen-modal__composer">
 					<div className="kaigen-modal__prompt-row">
 						<div className="kaigen-modal__prompt-action">
-							<Button
-								className={ `kaigen-modal__ref-button ${
-									showReferenceImages ? 'is-primary' : ''
-								} ${
-									selectedRefs.length > 0
-										? 'kaigen-ref-button-selected'
-										: ''
-								}` }
-								onClick={ () =>
-									setShowReferenceImages(
-										( isVisible ) => ! isVisible
-									)
-								}
-								aria-expanded={ showReferenceImages }
-								aria-label="Reference Images"
-							>
-								<Dashicon
-									icon="format-image"
-									className={
-										selectedRefs.length > 0
-											? 'kaigen-ref-button-icon-selected'
-											: ''
-									}
-								/>
-							</Button>
+							{ referenceImagesDropdown }
 							{ aspectRatioDropdown }
 						</div>
 

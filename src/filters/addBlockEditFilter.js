@@ -84,14 +84,13 @@ addFilter(
 			/**
 			 * Build current image object for the modal
 			 */
-			const currentImage =
-				hasValidId && props.attributes.url
-					? {
-							url: props.attributes.url,
-							id: normalizedBlockId,
-							alt: props.attributes.alt || '',
-					  }
-					: null;
+			const currentImage = props.attributes.url
+				? {
+						url: props.attributes.url,
+						id: hasValidId ? normalizedBlockId : undefined,
+						alt: props.attributes.alt || '',
+				  }
+				: null;
 			const isAvailable = isKaiGenAvailable();
 
 			/**
