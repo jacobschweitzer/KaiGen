@@ -51,3 +51,6 @@ build/index.js.map
 
 # VS Code settings
 .vscode/
+
+# Codex
+.codex/
