@@ -24,7 +24,7 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 
 ## Setup
 - Install PHP dependencies: `composer install` (required for PHP linting)
-- Node deps: `npm install`
+- Node deps: `npm install` (requires Node.js 18.12.0+ and npm 8.19.2+)
 
 ## Code Style Guidelines
 - Follow WordPress Coding Standards (enforced via PHPCS)

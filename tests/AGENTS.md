@@ -14,7 +14,7 @@ See the root `AGENTS.md` for global conventions and tooling.
 ## Running Tests
 - Run PHP unit tests: `npm run test:php`
 - Run all e2e tests: `npm run test:e2e`
-- Run single test: `npx playwright test tests/e2e/image-generation.spec.ts`
+- Run single e2e file: `npm run test:e2e -- tests/e2e/image-generation.spec.ts`
 - Debug: `npm run test:e2e:debug`
 - E2E npm scripts choose a free Playground port automatically.
 - To attach Playwright to a manually started Playground server, set both `PLAYGROUND_PORT=<port>` and `PLAYWRIGHT_SKIP_WEBSERVER=1`.

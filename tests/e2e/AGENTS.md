@@ -6,10 +6,10 @@ KaiGen E2E tests use Playwright + WordPress Playground.
 
 ## What to Run
 - Run all e2e tests: `npm run test:e2e`
-- Run single test: `npx playwright test tests/e2e/image-generation.spec.ts`
+- Run single test file: `npm run test:e2e -- tests/e2e/image-generation.spec.ts`
 - Debug: `npm run test:e2e:debug`
 - UI mode: `npm run test:e2e:ui`
-- Start Playground manually (optional): `npm run playground:start`
+- Start Playground manually (optional): `PLAYGROUND_PORT=<port> npm run playground:start`
 - Multi-agent run: `npm run test:e2e`
 
 ## How Tests Work

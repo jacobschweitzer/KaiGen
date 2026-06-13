@@ -48,7 +48,7 @@ The complete human-readable source code is available in the src/ directory of th
 
 **Build Process:**
 This plugin uses @wordpress/scripts build system. To build from source:
-1. Install Node.js and npm
+1. Install Node.js 18.12.0 or higher and npm 8.19.2 or higher
 2. Run: npm install
 3. Run: npm run build
 The build/ directory is committed and used by WordPress at runtime; do not edit it directly.
