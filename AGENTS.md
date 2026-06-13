@@ -44,7 +44,7 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 ## Minimal Data Flow
 1. User interacts with KaiGen UI in the block editor (`src/`).
 2. JS calls server endpoints/hooks in `inc/`.
-3. Server calls provider APIs, returns image URL/data.
+3. Server uses the WordPress AI Client and configured image-capable providers, then returns image URL/data.
 4. JS inserts/updates the image block in the editor.
 
 ## High-Impact Pointers
@@ -52,12 +52,12 @@ Prefer the nearest folder-specific `AGENTS.md` when one exists.
 - Editor UI entrypoints: `src/index.js` (block) and `src/components/` (UI pieces).
 - API client logic: `src/api.js`.
 - Built artifacts: `build/` (committed; do not edit directly).
-- Settings storage: WordPress options (search for `get_option` / `update_option`).
+- Editor settings are injected through `block_editor_settings_all` in `inc/class-admin.php`.
 
 ## Common Tasks → Files
 - Add/modify UI control: `src/components/` and `src/index.js`.
 - Change provider request payload: `src/api.js` and matching server handler in `inc/`.
 - Add provider/server integration: `inc/` (new handler + hooks/filters), then expose in `src/`.
-- Update settings UI: `src/admin.js`; settings persistence in `inc/`.
+- Update editor settings: `inc/class-admin.php`; consume settings in `src/utils/kaigenSettings.js`.
 - Adjust build outputs: edit `src/` and run `npm run build` (avoid direct edits in `build/`).
 - Version update: Update version in `kaigen.php` ("Version: "), readme.txt ("Stable tag: "), and `package.json` ("version"). 

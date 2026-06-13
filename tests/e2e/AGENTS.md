@@ -15,7 +15,7 @@ KaiGen E2E tests use Playwright + WordPress Playground.
 ## How Tests Work
 - Playground is started automatically via Playwright `webServer` config.
 - E2E npm scripts choose a free Playground port automatically unless `PLAYGROUND_PORT` is already set.
-- MVP tests avoid provider-specific HTTP mocks. Core AI generation behavior should be covered once the WordPress AI Client test harness can provide a configured image-capable provider.
+- MVP tests avoid real provider calls. The Playground blueprint injects image-capable test provider settings for editor UI coverage.
 
 ## Multiple Agents
 - Playwright uses WordPress Playground as a local service. The E2E npm scripts assign a free `PLAYGROUND_PORT` for each run so parallel agent sessions stay isolated.

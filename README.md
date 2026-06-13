@@ -9,10 +9,8 @@ Includes a WordPress Gutenberg block with a prompt box that generates an image a
 ## Installation
 1. [Download KaiGen](https://github.com/jacobschweitzer/KaiGen/releases/latest)
 2. Upload and Activate KaiGen
-3. Get API keys for the providers you want to use:
-- [OpenAI](https://platform.openai.com/settings/profile?tab=api-keys)
-- [Replicate](https://replicate.com/account/api-tokens)
-4. Add your API keys in Settings -> KaiGen in the WordPress admin.
+3. Install and configure the WordPress AI Client and at least one image-capable AI provider plugin.
+4. Configure API keys or credentials in the provider plugin's settings.
 
 ## Releases and Deployment
 
@@ -63,25 +61,11 @@ To create a new versioned release:
 
 ## External Services
 
-This plugin connects to third-party AI services to generate images and alt text. **No data is sent to these services without your explicit action** - images are only generated when you click "Generate Image", and alt text is only generated when you click "Generate Alt Text".
+KaiGen generates images through the WordPress AI Client and whichever image-capable provider plugins you have configured. **No generation request is sent without your explicit action** - prompts and selected reference images are sent only when you click the Generate Image button.
 
-### OpenAI API
-- **What it is:** OpenAI's image generation service (GPT-Image)
-- **What data is sent:** Your text prompt, selected image parameters (size, quality, etc.), and image data for alt text generation
-- **When data is sent:** Only when you click "Generate Image" or "Generate Alt Text" with OpenAI selected as your provider
-- **API Endpoint:** `https://api.openai.com/v1/images/generations`, `https://api.openai.com/v1/images/edits`, and `https://api.openai.com/v1/responses`
-- **Terms of Service:** [OpenAI Terms of Use](https://openai.com/terms/)
-- **Privacy Policy:** [OpenAI Privacy Policy](https://openai.com/privacy/)
+The provider plugin selected in KaiGen, or the provider chosen automatically by the WordPress AI Client, may send your prompt, selected image parameters, and selected reference image files to its third-party service. Review the active provider plugin's documentation for its service endpoints, terms, and privacy policy.
 
-### Replicate API
-- **What it is:** Replicate's machine learning model hosting service for various AI image generation models
-- **What data is sent:** Your text prompt, selected model parameters, and image data for alt text generation
-- **When data is sent:** Only when you click "Generate Image" or "Generate Alt Text" with Replicate selected as your provider
-- **API Endpoint:** `https://api.replicate.com/v1/models/` and `https://api.replicate.com/v1/predictions/`
-- **Terms of Service:** [Replicate Terms of Service](https://replicate.com/terms)
-- **Privacy Policy:** [Replicate Privacy Policy](https://replicate.com/privacy)
-
-**Important:** You must obtain your own API keys from these services and are responsible for complying with their respective terms of service and privacy policies. The plugin does not collect, store, or transmit any of your data to any other parties.
+**Important:** You must obtain and configure any required API keys in your provider plugins and are responsible for complying with those providers' terms of service and privacy policies. KaiGen does not collect third-party API keys.
 
 ## Screenshots
 ![KaiGen logo](https://github.com/user-attachments/assets/6a5a20ac-6c69-4622-adb0-84f77a293ac7)
@@ -90,10 +74,7 @@ This plugin connects to third-party AI services to generate images and alt text.
 
 
 ## Models Supported
-- [FLUX.2 klein 4B by Black Forest Labs (low quality)](https://replicate.com/black-forest-labs/flux-2-klein-4b)
-- [Seedream 4.5 by ByteDance (medium quality)](https://replicate.com/bytedance/seedream-4.5)
-- [Nano Banana Pro by Google (high quality)](https://replicate.com/google/nano-banana-pro)
-- [GPT Image 1.5 by OpenAI](https://platform.openai.com/docs/guides/images)
+KaiGen supports image-generation-capable providers and models registered with the WordPress AI Client. The available provider list is discovered at runtime from your configured provider plugins.
 
 ## Source Code
 
@@ -103,21 +84,24 @@ All compressed/minified JavaScript files in the `build/` directory have their hu
 
 **Compressed Files → Source Files:**
 - `build/index.js` → Source files in `src/` directory
-- `build/admin.js` → `src/admin.js`
 
 **Source Code Structure:**
 ```
 src/
 ├── index.js              # Main entry point
-├── admin.js              # Admin panel functionality  
 ├── api.js                # API communication layer
 ├── components/
 │   ├── AITab.js          # AI generation tab component
-│   └── AIImageToolbar.js # Image block toolbar integration
-└── filters/
-    ├── addBlockEditFilter.js     # Block editor modifications
-    ├── addMediaUploadFilter.js   # Media upload integration
-    └── registerFormatType.js     # Format type registration
+│   ├── AIImageToolbar.js # Image block toolbar integration
+│   └── GenerateImageModal.js
+├── filters/
+│   ├── addBlockEditFilter.js     # Block editor modifications
+│   ├── addMediaPlaceholderFilter.js
+│   └── mediaUtils.js
+├── hooks/
+│   └── useGenerationProgress.js
+└── utils/
+    └── kaigenSettings.js
 ```
 
 ### Build Process
@@ -125,8 +109,8 @@ src/
 This plugin uses the WordPress Scripts build system. To build from source:
 
 **Prerequisites:**
-- Node.js (v16 or higher)
-- npm
+- Node.js (v18.12.0 or higher)
+- npm (v8.19.2 or higher)
 
 **Build Commands:**
 ```bash
@@ -141,7 +125,6 @@ npm run build
 
 # Build specific files
 npm run build:main   # Builds src/index.js
-npm run build:admin  # Builds src/admin.js
 ```
 
 **Development:**
@@ -164,9 +147,9 @@ The `build/` directory is committed and used by WordPress at runtime; do not edi
 
 ## Testing
 
-### E2E Testing with Mocked APIs
+### E2E Testing
 
-KaiGen includes comprehensive end-to-end tests that run without making actual API calls. The tests use HTTP mocking to intercept external requests and return predictable responses.
+KaiGen includes end-to-end tests that run in WordPress Playground without calling real external AI providers. The Playground blueprint injects test provider settings for the editor UI.
 
 To run e2e tests, Playwright starts WordPress Playground automatically:
 
@@ -177,8 +160,8 @@ npm run test:e2e
 Optional manual start (useful for debugging in the browser):
 
 ```bash
-npm run playground:start
-npm run test:e2e
+PLAYGROUND_PORT=9411 npm run playground:start
+PLAYGROUND_PORT=9411 PLAYWRIGHT_SKIP_WEBSERVER=1 npm run test:e2e
 ```
 
-For more details, see [tests/e2e/README.md](tests/e2e/README.md).
+For more details, see [tests/e2e/AGENTS.md](tests/e2e/AGENTS.md).
