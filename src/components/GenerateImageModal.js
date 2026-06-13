@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import {
 	Button,
-	ButtonGroup,
 	TextareaControl,
 	Modal,
 	Dropdown,
@@ -96,6 +95,9 @@ const GenerateImageModal = ( {
 	const selectedProvider =
 		availableProviders.find( ( option ) => option.id === provider ) ||
 		availableProviders[ 0 ];
+	const selectedProviderLogo = selectedProvider
+		? getProviderLogo( selectedProvider )
+		: null;
 	const selectedAspectRatio =
 		ASPECT_RATIO_OPTIONS.find(
 			( option ) => option.value === orientation
@@ -250,6 +252,136 @@ const GenerateImageModal = ( {
 		} );
 	};
 
+	const aspectRatioDropdown = (
+		<Dropdown
+			popoverProps={ {
+				placement: 'top-start',
+				focusOnMount: true,
+			} }
+			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
+				<Button
+					className="kaigen-modal__aspect-ratio-toggle"
+					onClick={ onToggle }
+					aria-expanded={ isDropdownOpen }
+					aria-label={ `Aspect ratio: ${ selectedAspectRatio.ratio } ${ selectedAspectRatio.label }` }
+				>
+					<span
+						className={ `kaigen-modal-aspect-ratio-icon kaigen-aspect-ratio-${ selectedAspectRatio.value }` }
+					></span>
+				</Button>
+			) }
+			renderContent={ ( { onClose: closeDropdown } ) => (
+				<div className="kaigen-modal__aspect-ratio-menu" role="menu">
+					{ ASPECT_RATIO_OPTIONS.map( ( opt ) => (
+						<button
+							type="button"
+							key={ opt.value }
+							className={ `kaigen-modal__aspect-ratio-menu-item ${
+								orientation === opt.value
+									? 'kaigen-modal__aspect-ratio-menu-item-selected'
+									: ''
+							}` }
+							onClick={ () => {
+								setOrientation( opt.value );
+								closeDropdown();
+							} }
+							role="menuitemradio"
+							aria-checked={ orientation === opt.value }
+						>
+							<span
+								className={ `kaigen-modal-aspect-ratio-icon kaigen-aspect-ratio-${ opt.value }` }
+							></span>
+							<span className="kaigen-modal__aspect-ratio-ratio">
+								{ opt.ratio }
+							</span>
+							<span className="kaigen-modal__aspect-ratio-name">
+								{ opt.label }
+							</span>
+						</button>
+					) ) }
+				</div>
+			) }
+		/>
+	);
+
+	const providerDropdown = hasProviderChoices && (
+		<Dropdown
+			popoverProps={ {
+				placement: 'top-end',
+				focusOnMount: true,
+			} }
+			renderToggle={ ( { isOpen: isDropdownOpen, onToggle } ) => (
+				<Button
+					className="kaigen-modal__provider-toggle"
+					onClick={ onToggle }
+					aria-expanded={ isDropdownOpen }
+					aria-label={ `Provider: ${
+						selectedProvider?.name || 'Auto'
+					}` }
+				>
+					{ selectedProviderLogo && (
+						<img
+							src={ selectedProviderLogo }
+							alt=""
+							aria-hidden="true"
+							className="kaigen-modal__provider-logo"
+						/>
+					) }
+					<span
+						className={ `kaigen-modal__provider-toggle-label ${
+							selectedProviderLogo
+								? 'kaigen-modal__provider-toggle-label-hidden'
+								: ''
+						}` }
+					>
+						{ selectedProvider?.name || 'Auto' }
+					</span>
+					<Dashicon
+						icon="arrow-down-alt2"
+						className="kaigen-modal__provider-toggle-icon"
+					/>
+				</Button>
+			) }
+			renderContent={ ( { onClose: closeDropdown } ) => (
+				<div className="kaigen-modal__provider-menu" role="menu">
+					{ availableProviders.map( ( opt ) => {
+						const providerLogo = getProviderLogo( opt );
+
+						return (
+							<button
+								type="button"
+								key={ opt.id }
+								className={ `kaigen-modal__provider-menu-item ${
+									provider === opt.id
+										? 'kaigen-modal__provider-menu-item-selected'
+										: ''
+								}` }
+								onClick={ () => {
+									setProvider( opt.id );
+									closeDropdown();
+								} }
+								role="menuitemradio"
+								aria-checked={ provider === opt.id }
+							>
+								<span className="kaigen-modal__provider-menu-icon">
+									{ providerLogo && (
+										<img
+											src={ providerLogo }
+											alt=""
+											aria-hidden="true"
+											className="kaigen-modal__provider-logo"
+										/>
+									) }
+								</span>
+								<span>{ opt.name }</span>
+							</button>
+						);
+					} ) }
+				</div>
+			) }
+		/>
+	);
+
 	return (
 		<Modal
 			className="kaigen-modal"
@@ -358,6 +490,7 @@ const GenerateImageModal = ( {
 									}
 								/>
 							</Button>
+							{ aspectRatioDropdown }
 						</div>
 
 						<div
@@ -374,124 +507,20 @@ const GenerateImageModal = ( {
 							/>
 						</div>
 
-						<Button
-							className="kaigen-modal__submit-button"
-							variant={ prompt.trim() ? 'primary' : undefined }
-							onClick={ handleGenerate }
-							disabled={ isLoading || ! prompt.trim() }
-							aria-label="Generate Image"
-						>
-							<Dashicon icon="admin-appearance" />
-						</Button>
-					</div>
-
-					<div className="kaigen-modal__options-row">
-						{ hasProviderChoices && (
-							<ButtonGroup
-								className="kaigen-modal__provider-options"
-								role="radiogroup"
-								aria-label="Provider"
+						<div className="kaigen-modal__output-action">
+							{ providerDropdown }
+							<Button
+								className="kaigen-modal__submit-button"
+								variant={
+									prompt.trim() ? 'primary' : undefined
+								}
+								onClick={ handleGenerate }
+								disabled={ isLoading || ! prompt.trim() }
+								aria-label="Generate Image"
 							>
-								{ availableProviders.map( ( opt ) => {
-									const providerLogo = getProviderLogo( opt );
-
-									return (
-										<Button
-											key={ opt.id }
-											role="radio"
-											aria-checked={ provider === opt.id }
-											aria-label={ opt.name }
-											onClick={ () =>
-												setProvider( opt.id )
-											}
-											className={ `kaigen-modal__provider-button ${
-												provider === opt.id
-													? 'kaigen-modal__provider-button-selected'
-													: ''
-											} ${
-												providerLogo ||
-												opt.id === 'auto'
-													? 'kaigen-modal__provider-button-icon-only'
-													: ''
-											}` }
-										>
-											{ providerLogo && (
-												<img
-													src={ providerLogo }
-													alt=""
-													aria-hidden="true"
-													className="kaigen-modal__provider-logo"
-												/>
-											) }
-											{ ! providerLogo && (
-												<span>{ opt.name }</span>
-											) }
-										</Button>
-									);
-								} ) }
-							</ButtonGroup>
-						) }
-
-						<Dropdown
-							popoverProps={ {
-								placement: 'top-start',
-								focusOnMount: true,
-							} }
-							renderToggle={ ( {
-								isOpen: isDropdownOpen,
-								onToggle,
-							} ) => (
-								<Button
-									className="kaigen-modal__aspect-ratio-toggle"
-									onClick={ onToggle }
-									aria-expanded={ isDropdownOpen }
-									aria-label="Aspect Ratio"
-								>
-									<span
-										className={ `kaigen-modal-aspect-ratio-icon kaigen-aspect-ratio-${ selectedAspectRatio.value }` }
-									></span>
-									<span className="kaigen-modal__aspect-ratio-ratio">
-										{ selectedAspectRatio.ratio }
-									</span>
-								</Button>
-							) }
-							renderContent={ ( { onClose: closeDropdown } ) => (
-								<div
-									className="kaigen-modal__aspect-ratio-menu"
-									role="menu"
-								>
-									{ ASPECT_RATIO_OPTIONS.map( ( opt ) => (
-										<button
-											type="button"
-											key={ opt.value }
-											className={ `kaigen-modal__aspect-ratio-menu-item ${
-												orientation === opt.value
-													? 'kaigen-modal__aspect-ratio-menu-item-selected'
-													: ''
-											}` }
-											onClick={ () => {
-												setOrientation( opt.value );
-												closeDropdown();
-											} }
-											role="menuitemradio"
-											aria-checked={
-												orientation === opt.value
-											}
-										>
-											<span
-												className={ `kaigen-modal-aspect-ratio-icon kaigen-aspect-ratio-${ opt.value }` }
-											></span>
-											<span className="kaigen-modal__aspect-ratio-ratio">
-												{ opt.ratio }
-											</span>
-											<span className="kaigen-modal__aspect-ratio-name">
-												{ opt.label }
-											</span>
-										</button>
-									) ) }
-								</div>
-							) }
-						/>
+								<Dashicon icon="admin-appearance" />
+							</Button>
+						</div>
 					</div>
 				</div>
 			</div>
