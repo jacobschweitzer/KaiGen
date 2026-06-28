@@ -368,6 +368,58 @@ describe( 'GenerateImageModal', () => {
 		expect( successBlock ).not.toContain( 'handleClose()' );
 	} );
 
+	it( 'renders an optional interactive refinement mode without changing generation input', () => {
+		const source = fs.readFileSync(
+			path.join(
+				__dirname,
+				'../../src/components/GenerateImageModal.js'
+			),
+			'utf8'
+		);
+
+		expect( source ).toContain( 'Interactive mode' );
+		expect( source ).toContain( 'kaigen-modal__interactive-toggle' );
+		expect( source ).toContain( 'aria-pressed={ isInteractiveMode }' );
+		expect( source ).toContain( 'interactiveRefinementPanel' );
+		expect( source ).toContain( 'generateImage( prompt.trim(), options )' );
+	} );
+
+	it( 'uses prompt refinement helpers for chips and highlighted terms', () => {
+		const source = fs.readFileSync(
+			path.join(
+				__dirname,
+				'../../src/components/GenerateImageModal.js'
+			),
+			'utf8'
+		);
+
+		expect( source ).toContain( 'REFINEMENT_STAGES' );
+		expect( source ).toContain( 'extractPromptTerms( prompt )' );
+		expect( source ).toContain( 'appendPromptDetail' );
+		expect( source ).toContain( 'getTermExpansionChoices( term )' );
+		expect( source ).toContain( 'replacePromptTerm' );
+		expect( source ).toContain( 'className="kaigen-modal__term-menu"' );
+	} );
+
+	it( 'keeps voice assistance as browser progressive enhancement', () => {
+		const source = fs.readFileSync(
+			path.join(
+				__dirname,
+				'../../src/components/GenerateImageModal.js'
+			),
+			'utf8'
+		);
+
+		expect( source ).toMatch(
+			/window\.SpeechRecognition\s*\|\|\s*window\.webkitSpeechRecognition/
+		);
+		expect( source ).toMatch(
+			/window\.speechSynthesis\s*&&\s*window\.SpeechSynthesisUtterance/
+		);
+		expect( source ).toContain( 'Voice input is not supported' );
+		expect( source ).toContain( 'Voice output is not supported' );
+	} );
+
 	it( 'renders a generated image preview inside the modal stage', () => {
 		const source = fs.readFileSync(
 			path.join(
@@ -398,6 +450,29 @@ describe( 'GenerateImageModal', () => {
 		);
 		expect( styles ).toMatch(
 			/\.kaigen-modal__generated-preview img\s*\{[^}]*height:\s*auto;[^}]*max-height:\s*min\(56vh,\s*540px\);[^}]*max-width:\s*min\(72vw,\s*760px\);[^}]*object-fit:\s*contain;[^}]*width:\s*auto;/s
+		);
+	} );
+
+	it( 'styles the interactive refinement panel and term expansion menu', () => {
+		const styles = fs.readFileSync(
+			path.join( __dirname, '../../assets/kaigen-admin.css' ),
+			'utf8'
+		);
+
+		expect( styles ).toMatch(
+			/\.kaigen-modal__refinement-panel\s*\{[^}]*border-bottom:\s*1px solid #eceff3;[^}]*display:\s*grid;[^}]*gap:\s*10px;/s
+		);
+		expect( styles ).toMatch(
+			/\.kaigen-modal__refinement-stage\.components-button\.is-active\s*\{[^}]*background:\s*#111827;[^}]*color:\s*#fff;/s
+		);
+		expect( styles ).toMatch(
+			/\.kaigen-modal__term-chip\.components-button\s*\{[^}]*background:\s*#fff7ed;[^}]*border:\s*1px solid #fed7aa;[^}]*color:\s*#7c2d12;/s
+		);
+		expect( styles ).toMatch(
+			/\.kaigen-modal__term-menu\s*\{[^}]*background:\s*#fff;[^}]*border:\s*1px solid #ddd;[^}]*border-radius:\s*8px;/s
+		);
+		expect( styles ).toMatch(
+			/@media \(max-width:\s*600px\)[\s\S]*\.kaigen-modal__refinement-question-row\s*\{[^}]*flex-direction:\s*column;/s
 		);
 	} );
 } );

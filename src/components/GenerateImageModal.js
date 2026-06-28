@@ -11,6 +11,14 @@ import {
 import { generateImage, fetchReferenceImages } from '../api';
 import useGenerationProgress from '../hooks/useGenerationProgress';
 import {
+	appendPromptDetail,
+	extractPromptTerms,
+	getRefinementStage,
+	getTermExpansionChoices,
+	REFINEMENT_STAGES,
+	replacePromptTerm,
+} from '../utils/promptRefinement';
+import {
 	DEFAULT_REFERENCE_IMAGE_LIMIT,
 	getKaiGenSettings,
 	isKaiGenAvailable,
@@ -84,7 +92,13 @@ const GenerateImageModal = ( {
 	const [ generatedImage, setGeneratedImage ] = useState( null );
 	const [ provider, setProvider ] = useState( 'auto' );
 	const [ orientation, setOrientation ] = useState( 'square' );
+	const [ isInteractiveMode, setIsInteractiveMode ] = useState( false );
+	const [ activeRefinementStage, setActiveRefinementStage ] =
+		useState( 'idea' );
+	const [ isListening, setIsListening ] = useState( false );
+	const [ voiceStatus, setVoiceStatus ] = useState( '' );
 	const textareaContainerRef = useRef( null );
+	const speechRecognitionRef = useRef( null );
 
 	const kaiGenSettings = getKaiGenSettings();
 	const availableProviders = kaiGenSettings.providers || [];
@@ -151,6 +165,13 @@ const GenerateImageModal = ( {
 		textarea.style.height = `${ textarea.scrollHeight }px`;
 	}, [ prompt, isOpen ] );
 
+	useEffect( () => {
+		return () => {
+			speechRecognitionRef.current?.abort?.();
+			window.speechSynthesis?.cancel?.();
+		};
+	}, [] );
+
 	/**
 	 * Handles Enter key press in textarea
 	 *
@@ -215,12 +236,27 @@ const GenerateImageModal = ( {
 		setGeneratedImage( null );
 		setProvider( kaiGenSettings.provider || 'auto' );
 		setOrientation( kaiGenSettings.orientation || 'square' );
+		setIsInteractiveMode( false );
+		setActiveRefinementStage( 'idea' );
+		setIsListening( false );
+		setVoiceStatus( '' );
+		speechRecognitionRef.current?.abort?.();
+		window.speechSynthesis?.cancel?.();
 		onClose();
 	};
 
 	if ( ! isOpen || ! isKaiGenAvailable() ) {
 		return null;
 	}
+
+	const currentRefinementStage = getRefinementStage( activeRefinementStage );
+	const promptTerms = extractPromptTerms( prompt );
+	const SpeechRecognition =
+		window.SpeechRecognition || window.webkitSpeechRecognition;
+	const canUseSpeechRecognition = Boolean( SpeechRecognition );
+	const canUseSpeechSynthesis = Boolean(
+		window.speechSynthesis && window.SpeechSynthesisUtterance
+	);
 
 	const allReferenceImages = [
 		generatedImage,
@@ -261,6 +297,82 @@ const GenerateImageModal = ( {
 
 			return prev;
 		} );
+	};
+
+	const handleAppendPromptDetail = ( detail ) => {
+		setPrompt( ( currentPrompt ) =>
+			appendPromptDetail( currentPrompt, detail )
+		);
+	};
+
+	const handleTermExpansion = ( term, choice ) => {
+		setPrompt( ( currentPrompt ) =>
+			replacePromptTerm( currentPrompt, term, choice )
+		);
+	};
+
+	const handleVoiceInput = () => {
+		if ( ! canUseSpeechRecognition ) {
+			setVoiceStatus( 'Voice input is not supported in this browser.' );
+			return;
+		}
+
+		if ( isListening ) {
+			speechRecognitionRef.current?.stop?.();
+			return;
+		}
+
+		const recognition = new SpeechRecognition();
+		recognition.continuous = false;
+		recognition.interimResults = false;
+		recognition.lang = window.navigator?.language || 'en-US';
+		recognition.onstart = () => {
+			setIsListening( true );
+			setVoiceStatus( 'Listening...' );
+		};
+		recognition.onresult = ( event ) => {
+			const transcript = Array.from( event.results )
+				.map( ( result ) => result[ 0 ]?.transcript || '' )
+				.join( ' ' )
+				.trim();
+
+			if ( transcript ) {
+				handleAppendPromptDetail( transcript );
+				setVoiceStatus( `Added: ${ transcript }` );
+			} else {
+				setVoiceStatus( 'No speech recognized.' );
+			}
+		};
+		recognition.onerror = () => {
+			setVoiceStatus( 'Voice input stopped.' );
+		};
+		recognition.onend = () => {
+			setIsListening( false );
+			speechRecognitionRef.current = null;
+		};
+		speechRecognitionRef.current = recognition;
+
+		try {
+			recognition.start();
+		} catch {
+			setIsListening( false );
+			setVoiceStatus( 'Voice input could not start.' );
+		}
+	};
+
+	const handleReadQuestion = () => {
+		if ( ! canUseSpeechSynthesis ) {
+			setVoiceStatus( 'Voice output is not supported in this browser.' );
+			return;
+		}
+
+		window.speechSynthesis.cancel();
+		window.speechSynthesis.speak(
+			new window.SpeechSynthesisUtterance(
+				currentRefinementStage.question
+			)
+		);
+		setVoiceStatus( 'Reading question aloud.' );
 	};
 
 	const referenceImagesDropdown = (
@@ -475,6 +587,138 @@ const GenerateImageModal = ( {
 		/>
 	);
 
+	const interactiveRefinementPanel = isInteractiveMode && (
+		<div className="kaigen-modal__refinement-panel">
+			<div
+				className="kaigen-modal__refinement-stages"
+				role="tablist"
+				aria-label="Refinement stages"
+			>
+				{ REFINEMENT_STAGES.map( ( stage ) => (
+					<Button
+						key={ stage.id }
+						className={ `kaigen-modal__refinement-stage ${
+							activeRefinementStage === stage.id
+								? 'is-active'
+								: ''
+						}` }
+						role="tab"
+						aria-selected={ activeRefinementStage === stage.id }
+						onClick={ () => setActiveRefinementStage( stage.id ) }
+					>
+						{ stage.label }
+					</Button>
+				) ) }
+			</div>
+
+			<div className="kaigen-modal__refinement-question-row">
+				<p className="kaigen-modal__refinement-question">
+					{ currentRefinementStage.question }
+				</p>
+				<div className="kaigen-modal__voice-actions">
+					<Button
+						className="kaigen-modal__voice-button"
+						onClick={ handleReadQuestion }
+						aria-disabled={ ! canUseSpeechSynthesis }
+						aria-label="Read refinement question aloud"
+					>
+						<Dashicon icon="controls-volumeon" />
+					</Button>
+					<Button
+						className={ `kaigen-modal__voice-button ${
+							isListening ? 'is-listening' : ''
+						}` }
+						onClick={ handleVoiceInput }
+						aria-disabled={ ! canUseSpeechRecognition }
+						aria-pressed={ isListening }
+						aria-label={
+							isListening
+								? 'Stop voice input'
+								: 'Start voice input'
+						}
+					>
+						<Dashicon icon="microphone" />
+					</Button>
+				</div>
+			</div>
+
+			<div className="kaigen-modal__refinement-chips">
+				{ currentRefinementStage.chips.map( ( chip ) => (
+					<Button
+						key={ chip.text }
+						className="kaigen-modal__refinement-chip"
+						onClick={ () => handleAppendPromptDetail( chip.text ) }
+					>
+						{ chip.label }
+					</Button>
+				) ) }
+			</div>
+
+			{ promptTerms.length > 0 && (
+				<div
+					className="kaigen-modal__prompt-terms"
+					aria-label="Prompt details"
+				>
+					{ promptTerms.map( ( term ) => (
+						<Dropdown
+							key={ term.id }
+							popoverProps={ {
+								placement: 'top-start',
+								focusOnMount: true,
+							} }
+							renderToggle={ ( {
+								isOpen: isDropdownOpen,
+								onToggle,
+							} ) => (
+								<Button
+									className={ `kaigen-modal__term-chip ${
+										isDropdownOpen ? 'is-active' : ''
+									}` }
+									onClick={ onToggle }
+									aria-expanded={ isDropdownOpen }
+								>
+									{ term.text }
+								</Button>
+							) }
+							renderContent={ ( { onClose: closeDropdown } ) => (
+								<div
+									className="kaigen-modal__term-menu"
+									role="menu"
+								>
+									{ getTermExpansionChoices( term ).map(
+										( choice ) => (
+											<button
+												type="button"
+												key={ choice }
+												className="kaigen-modal__term-menu-item"
+												onClick={ () => {
+													handleTermExpansion(
+														term,
+														choice
+													);
+													closeDropdown();
+												} }
+												role="menuitem"
+											>
+												{ choice }
+											</button>
+										)
+									) }
+								</div>
+							) }
+						/>
+					) ) }
+				</div>
+			) }
+
+			{ voiceStatus && (
+				<p className="kaigen-modal__voice-status" role="status">
+					{ voiceStatus }
+				</p>
+			) }
+		</div>
+	);
+
 	return (
 		<Modal
 			className="kaigen-modal"
@@ -508,6 +752,25 @@ const GenerateImageModal = ( {
 				) }
 
 				<div className="kaigen-modal__composer">
+					<div className="kaigen-modal__interactive-row">
+						<Button
+							className={ `kaigen-modal__interactive-toggle ${
+								isInteractiveMode ? 'is-primary' : ''
+							}` }
+							onClick={ () =>
+								setIsInteractiveMode(
+									( isEnabled ) => ! isEnabled
+								)
+							}
+							aria-pressed={ isInteractiveMode }
+						>
+							<Dashicon icon="format-chat" />
+							<span>Interactive mode</span>
+						</Button>
+					</div>
+
+					{ interactiveRefinementPanel }
+
 					<div className="kaigen-modal__prompt-row">
 						<div className="kaigen-modal__prompt-action">
 							{ referenceImagesDropdown }

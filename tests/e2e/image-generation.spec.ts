@@ -1,9 +1,65 @@
 /**
  * E2E tests for the KaiGen MVP editor surface.
  */
-import { test, expect } from '@wordpress/e2e-test-utils-playwright';
+import {
+	test,
+	expect,
+	type FrameLocator,
+	type Locator,
+	type Page,
+} from '@playwright/test';
+
+type BlockRepresentation = {
+	name: string;
+	attributes?: Record< string, unknown >;
+	innerBlocks?: BlockRepresentation[];
+};
+
+type EditorHarness = {
+	canvas: FrameLocator;
+	insertBlock: ( block: BlockRepresentation ) => Promise< void >;
+	selectBlocks: ( block: Locator ) => Promise< void >;
+};
 
 test.describe( 'KaiGen Image Generation', () => {
+	const createEditorHarness = ( page: Page ): EditorHarness => ( {
+		canvas: page.frameLocator( '[name="editor-canvas"]' ),
+		insertBlock: async ( block ) => {
+			await page.waitForFunction(
+				() => ( window as any ).wp?.blocks && ( window as any ).wp?.data
+			);
+
+			await page.evaluate( ( blockRepresentation ) => {
+				const createBlock = ( {
+					name,
+					attributes = {},
+					innerBlocks = [],
+				}: BlockRepresentation ) =>
+					( window as any ).wp.blocks.createBlock(
+						name,
+						attributes,
+						innerBlocks.map( createBlock )
+					);
+
+				( window as any ).wp.data
+					.dispatch( 'core/block-editor' )
+					.insertBlock( createBlock( blockRepresentation ) );
+			}, block );
+		},
+		selectBlocks: async ( block ) => {
+			const clientId = await block.getAttribute( 'data-block' );
+
+			if ( ! clientId ) {
+				throw new Error( 'Unable to select block without client ID.' );
+			}
+
+			await page.evaluate( ( selectedClientId ) => {
+				( window as any ).wp.data
+					.dispatch( 'core/block-editor' )
+					.selectBlock( selectedClientId );
+			}, clientId );
+		},
+	} );
 	const getKaiGenModal = ( page ) => page.locator( '.kaigen-modal' ).first();
 	const getKaiGenToolbarButton = ( page ) =>
 		page
@@ -27,6 +83,31 @@ test.describe( 'KaiGen Image Generation', () => {
 		if ( page.url().includes( 'wp-login.php' ) ) {
 			throw new Error( 'WordPress login failed.' );
 		}
+	};
+	const createNewPost = async ( page: Page ) => {
+		await page.goto( '/wp-admin/post-new.php' );
+		await page.waitForFunction( () => ( window as any ).wp?.data );
+		await page.evaluate( async () => {
+			const preferences = ( window as any ).wp.data.dispatch(
+				'core/preferences'
+			);
+
+			await preferences.set( 'core/edit-post', 'welcomeGuide', false );
+			await preferences.set( 'core/edit-post', 'fullscreenMode', false );
+		} );
+	};
+	const waitForEditorReady = async ( page: Page ) => {
+		await page.waitForURL( /post-new\.php|post\.php/ );
+		await page.waitForLoadState( 'domcontentloaded' );
+		await page.waitForSelector( '.edit-post-layout, .block-editor', {
+			timeout: 15000,
+			state: 'attached',
+		} );
+		await page.waitForFunction(
+			() =>
+				( window as any ).wp?.apiFetch &&
+				( window as any ).wp?.data?.select( 'core/block-editor' )
+		);
 	};
 	const dismissEditorModals = async ( page ) => {
 		for ( let attempts = 0; attempts < 3; attempts++ ) {
@@ -121,29 +202,25 @@ test.describe( 'KaiGen Image Generation', () => {
 		return modal;
 	};
 
-	test.beforeEach( async ( { admin, page } ) => {
+	test.beforeEach( async ( { page } ) => {
 		test.setTimeout( 60000 );
 		await ensureLoggedIn( page );
-		await admin.createNewPost( { showWelcomeGuide: false } );
+		await createNewPost( page );
 		if (
 			! page.url().includes( 'post-new.php' ) &&
 			! page.url().includes( 'post.php' )
 		) {
 			await page.goto( '/wp-admin/post-new.php' );
 		}
-		await page.waitForURL( /post-new\.php|post\.php/ );
-		await page.waitForLoadState( 'domcontentloaded' );
-		await page.waitForSelector( '.edit-post-layout, .block-editor', {
-			timeout: 15000,
-			state: 'attached',
-		} );
+		await waitForEditorReady( page );
 		await dismissEditorModals( page );
 	} );
 
 	test( 'shows KaiGen on empty image blocks and exposes MVP editor settings', async ( {
-		editor,
 		page,
 	} ) => {
+		const editor = createEditorHarness( page );
+
 		await editor.insertBlock( { name: 'core/image' } );
 
 		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
@@ -183,16 +260,17 @@ test.describe( 'KaiGen Image Generation', () => {
 		expect( legacyKaiGenSettings ).toBeUndefined();
 	} );
 
-	test( 'modal only shows MVP controls', async ( { editor, page } ) => {
+	test( 'modal only shows MVP controls', async ( { page } ) => {
+		const editor = createEditorHarness( page );
+
 		await editor.insertBlock( { name: 'core/image' } );
 
 		const imageBlock = editor.canvas.locator( '[data-type="core/image"]' );
 		await expect( imageBlock ).toBeVisible( { timeout: 10000 } );
 
 		const modal = await openKaiGenModal( page, editor, imageBlock );
-		await expect(
-			modal.getByPlaceholder( 'Type to imagine' )
-		).toBeVisible();
+		const promptInput = modal.getByPlaceholder( 'Type to imagine' );
+		await expect( promptInput ).toBeVisible();
 		const referenceToggle = modal.getByRole( 'button', {
 			name: 'Reference Images',
 		} );
@@ -242,6 +320,31 @@ test.describe( 'KaiGen Image Generation', () => {
 		await expect(
 			page.getByRole( 'menuitemradio', { name: /9:16.*Vertical/i } )
 		).toBeVisible();
+		await page.keyboard.press( 'Escape' );
+
+		const interactiveToggle = modal.getByRole( 'button', {
+			name: 'Interactive mode',
+		} );
+		await expect( interactiveToggle ).toBeVisible();
+		await expect( interactiveToggle ).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+		await promptInput.fill( 'a duck' );
+		await interactiveToggle.click();
+		await expect( interactiveToggle ).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(
+			modal.getByText( 'What is the main thing you want to see?' )
+		).toBeVisible();
+		await expect(
+			modal.getByRole( 'tab', { name: 'Idea' } )
+		).toHaveAttribute( 'aria-selected', 'true' );
+		await modal.getByRole( 'button', { name: 'duck' } ).click();
+		await page.getByRole( 'menuitem', { name: 'yellow duck' } ).click();
+		await expect( promptInput ).toHaveValue( 'a yellow duck' );
 
 		await expect( page.getByText( 'Quality' ) ).toHaveCount( 0 );
 		await expect( page.getByText( 'Model' ) ).toHaveCount( 0 );
@@ -249,9 +352,11 @@ test.describe( 'KaiGen Image Generation', () => {
 	} );
 
 	test( 'persists reference image marking in the image block sidebar', async ( {
-		editor,
 		page,
 	} ) => {
+		const editor = createEditorHarness( page );
+
+		await waitForEditorReady( page );
 		await page.evaluate( async () => {
 			const pngBase64 =
 				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
