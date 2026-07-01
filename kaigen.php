@@ -32,5 +32,6 @@ define( 'KAIGEN_VERSION', '0.2.11' );
 require_once __DIR__ . '/inc/class-image-handler.php';
 require_once __DIR__ . '/inc/class-image-generation-http-options.php';
 require_once __DIR__ . '/inc/class-image-generation-service.php';
+require_once __DIR__ . '/inc/class-prompt-refinement-service.php';
 require_once __DIR__ . '/inc/class-admin.php';
 require_once __DIR__ . '/inc/class-rest-api.php';

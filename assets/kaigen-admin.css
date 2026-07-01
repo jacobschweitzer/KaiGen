@@ -102,144 +102,48 @@
 
 /* ===== INTERACTIVE REFINEMENT ===== */
 
-.kaigen-modal__interactive-row {
-	display: flex;
-	padding: 12px 16px 0;
+.kaigen-modal__refinement-menu {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 18px;
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+	max-width: 360px;
+	min-width: 220px;
+	padding: 10px;
 }
 
-.kaigen-modal__interactive-toggle.components-button {
-	align-items: center;
-	border: 1px solid #d6d9dd;
-	border-radius: 999px;
-	box-shadow: none;
-	display: inline-flex;
-	font-size: 13px;
-	font-weight: 600;
-	gap: 6px;
-	height: 34px;
-	line-height: 1;
-	padding: 0 12px;
-}
-
-.kaigen-modal__interactive-toggle.components-button.is-primary,
-.kaigen-modal__interactive-toggle.components-button.is-primary:hover,
-.kaigen-modal__interactive-toggle.components-button.is-primary:focus,
-.kaigen-modal__interactive-toggle.components-button.is-primary:focus-visible {
-	background: #3858e9;
-	border-color: #3858e9;
-	box-shadow: none;
-	color: #fff;
-	outline: none;
-}
-
-.kaigen-modal__interactive-toggle .dashicon {
-	font-size: 18px;
-	height: 18px;
-	width: 18px;
-}
-
-.kaigen-modal__refinement-panel {
-	border-bottom: 1px solid #eceff3;
-	display: grid;
-	gap: 10px;
-	padding: 10px 16px 12px;
-}
-
-.kaigen-modal__refinement-stages {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-}
-
-.kaigen-modal__refinement-stage.components-button {
-	background: #f6f7f7;
-	border: 1px solid transparent;
-	border-radius: 999px;
-	box-shadow: none;
-	color: #50575e;
-	font-size: 12px;
-	font-weight: 700;
-	height: 30px;
-	padding: 0 10px;
-}
-
-.kaigen-modal__refinement-stage.components-button.is-active {
-	background: #111827;
-	color: #fff;
-}
-
-.kaigen-modal__refinement-question-row {
-	align-items: center;
-	display: flex;
-	gap: 12px;
-	justify-content: space-between;
-}
-
-.kaigen-modal__refinement-question {
-	color: #1f2328;
-	font-size: 14px;
-	font-weight: 600;
-	line-height: 1.35;
-	margin: 0;
-}
-
-.kaigen-modal__voice-actions {
-	display: flex;
-	flex: 0 0 auto;
-	gap: 6px;
-}
-
-.kaigen-modal__voice-button.components-button {
-	align-items: center;
-	border: 1px solid #d6d9dd;
-	border-radius: 999px;
-	box-shadow: none;
-	display: inline-flex;
-	height: 32px;
-	justify-content: center;
-	min-width: 32px;
-	padding: 0;
-	width: 32px;
-}
-
-.kaigen-modal__voice-button.components-button[aria-disabled="true"] {
-	color: #8c8f94;
-}
-
-.kaigen-modal__voice-button.components-button.is-listening {
-	background: #0f766e;
-	border-color: #0f766e;
-	color: #fff;
-}
-
-.kaigen-modal__refinement-chips,
 .kaigen-modal__prompt-terms {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
 }
 
-.kaigen-modal__refinement-chip.components-button,
-.kaigen-modal__term-chip.components-button {
-	border-radius: 999px;
-	box-shadow: none;
-	font-size: 12px;
-	font-weight: 600;
-	height: 30px;
-	line-height: 1;
-	padding: 0 10px;
+.kaigen-modal__loading-status {
+	align-items: center;
+	display: inline-flex;
+	justify-content: center;
+	min-height: 30px;
+	min-width: 30px;
+	padding: 0 4px;
 }
 
-.kaigen-modal__refinement-chip.components-button {
-	background: #f6f7f7;
-	border: 1px solid #d6d9dd;
-	color: #1f2328;
+.kaigen-modal__loading-status .components-spinner {
+	height: 18px;
+	margin: 0;
+	width: 18px;
 }
 
 .kaigen-modal__term-chip.components-button {
 	background: #fff7ed;
 	border: 1px solid #fed7aa;
+	border-radius: 999px;
+	box-shadow: none;
 	color: #7c2d12;
+	font-size: 12px;
+	font-weight: 600;
+	height: 30px;
+	line-height: 1;
+	padding: 0 10px;
 }
 
 .kaigen-modal__term-chip.components-button.is-active {
@@ -263,24 +167,32 @@
 	border-radius: 6px;
 	color: #1f2328;
 	cursor: pointer;
-	display: block;
+	display: flex;
 	font-size: 13px;
 	font-weight: 600;
+	gap: 8px;
+	justify-content: space-between;
 	padding: 8px 10px;
 	text-align: left;
 	width: 100%;
+}
+
+.kaigen-modal__term-menu-item:disabled {
+	cursor: progress;
+	opacity: 0.72;
+}
+
+.kaigen-modal__term-menu-item-spinner {
+	flex: 0 0 auto;
+	height: 16px;
+	margin: 0;
+	width: 16px;
 }
 
 .kaigen-modal__term-menu-item:hover,
 .kaigen-modal__term-menu-item:focus {
 	background: #f6f7f7;
 	outline: none;
-}
-
-.kaigen-modal__voice-status {
-	color: #646970;
-	font-size: 12px;
-	margin: 0;
 }
 
 /* ===== TEXTAREA ===== */
@@ -315,6 +227,7 @@
 .kaigen-modal__ref-button,
 .kaigen-modal__aspect-ratio-toggle,
 .kaigen-modal__provider-toggle,
+.kaigen-modal__interactive-toggle,
 .kaigen-modal__submit-button {
 	align-items: center;
 	border-radius: 999px;
@@ -328,7 +241,8 @@
 
 .kaigen-modal__ref-button,
 .kaigen-modal__aspect-ratio-toggle,
-.kaigen-modal__provider-toggle {
+.kaigen-modal__provider-toggle,
+.kaigen-modal__interactive-toggle {
 	background: #fff;
 	border: 1px solid #d6d9dd;
 	box-shadow: none;
@@ -343,7 +257,10 @@
 .kaigen-modal__aspect-ratio-toggle.components-button:focus-visible,
 .kaigen-modal__provider-toggle.components-button:hover,
 .kaigen-modal__provider-toggle.components-button:focus,
-.kaigen-modal__provider-toggle.components-button:focus-visible {
+.kaigen-modal__provider-toggle.components-button:focus-visible,
+.kaigen-modal__interactive-toggle.components-button:hover,
+.kaigen-modal__interactive-toggle.components-button:focus,
+.kaigen-modal__interactive-toggle.components-button:focus-visible {
 	background: #fff;
 	box-shadow: none;
 	color: #1f2328;
@@ -353,15 +270,19 @@
 .kaigen-modal__ref-button.components-button.is-primary,
 .kaigen-modal__aspect-ratio-toggle.components-button.is-primary,
 .kaigen-modal__provider-toggle.components-button.is-primary,
+.kaigen-modal__interactive-toggle.components-button.is-primary,
 .kaigen-modal__ref-button.components-button.is-primary:hover,
 .kaigen-modal__aspect-ratio-toggle.components-button.is-primary:hover,
 .kaigen-modal__provider-toggle.components-button.is-primary:hover,
+.kaigen-modal__interactive-toggle.components-button.is-primary:hover,
 .kaigen-modal__ref-button.components-button.is-primary:focus,
 .kaigen-modal__aspect-ratio-toggle.components-button.is-primary:focus,
 .kaigen-modal__provider-toggle.components-button.is-primary:focus,
+.kaigen-modal__interactive-toggle.components-button.is-primary:focus,
 .kaigen-modal__ref-button.components-button.is-primary:focus-visible,
 .kaigen-modal__aspect-ratio-toggle.components-button.is-primary:focus-visible,
-.kaigen-modal__provider-toggle.components-button.is-primary:focus-visible {
+.kaigen-modal__provider-toggle.components-button.is-primary:focus-visible,
+.kaigen-modal__interactive-toggle.components-button.is-primary:focus-visible {
 	background: #3858e9;
 	border-color: #3858e9;
 	box-shadow: none;
@@ -370,7 +291,8 @@
 }
 
 /* Reference button icon styling */
-.kaigen-modal__ref-button .dashicon {
+.kaigen-modal__ref-button .dashicon,
+.kaigen-modal__interactive-toggle .dashicon {
 	color: #1f2328;
 	font-size: 20px;
 	height: 20px;
@@ -621,27 +543,10 @@
 		padding: 12px 12px 8px;
 	}
 
-	.kaigen-modal__interactive-row {
-		padding: 10px 12px 0;
-	}
-
-	.kaigen-modal__refinement-panel {
-		padding: 10px 12px;
-	}
-
-	.kaigen-modal__refinement-question-row {
-		align-items: flex-start;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.kaigen-modal__interactive-toggle.components-button {
-		max-width: 100%;
-	}
-
 	.kaigen-modal__ref-button,
 	.kaigen-modal__aspect-ratio-toggle,
 	.kaigen-modal__provider-toggle,
+	.kaigen-modal__interactive-toggle,
 	.kaigen-modal__submit-button {
 		width: 36px;
 		height: 36px;
@@ -667,6 +572,10 @@
 }
 
 .kaigen-modal__ref-button.is-primary .dashicon {
+	color: #fff;
+}
+
+.kaigen-modal__interactive-toggle.is-primary .dashicon {
 	color: #fff;
 }
 

@@ -1,0 +1,42 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"preferredVersions": {
+		"php": "8.1",
+		"wp": "latest"
+	},
+	"features": {
+		"networking": true
+	},
+	"landingPage": "/wp-admin/post-new.php",
+	"steps": [
+		{
+			"step": "runWpInstallationWizard",
+			"options": {
+				"adminUsername": "admin",
+				"adminPassword": "password"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php $mu_plugins_dir = '/wordpress/wp-content/mu-plugins'; $fixture_dir = '/wordpress/wp-content/plugins/kaigen/tests/e2e/fixtures/mu-plugins'; if ( ! is_dir( $mu_plugins_dir ) ) { mkdir( $mu_plugins_dir, 0777, true ); } foreach ( [ 'kaigen-e2e-provider.php', 'kaigen-e2e-reference-media.php' ] as $fixture ) { if ( ! copy( $fixture_dir . '/' . $fixture, $mu_plugins_dir . '/' . $fixture ) ) { throw new Exception( 'Unable to copy E2E fixture: ' . $fixture ); } }"
+		},
+		{
+			"step": "activatePlugin",
+			"pluginPath": "/wordpress/wp-content/plugins/kaigen"
+		},
+		{
+			"step": "defineWpConfigConsts",
+			"consts": {
+				"E2E_TESTING": true,
+				"WP_DEBUG": true,
+				"WP_DEBUG_LOG": true,
+				"WP_DEBUG_DISPLAY": false
+			}
+		},
+		{
+			"step": "login",
+			"username": "admin",
+			"password": "password"
+		}
+	]
+}

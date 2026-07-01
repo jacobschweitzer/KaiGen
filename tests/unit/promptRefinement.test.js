@@ -1,42 +1,73 @@
+import fs from 'fs';
+import path from 'path';
+
 import {
-	appendPromptDetail,
-	extractPromptTerms,
-	getRefinementStage,
-	getTermExpansionChoices,
+	normalizePromptRefinements,
 	replacePromptTerm,
 } from '../../src/utils/promptRefinement';
 
 describe( 'promptRefinement', () => {
-	it( 'extracts meaningful prompt terms and skips filler words', () => {
-		const terms = extractPromptTerms( 'a duck in a pond with the sun' );
+	it( 'normalizes model-returned terms without filtering stop words', () => {
+		const refinements = normalizePromptRefinements( 'a duck in a pond', {
+			terms: [
+				{
+					text: 'a',
+					choices: [ 'storybook singular focus' ],
+				},
+				{
+					text: 'duck',
+					choices: [
+						'mallard with emerald head',
+						'mallard with emerald head',
+						'duck',
+					],
+				},
+				{
+					text: 'missing hillside',
+					choices: [ 'should not render' ],
+				},
+			],
+		} );
 
-		expect( terms.map( ( term ) => term.text ) ).toEqual( [
-			'duck',
-			'pond',
-			'sun',
-		] );
-		expect( terms[ 0 ] ).toEqual(
-			expect.objectContaining( {
+		expect( refinements ).toEqual( [
+			{
+				id: 'a-0',
+				text: 'a',
+				start: 0,
+				end: 1,
+				choices: [ 'storybook singular focus' ],
+			},
+			{
 				id: 'duck-2',
-				normalized: 'duck',
+				text: 'duck',
 				start: 2,
 				end: 6,
-			} )
+				choices: [ 'mallard with emerald head' ],
+			},
+		] );
+	} );
+
+	it( 'does not invent local fallback suggestions when the model returns none', () => {
+		expect(
+			normalizePromptRefinements( 'world cup game', { terms: [] } )
+		).toEqual( [] );
+		expect( normalizePromptRefinements( 'world cup game', null ) ).toEqual(
+			[]
 		);
 	} );
 
-	it( 'returns deterministic term expansion choices', () => {
-		expect( getTermExpansionChoices( 'duck' ) ).toEqual( [
-			'yellow duck',
-			'angry duck',
-			'tall duck',
-		] );
-		expect( getTermExpansionChoices( 'castle' ) ).toEqual( [
-			'vivid castle',
-			'weathered castle',
-			'miniature castle',
-		] );
-		expect( getTermExpansionChoices( '' ) ).toEqual( [] );
+	it( 'does not keep hardcoded term or stop-word expansion sources', () => {
+		const source = fs.readFileSync(
+			path.join( __dirname, '../../src/utils/promptRefinement.js' ),
+			'utf8'
+		);
+
+		expect( source ).not.toMatch(
+			/STOP_WORDS|TERM_EXPANSIONS|CONTEXTUAL_TERM_EXPANSIONS|KNOWN_PROMPT_PHRASES|getTermExpansionChoices|getDefaultChoices/
+		);
+		expect( source ).not.toMatch(
+			/yellow duck|specific visual twist|dusty sunlight|vivid/
+		);
 	} );
 
 	it( 'replaces only the selected prompt term occurrence', () => {
@@ -49,28 +80,6 @@ describe( 'promptRefinement', () => {
 
 		expect( replacePromptTerm( prompt, secondDuck, 'yellow duck' ) ).toBe(
 			'duck beside another yellow duck'
-		);
-	} );
-
-	it( 'appends details with readable punctuation', () => {
-		expect( appendPromptDetail( 'a duck.', 'soft light' ) ).toBe(
-			'a duck, soft light'
-		);
-		expect( appendPromptDetail( 'a soft lighthouse', 'soft light' ) ).toBe(
-			'a soft lighthouse, soft light'
-		);
-		expect( appendPromptDetail( '', 'soft light' ) ).toBe( 'soft light' );
-		expect( appendPromptDetail( 'a duck, soft light', 'soft light' ) ).toBe(
-			'a duck, soft light'
-		);
-	} );
-
-	it( 'falls back to the first refinement stage for unknown stages', () => {
-		expect( getRefinementStage( 'missing' ) ).toEqual(
-			expect.objectContaining( {
-				id: 'idea',
-				question: 'What is the main thing you want to see?',
-			} )
 		);
 	} );
 } );

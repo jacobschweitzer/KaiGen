@@ -160,10 +160,10 @@ describe( 'GenerateImageModal', () => {
 		);
 
 		expect( styles ).toMatch(
-			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*border-radius:\s*999px;[^}]*height:\s*48px;[^}]*min-width:\s*48px;[^}]*padding:\s*0;[^}]*width:\s*48px;/s
+			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__interactive-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*border-radius:\s*999px;[^}]*height:\s*48px;[^}]*min-width:\s*48px;[^}]*padding:\s*0;[^}]*width:\s*48px;/s
 		);
 		expect( styles ).toMatch(
-			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle\s*\{[^}]*background:\s*#fff;[^}]*border:\s*1px solid #d6d9dd;[^}]*color:\s*#1f2328;/s
+			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__interactive-toggle\s*\{[^}]*background:\s*#fff;[^}]*border:\s*1px solid #d6d9dd;[^}]*color:\s*#1f2328;/s
 		);
 		expect( styles ).toMatch(
 			/\.kaigen-modal__provider-toggle-icon\s*\{[^}]*display:\s*none;/s
@@ -232,7 +232,7 @@ describe( 'GenerateImageModal', () => {
 			'kaigen-modal__aspect-ratio-ratio'
 		);
 		expect( styles ).toMatch(
-			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*border-radius:\s*999px;[^}]*height:\s*48px;[^}]*min-width:\s*48px;[^}]*padding:\s*0;[^}]*width:\s*48px;/s
+			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__interactive-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*border-radius:\s*999px;[^}]*height:\s*48px;[^}]*min-width:\s*48px;[^}]*padding:\s*0;[^}]*width:\s*48px;/s
 		);
 	} );
 
@@ -264,7 +264,7 @@ describe( 'GenerateImageModal', () => {
 		);
 
 		expect( styles ).toMatch(
-			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*height:\s*48px;[^}]*min-width:\s*48px;[^}]*width:\s*48px;/s
+			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__interactive-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*height:\s*48px;[^}]*min-width:\s*48px;[^}]*width:\s*48px;/s
 		);
 		expect( styles ).toMatch(
 			/\.kaigen-modal__output-action\s*\{[^}]*display:\s*flex;[^}]*gap:\s*10px;/s
@@ -291,10 +291,10 @@ describe( 'GenerateImageModal', () => {
 			/className=\{\s*`kaigen-modal__provider-toggle\s+\$\{\s*isDropdownOpen\s*\?\s*'is-primary'\s*:\s*''\s*\}/
 		);
 		expect( styles ).toMatch(
-			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle\s*\{[^}]*background:\s*#fff;/s
+			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__interactive-toggle\s*\{[^}]*background:\s*#fff;/s
 		);
 		expect( styles ).toMatch(
-			/\.kaigen-modal__ref-button\.components-button\.is-primary,\s*\.kaigen-modal__aspect-ratio-toggle\.components-button\.is-primary,\s*\.kaigen-modal__provider-toggle\.components-button\.is-primary,[\s\S]*background:\s*#3858e9;[\s\S]*border-color:\s*#3858e9;[\s\S]*color:\s*#fff;/s
+			/\.kaigen-modal__ref-button\.components-button\.is-primary,\s*\.kaigen-modal__aspect-ratio-toggle\.components-button\.is-primary,\s*\.kaigen-modal__provider-toggle\.components-button\.is-primary,\s*\.kaigen-modal__interactive-toggle\.components-button\.is-primary,[\s\S]*background:\s*#3858e9;[\s\S]*border-color:\s*#3858e9;[\s\S]*color:\s*#fff;/s
 		);
 	} );
 
@@ -368,7 +368,7 @@ describe( 'GenerateImageModal', () => {
 		expect( successBlock ).not.toContain( 'handleClose()' );
 	} );
 
-	it( 'renders an optional interactive refinement mode without changing generation input', () => {
+	it( 'renders interactive refinement as a dropdown in the prompt action cluster', () => {
 		const source = fs.readFileSync(
 			path.join(
 				__dirname,
@@ -379,12 +379,16 @@ describe( 'GenerateImageModal', () => {
 
 		expect( source ).toContain( 'Interactive mode' );
 		expect( source ).toContain( 'kaigen-modal__interactive-toggle' );
-		expect( source ).toContain( 'aria-pressed={ isInteractiveMode }' );
-		expect( source ).toContain( 'interactiveRefinementPanel' );
+		expect( source ).toContain( 'interactiveRefinementDropdown' );
+		expect( source ).toMatch(
+			/<div className="kaigen-modal__prompt-action">[\s\S]*\{ interactiveRefinementDropdown \}[\s\S]*\{ referenceImagesDropdown \}[\s\S]*\{ aspectRatioDropdown \}/
+		);
 		expect( source ).toContain( 'generateImage( prompt.trim(), options )' );
+		expect( source ).not.toContain( 'kaigen-modal__interactive-row' );
+		expect( source ).not.toContain( 'isInteractiveMode' );
 	} );
 
-	it( 'uses prompt refinement helpers for chips and highlighted terms', () => {
+	it( 'loads interactive refinement choices from the model-backed API', () => {
 		const source = fs.readFileSync(
 			path.join(
 				__dirname,
@@ -393,31 +397,33 @@ describe( 'GenerateImageModal', () => {
 			'utf8'
 		);
 
-		expect( source ).toContain( 'REFINEMENT_STAGES' );
-		expect( source ).toContain( 'extractPromptTerms( prompt )' );
-		expect( source ).toContain( 'appendPromptDetail' );
-		expect( source ).toContain( 'getTermExpansionChoices( term )' );
-		expect( source ).toContain( 'replacePromptTerm' );
+		expect( source ).toContain( 'applyPromptRefinement' );
+		expect( source ).toContain( 'fetchPromptRefinements' );
+		expect( source ).toContain( 'Spinner' );
+		expect( source ).toContain( 'promptRefinements' );
+		expect( source ).toContain( 'applyingPromptRefinementKey' );
+		expect( source ).toMatch(
+			/fetchPromptRefinements\(\s*currentPrompt\s*\)/
+		);
+		expect( source ).toMatch(
+			/applyPromptRefinement\(\s*promptAtSelection,\s*term,\s*choice\s*\)/
+		);
+		expect( source ).toMatch( /promptRefinements\.map\(\s*\(\s*term\s*\)/ );
+		expect( source ).not.toContain( 'replacePromptTerm' );
+		expect( source ).toContain( 'kaigen-modal__loading-status' );
+		expect( source ).toContain( 'kaigen-modal__term-menu-item-spinner' );
+		expect( source ).toMatch( /aria-busy=\{\s*isApplyingChoice\s*\}/ );
 		expect( source ).toContain( 'className="kaigen-modal__term-menu"' );
-	} );
-
-	it( 'keeps voice assistance as browser progressive enhancement', () => {
-		const source = fs.readFileSync(
-			path.join(
-				__dirname,
-				'../../src/components/GenerateImageModal.js'
-			),
-			'utf8'
+		expect( source ).toContain(
+			'className="kaigen-modal__refinement-menu"'
 		);
-
-		expect( source ).toMatch(
-			/window\.SpeechRecognition\s*\|\|\s*window\.webkitSpeechRecognition/
-		);
-		expect( source ).toMatch(
-			/window\.speechSynthesis\s*&&\s*window\.SpeechSynthesisUtterance/
-		);
-		expect( source ).toContain( 'Voice input is not supported' );
-		expect( source ).toContain( 'Voice output is not supported' );
+		expect( source ).not.toContain( 'extractPromptTerms' );
+		expect( source ).not.toContain( 'getTermExpansionChoices' );
+		expect( source ).not.toContain( 'REFINEMENT_STAGES' );
+		expect( source ).not.toContain( 'appendPromptDetail' );
+		expect( source ).not.toContain( 'kaigen-modal__refinement-stage' );
+		expect( source ).not.toContain( 'kaigen-modal__refinement-chip' );
+		expect( source ).not.toContain( 'kaigen-modal__voice-button' );
 	} );
 
 	it( 'renders a generated image preview inside the modal stage', () => {
@@ -453,17 +459,17 @@ describe( 'GenerateImageModal', () => {
 		);
 	} );
 
-	it( 'styles the interactive refinement panel and term expansion menu', () => {
+	it( 'styles the interactive refinement dropdown and term expansion menu', () => {
 		const styles = fs.readFileSync(
 			path.join( __dirname, '../../assets/kaigen-admin.css' ),
 			'utf8'
 		);
 
 		expect( styles ).toMatch(
-			/\.kaigen-modal__refinement-panel\s*\{[^}]*border-bottom:\s*1px solid #eceff3;[^}]*display:\s*grid;[^}]*gap:\s*10px;/s
+			/\.kaigen-modal__ref-button,\s*\.kaigen-modal__aspect-ratio-toggle,\s*\.kaigen-modal__provider-toggle,\s*\.kaigen-modal__interactive-toggle,\s*\.kaigen-modal__submit-button\s*\{[^}]*border-radius:\s*999px;[^}]*height:\s*48px;[^}]*width:\s*48px;/s
 		);
 		expect( styles ).toMatch(
-			/\.kaigen-modal__refinement-stage\.components-button\.is-active\s*\{[^}]*background:\s*#111827;[^}]*color:\s*#fff;/s
+			/\.kaigen-modal__refinement-menu\s*\{[^}]*background:\s*#fff;[^}]*border:\s*1px solid #ddd;[^}]*border-radius:\s*18px;/s
 		);
 		expect( styles ).toMatch(
 			/\.kaigen-modal__term-chip\.components-button\s*\{[^}]*background:\s*#fff7ed;[^}]*border:\s*1px solid #fed7aa;[^}]*color:\s*#7c2d12;/s
@@ -472,7 +478,13 @@ describe( 'GenerateImageModal', () => {
 			/\.kaigen-modal__term-menu\s*\{[^}]*background:\s*#fff;[^}]*border:\s*1px solid #ddd;[^}]*border-radius:\s*8px;/s
 		);
 		expect( styles ).toMatch(
-			/@media \(max-width:\s*600px\)[\s\S]*\.kaigen-modal__refinement-question-row\s*\{[^}]*flex-direction:\s*column;/s
+			/\.kaigen-modal__loading-status\s*\{[^}]*align-items:\s*center;[^}]*display:\s*inline-flex;/s
 		);
+		expect( styles ).toMatch(
+			/\.kaigen-modal__term-menu-item-spinner\s*\{[^}]*height:\s*16px;[^}]*width:\s*16px;/s
+		);
+		expect( styles ).not.toContain( 'kaigen-modal__refinement-stage' );
+		expect( styles ).not.toContain( 'kaigen-modal__refinement-chip' );
+		expect( styles ).not.toContain( 'kaigen-modal__voice-button' );
 	} );
 } );

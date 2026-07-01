@@ -103,14 +103,72 @@ const resolvePlaygroundPort = async ( env = process.env ) => {
 	return String( await findAvailablePort() );
 };
 
+const resolvePlaywrightLaunch = (
+	args = process.argv.slice( 2 ),
+	env = process.env
+) => {
+	const launchArgs = [];
+	const launchEnv = { ...env };
+
+	for ( let index = 0; index < args.length; index++ ) {
+		const arg = args[ index ];
+
+		if ( arg.startsWith( '--playground-blueprint=' ) ) {
+			launchEnv.PLAYGROUND_BLUEPRINT = arg.slice(
+				'--playground-blueprint='.length
+			);
+			continue;
+		}
+
+		if ( arg === '--playground-blueprint' ) {
+			const value = args[ index + 1 ];
+
+			if ( ! value ) {
+				throw new Error( '--playground-blueprint requires a value.' );
+			}
+
+			launchEnv.PLAYGROUND_BLUEPRINT = value;
+			index++;
+			continue;
+		}
+
+		if ( arg.startsWith( '--playground-workers=' ) ) {
+			launchEnv.PLAYGROUND_WORKERS = arg.slice(
+				'--playground-workers='.length
+			);
+			continue;
+		}
+
+		if ( arg === '--playground-workers' ) {
+			const value = args[ index + 1 ];
+
+			if ( ! value ) {
+				throw new Error( '--playground-workers requires a value.' );
+			}
+
+			launchEnv.PLAYGROUND_WORKERS = value;
+			index++;
+			continue;
+		}
+
+		launchArgs.push( arg );
+	}
+
+	return {
+		args: launchArgs,
+		env: launchEnv,
+	};
+};
+
 const runPlaywright = async (
 	args = process.argv.slice( 2 ),
 	env = process.env
 ) => {
-	const playgroundPort = await resolvePlaygroundPort( env );
+	const launch = resolvePlaywrightLaunch( args, env );
+	const playgroundPort = await resolvePlaygroundPort( launch.env );
 	const playwrightCli = require.resolve( '@playwright/test/cli' );
 	const childEnv = {
-		...env,
+		...launch.env,
 		PLAYGROUND_PORT: playgroundPort,
 	};
 
@@ -119,7 +177,7 @@ const runPlaywright = async (
 	return new Promise( ( resolve, reject ) => {
 		const child = spawn(
 			process.execPath,
-			[ playwrightCli, 'test', ...args ],
+			[ playwrightCli, 'test', ...launch.args ],
 			{
 				env: childEnv,
 				stdio: 'inherit',
@@ -154,5 +212,6 @@ if ( require.main === module ) {
 module.exports = {
 	findAvailablePort,
 	resolvePlaygroundPort,
+	resolvePlaywrightLaunch,
 	runPlaywright,
 };

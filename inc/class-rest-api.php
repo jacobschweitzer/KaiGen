@@ -58,10 +58,18 @@ final class Rest_API {
 	private $image_generation_service;
 
 	/**
+	 * Prompt refinement service.
+	 *
+	 * @var Prompt_Refinement_Service
+	 */
+	private $prompt_refinement_service;
+
+	/**
 	 * Initialize the REST API functionality.
 	 */
 	private function __construct() {
-		$this->image_generation_service = new Image_Generation_Service();
+		$this->image_generation_service  = new Image_Generation_Service();
+		$this->prompt_refinement_service = new Prompt_Refinement_Service();
 		add_action( 'rest_api_init', [ $this, 'register_routes' ] );
 	}
 
@@ -120,6 +128,60 @@ final class Rest_API {
 
 		register_rest_route(
 			self::API_NAMESPACE,
+			'/prompt-refinements',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'handle_prompt_refinements_request' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'prompt' => [
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::API_NAMESPACE,
+			'/apply-prompt-refinement',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'handle_apply_prompt_refinement_request' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'prompt'     => [
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					],
+					'term'       => [
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'term_start' => [
+						'type'              => 'integer',
+						'required'          => false,
+						'sanitize_callback' => 'absint',
+					],
+					'term_end'   => [
+						'type'              => 'integer',
+						'required'          => false,
+						'sanitize_callback' => 'absint',
+					],
+					'choice'     => [
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::API_NAMESPACE,
 			'/reference-images',
 			[
 				'methods'             => WP_REST_Server::READABLE,
@@ -156,6 +218,26 @@ final class Rest_API {
 	 */
 	public function handle_generate_request( $request ) {
 		return $this->image_generation_service->generate_from_request( $request );
+	}
+
+	/**
+	 * Handles a prompt refinement request through the WordPress AI Client.
+	 *
+	 * @param \WP_REST_Request $request The request object.
+	 * @return \WP_REST_Response|WP_Error The response or error.
+	 */
+	public function handle_prompt_refinements_request( $request ) {
+		return $this->prompt_refinement_service->generate_from_request( $request );
+	}
+
+	/**
+	 * Handles a prompt refinement application request through the WordPress AI Client.
+	 *
+	 * @param \WP_REST_Request $request The request object.
+	 * @return \WP_REST_Response|WP_Error The response or error.
+	 */
+	public function handle_apply_prompt_refinement_request( $request ) {
+		return $this->prompt_refinement_service->apply_choice_from_request( $request );
 	}
 
 	/**

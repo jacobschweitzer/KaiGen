@@ -1,6 +1,10 @@
 import apiFetch from '@wordpress/api-fetch';
 
-import { generateImage } from '../../src/api';
+import {
+	applyPromptRefinement,
+	fetchPromptRefinements,
+	generateImage,
+} from '../../src/api';
 
 jest.mock( '@wordpress/api-fetch' );
 
@@ -80,5 +84,117 @@ describe( 'generateImage', () => {
 		await expect( generateImage( 'A missing image URL' ) ).rejects.toThrow(
 			'Invalid response from server: {"id":123}'
 		);
+	} );
+} );
+
+describe( 'fetchPromptRefinements', () => {
+	beforeEach( () => {
+		apiFetch.mockReset();
+	} );
+
+	it( 'posts the whole prompt and returns model-provided refinement choices', async () => {
+		apiFetch.mockResolvedValue( {
+			terms: [
+				{
+					text: 'world cup',
+					choices: [
+						'packed final under floodlights',
+						'trophy lift under falling confetti',
+					],
+				},
+				{
+					text: 'game',
+					choices: [ 'goalkeeper staring down the final penalty' ],
+				},
+			],
+		} );
+
+		const refinements = await fetchPromptRefinements( 'world cup game' );
+
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/kaigen/v1/prompt-refinements',
+			method: 'POST',
+			data: {
+				prompt: 'world cup game',
+			},
+		} );
+		expect( refinements ).toEqual( [
+			{
+				id: 'world-cup-0',
+				text: 'world cup',
+				start: 0,
+				end: 9,
+				choices: [
+					'packed final under floodlights',
+					'trophy lift under falling confetti',
+				],
+			},
+			{
+				id: 'game-10',
+				text: 'game',
+				start: 10,
+				end: 14,
+				choices: [ 'goalkeeper staring down the final penalty' ],
+			},
+		] );
+	} );
+
+	it( 'returns no local fallback refinements when the prompt is blank', async () => {
+		await expect( fetchPromptRefinements( '   ' ) ).resolves.toEqual( [] );
+
+		expect( apiFetch ).not.toHaveBeenCalled();
+	} );
+} );
+
+describe( 'applyPromptRefinement', () => {
+	beforeEach( () => {
+		apiFetch.mockReset();
+	} );
+
+	it( 'posts the whole prompt and selected detail for model-backed placement', async () => {
+		apiFetch.mockResolvedValue( {
+			prompt: 'baby goats levitating with iridescent butterfly wings',
+		} );
+
+		const prompt = await applyPromptRefinement(
+			'baby flying goats',
+			{
+				text: 'flying',
+				start: 5,
+				end: 11,
+			},
+			'levitating with iridescent butterfly wings'
+		);
+
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/kaigen/v1/apply-prompt-refinement',
+			method: 'POST',
+			data: {
+				prompt: 'baby flying goats',
+				term: 'flying',
+				term_start: 5,
+				term_end: 11,
+				choice: 'levitating with iridescent butterfly wings',
+			},
+		} );
+		expect( prompt ).toBe(
+			'baby goats levitating with iridescent butterfly wings'
+		);
+	} );
+
+	it( 'falls back to local replacement when the apply response is invalid', async () => {
+		apiFetch.mockResolvedValue( {} );
+
+		await expect(
+			applyPromptRefinement(
+				'a duck',
+				{
+					text: 'duck',
+					start: 2,
+					end: 6,
+				},
+				'mallard with emerald head'
+			)
+		).resolves.toBe( 'a mallard with emerald head' );
 	} );
 } );

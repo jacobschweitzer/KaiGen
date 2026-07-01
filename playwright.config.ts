@@ -76,7 +76,7 @@ export default defineConfig( {
 	webServer: skipWebServer
 		? undefined
 		: {
-				command: `npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=${ playgroundPort }`,
+				command: 'node scripts/playground-server.js',
 				url: `http://127.0.0.1:${ playgroundPort }`,
 				reuseExistingServer: ! process.env.CI,
 				timeout: 120_000,
