@@ -9,7 +9,6 @@ import { defineConfig, devices } from '@playwright/test';
  * @see https://playwright.dev/docs/test-configuration
  */
 const playgroundPort = process.env.PLAYGROUND_PORT || '9400';
-const playgroundWorkers = process.env.PLAYGROUND_WORKERS || '6';
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 export default defineConfig( {
@@ -77,7 +76,7 @@ export default defineConfig( {
 	webServer: skipWebServer
 		? undefined
 		: {
-				command: `npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=${ playgroundPort } --workers=${ playgroundWorkers }`,
+				command: 'node scripts/playground-server.js',
 				url: `http://127.0.0.1:${ playgroundPort }`,
 				reuseExistingServer: ! process.env.CI,
 				timeout: 120_000,

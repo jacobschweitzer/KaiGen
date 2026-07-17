@@ -19,12 +19,17 @@
 		"plugin-zip": "wp-scripts plugin-zip",
 		"start": "wp-scripts start src/index.js",
 		"test:unit": "wp-scripts test-unit-js tests/unit",
-		"playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
-		"test:e2e": "node scripts/run-e2e.js",
-		"test:e2e:ci": "node scripts/run-e2e.js --project=chromium --reporter=github",
-		"test:e2e:debug": "node scripts/run-e2e.js --debug",
+		"playground:start": "node scripts/playground-server.js",
+		"test:e2e": "npm run test:e2e:all",
+		"test:e2e:all": "npm run test:e2e:base && npm run test:e2e:reference && npm run test:e2e:generation",
+		"test:e2e:base": "node scripts/run-e2e.js --grep-invert \"@generation|@reference\"",
+		"test:e2e:ci": "npm run test:e2e:base -- --project=chromium --reporter=github && npm run test:e2e:reference -- --project=chromium --reporter=github && npm run test:e2e:generation -- --project=chromium --reporter=github",
+		"test:e2e:debug": "node scripts/run-e2e.js --grep-invert \"@generation|@reference\" --debug",
+		"test:e2e:generation": "node scripts/run-e2e.js --playground-blueprint=.github/blueprints/e2e-generation-mocked.json --grep @generation",
 		"test:e2e:launcher": "node --test scripts/run-e2e.test.js",
-		"test:e2e:ui": "node scripts/run-e2e.js --ui"
+		"test:e2e:reference": "node scripts/run-e2e.js --playground-blueprint=.github/blueprints/e2e-reference-media.json --grep @reference",
+		"test:e2e:smoke": "node scripts/run-e2e.js --grep @smoke",
+		"test:e2e:ui": "node scripts/run-e2e.js --grep-invert \"@generation|@reference\" --ui"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.57.0",
