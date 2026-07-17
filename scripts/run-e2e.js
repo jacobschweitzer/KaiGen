@@ -3,8 +3,11 @@
 
 const { spawn } = require( 'node:child_process' );
 const net = require( 'node:net' );
+const path = require( 'node:path' );
 
 const DEFAULT_HOST = '127.0.0.1';
+const E2E_PACKAGE_DIR = path.resolve( __dirname, '../tests/e2e' );
+const E2E_CONFIG_PATH = path.join( E2E_PACKAGE_DIR, 'playwright.config.ts' );
 const MAX_SCAN_ATTEMPTS = 100;
 
 const normalizePort = ( port ) => {
@@ -103,12 +106,35 @@ const resolvePlaygroundPort = async ( env = process.env ) => {
 	return String( await findAvailablePort() );
 };
 
+const resolvePlaywrightArgs = ( args ) => {
+	const hasExplicitConfig = args.some(
+		( arg ) =>
+			arg === '--config' ||
+			arg === '-c' ||
+			arg.startsWith( '--config=' ) ||
+			arg.startsWith( '-c=' )
+	);
+
+	if ( hasExplicitConfig ) {
+		return args;
+	}
+
+	return [
+		'--config',
+		path.relative( process.cwd(), E2E_CONFIG_PATH ),
+		...args,
+	];
+};
+
 const runPlaywright = async (
 	args = process.argv.slice( 2 ),
 	env = process.env
 ) => {
 	const playgroundPort = await resolvePlaygroundPort( env );
-	const playwrightCli = require.resolve( '@playwright/test/cli' );
+	const playwrightCli = require.resolve( '@playwright/test/cli', {
+		paths: [ E2E_PACKAGE_DIR ],
+	} );
+	const playwrightArgs = resolvePlaywrightArgs( args );
 	const childEnv = {
 		...env,
 		PLAYGROUND_PORT: playgroundPort,
@@ -119,7 +145,7 @@ const runPlaywright = async (
 	return new Promise( ( resolve, reject ) => {
 		const child = spawn(
 			process.execPath,
-			[ playwrightCli, 'test', ...args ],
+			[ playwrightCli, 'test', ...playwrightArgs ],
 			{
 				env: childEnv,
 				stdio: 'inherit',
@@ -154,5 +180,6 @@ if ( require.main === module ) {
 module.exports = {
 	findAvailablePort,
 	resolvePlaygroundPort,
+	resolvePlaywrightArgs,
 	runPlaywright,
 };

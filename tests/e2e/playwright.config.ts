@@ -4,19 +4,21 @@
  */
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test';
+import { join, resolve } from 'node:path';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
 const playgroundPort = process.env.PLAYGROUND_PORT || '9400';
 const playgroundWorkers = process.env.PLAYGROUND_WORKERS || '6';
+const repoRoot = resolve( __dirname, '../..' );
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 export default defineConfig( {
-	testDir: './tests/e2e',
+	testDir: '.',
 	testMatch: '**/*.spec.ts',
-	snapshotDir: './tests/__snapshots__',
-	outputDir: './tests/test-results',
+	snapshotDir: '../__snapshots__',
+	outputDir: '../test-results',
 
 	/* Individual test timeout */
 	timeout: 60_000,
@@ -34,7 +36,15 @@ export default defineConfig( {
 	workers: 1,
 
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
-	reporter: process.env.CI ? 'github' : [ [ 'list' ], [ 'html' ] ],
+	reporter: process.env.CI
+		? 'github'
+		: [
+				[ 'list' ],
+				[
+					'html',
+					{ outputFolder: join( repoRoot, 'playwright-report' ) },
+				],
+		  ],
 
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
@@ -77,7 +87,8 @@ export default defineConfig( {
 	webServer: skipWebServer
 		? undefined
 		: {
-				command: `npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=${ playgroundPort } --workers=${ playgroundWorkers }`,
+				command: `npm exec --prefix tests/e2e -- wp-playground-cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=${ playgroundPort } --workers=${ playgroundWorkers }`,
+				cwd: repoRoot,
 				url: `http://127.0.0.1:${ playgroundPort }`,
 				reuseExistingServer: ! process.env.CI,
 				timeout: 120_000,

@@ -19,7 +19,7 @@
 		"plugin-zip": "wp-scripts plugin-zip",
 		"start": "wp-scripts start src/index.js",
 		"test:unit": "wp-scripts test-unit-js tests/unit",
-		"playground:start": "npx @wp-playground/cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
+		"playground:start": "npm exec --prefix tests/e2e -- wp-playground-cli server --mount=.:/wordpress/wp-content/plugins/kaigen --blueprint=.github/blueprints/e2e-test.json --port=9400",
 		"test:e2e": "node scripts/run-e2e.js",
 		"test:e2e:ci": "node scripts/run-e2e.js --project=chromium --reporter=github",
 		"test:e2e:debug": "node scripts/run-e2e.js --debug",
@@ -27,11 +27,8 @@
 		"test:e2e:ui": "node scripts/run-e2e.js --ui"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.57.0",
 		"@types/node": "^20.17.10",
-		"@wordpress/e2e-test-utils-playwright": "^1.46.0",
 		"@wordpress/scripts": "^32.2.0",
-		"@wp-playground/cli": "^3.1.35",
 		"dotenv": "^17.4.2"
 	},
 	"dependencies": {

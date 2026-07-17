@@ -29,7 +29,7 @@ File exclusion is managed by `.distignore` which excludes development files like
 - Source files (`/src`)
 - Tests (`/tests`, `/playwright`)
 - Node modules (`/node_modules`)
-- Configuration files (`package.json`, `playwright.config.ts`)
+- Configuration files (`package.json`, `tests/e2e/playwright.config.ts`)
 - Development documentation (`README.md`, `AGENTS.md`)
 
 ### Creating a New Release
@@ -154,6 +154,7 @@ KaiGen includes end-to-end tests that run in WordPress Playground without callin
 To run e2e tests, Playwright starts WordPress Playground automatically:
 
 ```bash
+npm ci --prefix tests/e2e
 npm run test:e2e
 ```
 

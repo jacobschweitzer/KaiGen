@@ -33,10 +33,6 @@ jobs:
       - name: Install E2E dependencies
         run: npm ci --prefix tests/e2e --no-audit --fund=false --prefer-offline
 
-      # Let the existing root-level E2E commands resolve the minimal install
-      - name: Link E2E dependencies
-        run: ln -s tests/e2e/node_modules node_modules
-
       # Cache Playwright browsers
       - name: Cache Playwright browsers
         uses: actions/cache@v6
@@ -46,7 +42,7 @@ jobs:
 
       # Install only Chromium browser for speed
       - name: Install Chromium only
-        run: npx playwright install chromium --with-deps
+        run: npm exec --prefix tests/e2e -- playwright install chromium --with-deps
 
       # Run E2E tests (Playwright starts WordPress Playground automatically via webServer config)
       - name: Run E2E tests
