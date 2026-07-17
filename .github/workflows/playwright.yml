@@ -41,7 +41,7 @@ jobs:
 
       # Install only Chromium browser for speed
       - name: Install Chromium only
-        run: npx playwright install chromium --with-deps
+        run: npx playwright install chromium
 
       # Run E2E tests (Playwright starts WordPress Playground automatically via webServer config)
       - name: Run E2E tests
