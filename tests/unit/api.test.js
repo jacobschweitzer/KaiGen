@@ -81,4 +81,20 @@ describe( 'generateImage', () => {
 			'Invalid response from server: {"id":123}'
 		);
 	} );
+
+	it( 'preserves REST error details when image generation fails', async () => {
+		const apiError = new Error( 'Generation failed.' );
+		apiError.code = 'rest_rate_limited';
+		apiError.data = { status: 429 };
+		apiFetch.mockRejectedValue( apiError );
+
+		await expect(
+			generateImage( 'A rate limited image' )
+		).rejects.toMatchObject( {
+			message: 'Generation failed.',
+			code: 'rest_rate_limited',
+			status: 429,
+			data: { status: 429 },
+		} );
+	} );
 } );
