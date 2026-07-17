@@ -27,17 +27,22 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
 
-      # Install dependencies
-      - name: Install dependencies
-        run: npm ci --no-audit --fund=false --prefer-offline
+      # Install only the dependencies required to run the E2E suite
+      - name: Install E2E dependencies
+        run: npm ci --prefix tests/e2e --no-audit --fund=false --prefer-offline
+
+      # Let the existing root-level E2E commands resolve the minimal install
+      - name: Link E2E dependencies
+        run: ln -s tests/e2e/node_modules node_modules
 
       # Cache Playwright browsers
       - name: Cache Playwright browsers
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
 
       # Install only Chromium browser for speed
       - name: Install Chromium only
