@@ -9,6 +9,10 @@ const DEFAULT_HOST = '127.0.0.1';
 const E2E_PACKAGE_DIR = path.resolve( __dirname, '../tests/e2e' );
 const E2E_CONFIG_PATH = path.join( E2E_PACKAGE_DIR, 'playwright.config.ts' );
 const MAX_SCAN_ATTEMPTS = 100;
+const PLAYGROUND_LAUNCH_OPTIONS = {
+	'--playground-blueprint': 'PLAYGROUND_BLUEPRINT',
+	'--playground-workers': 'PLAYGROUND_WORKERS',
+};
 
 const normalizePort = ( port ) => {
 	const normalizedPort = Number( port );
@@ -106,6 +110,44 @@ const resolvePlaygroundPort = async ( env = process.env ) => {
 	return String( await findAvailablePort() );
 };
 
+const resolvePlaywrightLaunch = (
+	args = process.argv.slice( 2 ),
+	env = process.env
+) => {
+	const launchArgs = [];
+	const launchEnv = { ...env };
+
+	for ( let index = 0; index < args.length; index++ ) {
+		const arg = args[ index ];
+		const separatorIndex = arg.indexOf( '=' );
+		const option =
+			separatorIndex === -1 ? arg : arg.slice( 0, separatorIndex );
+		const envKey = PLAYGROUND_LAUNCH_OPTIONS[ option ];
+
+		if ( envKey ) {
+			const value =
+				separatorIndex === -1
+					? args[ index + 1 ]
+					: arg.slice( separatorIndex + 1 );
+
+			if ( separatorIndex === -1 && ! value ) {
+				throw new Error( `${ option } requires a value.` );
+			}
+
+			launchEnv[ envKey ] = value;
+			index += separatorIndex === -1 ? 1 : 0;
+			continue;
+		}
+
+		launchArgs.push( arg );
+	}
+
+	return {
+		args: launchArgs,
+		env: launchEnv,
+	};
+};
+
 const resolvePlaywrightArgs = ( args ) => {
 	const hasExplicitConfig = args.some(
 		( arg ) =>
@@ -130,13 +172,14 @@ const runPlaywright = async (
 	args = process.argv.slice( 2 ),
 	env = process.env
 ) => {
-	const playgroundPort = await resolvePlaygroundPort( env );
+	const launch = resolvePlaywrightLaunch( args, env );
+	const playgroundPort = await resolvePlaygroundPort( launch.env );
 	const playwrightCli = require.resolve( '@playwright/test/cli', {
 		paths: [ E2E_PACKAGE_DIR ],
 	} );
-	const playwrightArgs = resolvePlaywrightArgs( args );
+	const playwrightArgs = resolvePlaywrightArgs( launch.args );
 	const childEnv = {
-		...env,
+		...launch.env,
 		PLAYGROUND_PORT: playgroundPort,
 	};
 
@@ -180,6 +223,7 @@ if ( require.main === module ) {
 module.exports = {
 	findAvailablePort,
 	resolvePlaygroundPort,
+	resolvePlaywrightLaunch,
 	resolvePlaywrightArgs,
 	runPlaywright,
 };

@@ -5,8 +5,14 @@ const test = require( 'node:test' );
 const {
 	findAvailablePort,
 	resolvePlaygroundPort,
+	resolvePlaywrightLaunch,
 	resolvePlaywrightArgs,
 } = require( './run-e2e.js' );
+const {
+	buildPlaygroundServerArgs,
+	resolvePlaygroundBlueprint,
+	resolveManualPlaygroundPort,
+} = require( './playground-server.js' );
 
 const listenOnPort = async ( port ) =>
 	new Promise( ( resolve, reject ) => {
@@ -46,6 +52,85 @@ test( 'resolvePlaygroundPort preserves an explicit PLAYGROUND_PORT', async () =>
 	} );
 
 	assert.equal( port, '9417' );
+} );
+
+test( 'resolveManualPlaygroundPort skips a busy default port', async () => {
+	const busyServer = await listenOnPort( 9400 );
+
+	try {
+		const port = await resolveManualPlaygroundPort( {} );
+
+		assert.notEqual( port, '9400' );
+		assert.equal( Number.isInteger( Number( port ) ), true );
+		assert.equal( Number( port ) > 9400, true );
+	} finally {
+		await closeServer( busyServer );
+	}
+} );
+
+test( 'resolvePlaygroundBlueprint defaults to the base E2E blueprint', () => {
+	assert.equal(
+		resolvePlaygroundBlueprint( {} ),
+		'.github/blueprints/e2e-base.json'
+	);
+} );
+
+test( 'resolvePlaygroundBlueprint preserves an explicit PLAYGROUND_BLUEPRINT', () => {
+	assert.equal(
+		resolvePlaygroundBlueprint( {
+			PLAYGROUND_BLUEPRINT: '.github/blueprints/e2e-reference-media.json',
+		} ),
+		'.github/blueprints/e2e-reference-media.json'
+	);
+} );
+
+test( 'buildPlaygroundServerArgs includes port, blueprint, and workers', () => {
+	assert.deepEqual(
+		buildPlaygroundServerArgs( {
+			port: '9411',
+			blueprint: '.github/blueprints/e2e-generation-mocked.json',
+			workers: 'auto',
+		} ),
+		[
+			'exec',
+			'--prefix',
+			'tests/e2e',
+			'--',
+			'wp-playground-cli',
+			'server',
+			'--mount=.:/wordpress/wp-content/plugins/kaigen',
+			'--blueprint=.github/blueprints/e2e-generation-mocked.json',
+			'--port=9411',
+			'--workers=auto',
+		]
+	);
+} );
+
+test( 'resolvePlaywrightLaunch strips playground blueprint flags', () => {
+	const launch = resolvePlaywrightLaunch(
+		[
+			'--playground-blueprint=.github/blueprints/e2e-reference-media.json',
+			'--grep',
+			'@reference',
+		],
+		{}
+	);
+
+	assert.deepEqual( launch.args, [ '--grep', '@reference' ] );
+	assert.equal(
+		launch.env.PLAYGROUND_BLUEPRINT,
+		'.github/blueprints/e2e-reference-media.json'
+	);
+} );
+
+test( 'resolvePlaywrightLaunch strips playground workers flags', () => {
+	const launch = resolvePlaywrightLaunch(
+		[ '--playground-workers', 'auto', '--grep', '@smoke' ],
+		{}
+	);
+
+	assert.deepEqual( launch.args, [ '--grep', '@smoke' ] );
+	assert.equal( launch.env.PLAYGROUND_WORKERS, 'auto' );
 } );
 
 test( 'resolvePlaywrightArgs defaults to the dedicated E2E config', () => {
