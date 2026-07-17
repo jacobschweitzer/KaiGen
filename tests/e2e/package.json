@@ -1,0 +1,10 @@
+{
+	"name": "kaigen-e2e",
+	"private": true,
+	"description": "Minimal runtime dependencies for KaiGen end-to-end tests.",
+	"devDependencies": {
+		"@playwright/test": "^1.57.0",
+		"@wordpress/e2e-test-utils-playwright": "^1.46.0",
+		"@wp-playground/cli": "^3.1.35"
+	}
+}

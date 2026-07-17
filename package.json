@@ -32,11 +32,8 @@
 		"test:e2e:ui": "node scripts/run-e2e.js --grep-invert \"@generation|@reference\" --ui"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.57.0",
 		"@types/node": "^20.17.10",
-		"@wordpress/e2e-test-utils-playwright": "^1.46.0",
 		"@wordpress/scripts": "^32.2.0",
-		"@wp-playground/cli": "^3.1.35",
 		"dotenv": "^17.4.2"
 	},
 	"dependencies": {

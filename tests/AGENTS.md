@@ -15,6 +15,7 @@ See the root `AGENTS.md` for global conventions and tooling.
 
 ## Running Tests
 - Run PHP unit tests: `npm run test:php`
+- Install E2E dependencies: `npm ci --prefix tests/e2e`
 - Run all E2E scenario suites: `npm run test:e2e`
 - Run only the base E2E suite: `npm run test:e2e:base`
 - Fast smoke check: `npm run test:e2e:smoke`

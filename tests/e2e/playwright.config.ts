@@ -4,18 +4,20 @@
  */
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test';
+import { join, resolve } from 'node:path';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
 const playgroundPort = process.env.PLAYGROUND_PORT || '9400';
+const repoRoot = resolve( __dirname, '../..' );
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 export default defineConfig( {
-	testDir: './tests/e2e',
+	testDir: '.',
 	testMatch: '**/*.spec.ts',
-	snapshotDir: './tests/__snapshots__',
-	outputDir: './tests/test-results',
+	snapshotDir: '../__snapshots__',
+	outputDir: '../test-results',
 
 	/* Individual test timeout */
 	timeout: 60_000,
@@ -33,7 +35,15 @@ export default defineConfig( {
 	workers: 1,
 
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
-	reporter: process.env.CI ? 'github' : [ [ 'list' ], [ 'html' ] ],
+	reporter: process.env.CI
+		? 'github'
+		: [
+				[ 'list' ],
+				[
+					'html',
+					{ outputFolder: join( repoRoot, 'playwright-report' ) },
+				],
+		  ],
 
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
@@ -77,6 +87,7 @@ export default defineConfig( {
 		? undefined
 		: {
 				command: 'node scripts/playground-server.js',
+				cwd: repoRoot,
 				url: `http://127.0.0.1:${ playgroundPort }`,
 				reuseExistingServer: ! process.env.CI,
 				timeout: 120_000,

@@ -5,6 +5,7 @@ See the root `AGENTS.md` for global conventions and tooling.
 KaiGen E2E tests use Playwright + WordPress Playground.
 
 ## What to Run
+- Install E2E dependencies: `npm ci --prefix tests/e2e`
 - Run all E2E scenario suites: `npm run test:e2e`
 - Run only the base E2E suite: `npm run test:e2e:base`
 - Fast smoke check after editor UI changes: `npm run test:e2e:smoke`
@@ -14,7 +15,6 @@ KaiGen E2E tests use Playwright + WordPress Playground.
 - Debug: `npm run test:e2e:debug`
 - UI mode: `npm run test:e2e:ui`
 - Start Playground manually (optional): `PLAYGROUND_PORT=<port> npm run playground:start`
-- Full scenario sweep: `npm run test:e2e:all`
 
 ## How Tests Work
 - Playground is started automatically via Playwright `webServer` config.

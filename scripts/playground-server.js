@@ -27,7 +27,11 @@ const resolveManualPlaygroundPort = async ( env = process.env ) => {
 
 const buildPlaygroundServerArgs = ( { port, blueprint, workers } = {} ) => {
 	const args = [
-		'@wp-playground/cli',
+		'exec',
+		'--prefix',
+		'tests/e2e',
+		'--',
+		'wp-playground-cli',
 		'server',
 		`--mount=${ PLAYGROUND_PLUGIN_MOUNT }`,
 		`--blueprint=${ blueprint || DEFAULT_PLAYGROUND_BLUEPRINT }`,
@@ -55,7 +59,7 @@ const startPlayground = async ( env = process.env ) => {
 	);
 
 	return new Promise( ( resolve, reject ) => {
-		const child = spawn( 'npx', args, {
+		const child = spawn( 'npm', args, {
 			env,
 			stdio: 'inherit',
 		} );
@@ -86,7 +90,6 @@ if ( require.main === module ) {
 }
 
 module.exports = {
-	DEFAULT_PLAYGROUND_BLUEPRINT,
 	buildPlaygroundServerArgs,
 	resolveManualPlaygroundPort,
 	resolvePlaygroundBlueprint,

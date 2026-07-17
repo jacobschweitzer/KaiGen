@@ -3,9 +3,16 @@
 
 const { spawn } = require( 'node:child_process' );
 const net = require( 'node:net' );
+const path = require( 'node:path' );
 
 const DEFAULT_HOST = '127.0.0.1';
+const E2E_PACKAGE_DIR = path.resolve( __dirname, '../tests/e2e' );
+const E2E_CONFIG_PATH = path.join( E2E_PACKAGE_DIR, 'playwright.config.ts' );
 const MAX_SCAN_ATTEMPTS = 100;
+const PLAYGROUND_LAUNCH_OPTIONS = {
+	'--playground-blueprint': 'PLAYGROUND_BLUEPRINT',
+	'--playground-workers': 'PLAYGROUND_WORKERS',
+};
 
 const normalizePort = ( port ) => {
 	const normalizedPort = Number( port );
@@ -112,42 +119,23 @@ const resolvePlaywrightLaunch = (
 
 	for ( let index = 0; index < args.length; index++ ) {
 		const arg = args[ index ];
+		const separatorIndex = arg.indexOf( '=' );
+		const option =
+			separatorIndex === -1 ? arg : arg.slice( 0, separatorIndex );
+		const envKey = PLAYGROUND_LAUNCH_OPTIONS[ option ];
 
-		if ( arg.startsWith( '--playground-blueprint=' ) ) {
-			launchEnv.PLAYGROUND_BLUEPRINT = arg.slice(
-				'--playground-blueprint='.length
-			);
-			continue;
-		}
+		if ( envKey ) {
+			const value =
+				separatorIndex === -1
+					? args[ index + 1 ]
+					: arg.slice( separatorIndex + 1 );
 
-		if ( arg === '--playground-blueprint' ) {
-			const value = args[ index + 1 ];
-
-			if ( ! value ) {
-				throw new Error( '--playground-blueprint requires a value.' );
+			if ( separatorIndex === -1 && ! value ) {
+				throw new Error( `${ option } requires a value.` );
 			}
 
-			launchEnv.PLAYGROUND_BLUEPRINT = value;
-			index++;
-			continue;
-		}
-
-		if ( arg.startsWith( '--playground-workers=' ) ) {
-			launchEnv.PLAYGROUND_WORKERS = arg.slice(
-				'--playground-workers='.length
-			);
-			continue;
-		}
-
-		if ( arg === '--playground-workers' ) {
-			const value = args[ index + 1 ];
-
-			if ( ! value ) {
-				throw new Error( '--playground-workers requires a value.' );
-			}
-
-			launchEnv.PLAYGROUND_WORKERS = value;
-			index++;
+			launchEnv[ envKey ] = value;
+			index += separatorIndex === -1 ? 1 : 0;
 			continue;
 		}
 
@@ -160,13 +148,36 @@ const resolvePlaywrightLaunch = (
 	};
 };
 
+const resolvePlaywrightArgs = ( args ) => {
+	const hasExplicitConfig = args.some(
+		( arg ) =>
+			arg === '--config' ||
+			arg === '-c' ||
+			arg.startsWith( '--config=' ) ||
+			arg.startsWith( '-c=' )
+	);
+
+	if ( hasExplicitConfig ) {
+		return args;
+	}
+
+	return [
+		'--config',
+		path.relative( process.cwd(), E2E_CONFIG_PATH ),
+		...args,
+	];
+};
+
 const runPlaywright = async (
 	args = process.argv.slice( 2 ),
 	env = process.env
 ) => {
 	const launch = resolvePlaywrightLaunch( args, env );
 	const playgroundPort = await resolvePlaygroundPort( launch.env );
-	const playwrightCli = require.resolve( '@playwright/test/cli' );
+	const playwrightCli = require.resolve( '@playwright/test/cli', {
+		paths: [ E2E_PACKAGE_DIR ],
+	} );
+	const playwrightArgs = resolvePlaywrightArgs( launch.args );
 	const childEnv = {
 		...launch.env,
 		PLAYGROUND_PORT: playgroundPort,
@@ -177,7 +188,7 @@ const runPlaywright = async (
 	return new Promise( ( resolve, reject ) => {
 		const child = spawn(
 			process.execPath,
-			[ playwrightCli, 'test', ...launch.args ],
+			[ playwrightCli, 'test', ...playwrightArgs ],
 			{
 				env: childEnv,
 				stdio: 'inherit',
@@ -213,5 +224,6 @@ module.exports = {
 	findAvailablePort,
 	resolvePlaygroundPort,
 	resolvePlaywrightLaunch,
+	resolvePlaywrightArgs,
 	runPlaywright,
 };

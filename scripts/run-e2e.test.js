@@ -6,6 +6,7 @@ const {
 	findAvailablePort,
 	resolvePlaygroundPort,
 	resolvePlaywrightLaunch,
+	resolvePlaywrightArgs,
 } = require( './run-e2e.js' );
 const {
 	buildPlaygroundServerArgs,
@@ -91,7 +92,11 @@ test( 'buildPlaygroundServerArgs includes port, blueprint, and workers', () => {
 			workers: 'auto',
 		} ),
 		[
-			'@wp-playground/cli',
+			'exec',
+			'--prefix',
+			'tests/e2e',
+			'--',
+			'wp-playground-cli',
 			'server',
 			'--mount=.:/wordpress/wp-content/plugins/kaigen',
 			'--blueprint=.github/blueprints/e2e-generation-mocked.json',
@@ -120,10 +125,32 @@ test( 'resolvePlaywrightLaunch strips playground blueprint flags', () => {
 
 test( 'resolvePlaywrightLaunch strips playground workers flags', () => {
 	const launch = resolvePlaywrightLaunch(
-		[ '--playground-workers=auto', '--grep', '@smoke' ],
+		[ '--playground-workers', 'auto', '--grep', '@smoke' ],
 		{}
 	);
 
 	assert.deepEqual( launch.args, [ '--grep', '@smoke' ] );
 	assert.equal( launch.env.PLAYGROUND_WORKERS, 'auto' );
+} );
+
+test( 'resolvePlaywrightArgs defaults to the dedicated E2E config', () => {
+	const args = resolvePlaywrightArgs( [ '--project=chromium' ] );
+
+	assert.deepEqual( args.slice( 0, 2 ), [
+		'--config',
+		'tests/e2e/playwright.config.ts',
+	] );
+	assert.deepEqual( args.slice( 2 ), [ '--project=chromium' ] );
+} );
+
+test( 'resolvePlaywrightArgs preserves an explicit config', () => {
+	const args = [ '--config=custom.config.ts', '--project=chromium' ];
+
+	assert.deepEqual( resolvePlaywrightArgs( args ), args );
+} );
+
+test( 'resolvePlaywrightArgs preserves a short explicit config', () => {
+	const args = [ '-c=custom.config.ts', '--project=chromium' ];
+
+	assert.deepEqual( resolvePlaywrightArgs( args ), args );
 } );

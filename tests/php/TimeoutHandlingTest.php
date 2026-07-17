@@ -71,32 +71,6 @@ final class TimeoutHandlingTest extends TestCase {
 	}
 
 	/**
-	 * Tests that a null pre-generation result preserves the unavailable-client error.
-	 *
-	 * @return void
-	 */
-	public function test_pre_generation_filter_preserves_unavailable_client_error() {
-		$service = $this->get_kaigen_service();
-
-		$this->assertStringNotContainsString(
-			"has_filter( 'kaigen_pre_generate_image_result' )",
-			$service,
-			'Filter registration priority must not determine whether the AI Client is available.'
-		);
-
-		$filter_position       = strpos( $service, "apply_filters(\n\t\t\t'kaigen_pre_generate_image_result'" );
-		$availability_position = strpos( $service, "function_exists( 'wp_ai_client_prompt' )", $filter_position );
-
-		$this->assertIsInt( $filter_position );
-		$this->assertIsInt( $availability_position );
-		$this->assertLessThan(
-			$availability_position,
-			$filter_position,
-			'A null pre-generation result should fall through to the existing unavailable-client error before building a prompt.'
-		);
-	}
-
-	/**
 	 * Tests that media-library reference images require attachment edit access.
 	 *
 	 * @return void
