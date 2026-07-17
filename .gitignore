@@ -41,6 +41,7 @@ build/index.js.map
 
 # Playwright report directory
 /playwright-report/
+/playwright/.auth/
 
 # Playwright cache directory
 /playwright/.cache/
