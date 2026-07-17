@@ -5,6 +5,7 @@ See the root `AGENTS.md` for global conventions and tooling.
 KaiGen E2E tests use Playwright + WordPress Playground.
 
 ## What to Run
+- Install E2E dependencies: `npm ci --prefix tests/e2e`
 - Run all e2e tests: `npm run test:e2e`
 - Run single test file: `npm run test:e2e -- tests/e2e/image-generation.spec.ts`
 - Debug: `npm run test:e2e:debug`
