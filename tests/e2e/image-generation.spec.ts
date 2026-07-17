@@ -429,7 +429,20 @@ test.describe( 'KaiGen Image Generation', () => {
 			{ timeout: 30000 }
 		);
 		await generateButton.click( { force: true } );
-		expect( ( await generationResponsePromise ).ok() ).toBe( true );
+		const generationResponse = await generationResponsePromise;
+		expect( generationResponse.ok() ).toBe( true );
+		const generationResult = await generationResponse.json();
+		expect( generationResult.status ).toBe( 'completed' );
+		expect( generationResult.metadata ).toEqual(
+			expect.objectContaining( {
+				provider_metadata: expect.objectContaining( {
+					provider: 'e2e-alpha',
+				} ),
+				model_metadata: expect.objectContaining( {
+					model: 'e2e-image-model',
+				} ),
+			} )
+		);
 
 		const imageAttributes = await page.evaluate( () => {
 			const imageBlockInEditor = ( window as any ).wp.data
@@ -441,12 +454,10 @@ test.describe( 'KaiGen Image Generation', () => {
 		} );
 
 		expect( imageAttributes.id ).toBeGreaterThan( 0 );
-		expect( imageAttributes.url ).toMatch(
-			/kaigen-generated-e2e(?:-\d+)?\.png/
-		);
+		expect( imageAttributes.url ).toMatch( /ai-subject(?:-\d+)?\.png/ );
 		await expect( imageBlock.locator( 'img' ).first() ).toHaveAttribute(
 			'src',
-			/kaigen-generated-e2e(?:-\d+)?\.png/
+			/ai-subject(?:-\d+)?\.png/
 		);
 	} );
 
