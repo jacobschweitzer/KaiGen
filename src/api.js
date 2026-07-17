@@ -31,10 +31,14 @@ export const generateImage = async ( prompt, options = {} ) => {
 			data,
 		} );
 	} catch ( error ) {
-		throw new Error(
+		const generationError = new Error(
 			error.message ||
 				'An unknown error occurred while generating the image'
 		);
+		generationError.code = error.code;
+		generationError.status = error.status || error.data?.status;
+		generationError.data = error.data;
+		throw generationError;
 	}
 
 	if ( response.code && response.message ) {
