@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha }}
@@ -48,4 +48,4 @@ jobs:
           tag_name: v${{ steps.vars.outputs.version }}
           files: ${{ steps.wp-deploy.outputs.zip-path }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: false 
+          prerelease: false
